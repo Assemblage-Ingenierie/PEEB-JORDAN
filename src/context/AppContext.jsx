@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useCallback } from 'react';
 import { INITIAL_BUILDINGS } from '../data/sampleData';
-import { calculateBuilding, checkEligibility, detectDataGaps } from '../engine/CalculationEngine';
+import { calculateBuilding, checkEligibility, detectDataGaps, DEFAULT_SCORE_CONFIG, SCORE_INDICATORS } from '../engine/CalculationEngine';
 
 // ─── Default parameters ────────────────────────────────────────────────────────
 const DEFAULT_PARAMS = {
@@ -15,6 +15,7 @@ const DEFAULT_PARAMS = {
     pv:               150,
     globalRenovation: 260,
   },
+  scoreConfig: DEFAULT_SCORE_CONFIG.map(c => ({ ...c })),
 };
 
 // ─── Initial state ─────────────────────────────────────────────────────────────
@@ -47,6 +48,17 @@ function reducer(state, action) {
         params: {
           ...state.params,
           unitCosts: { ...state.params.unitCosts, [action.measure]: action.value },
+        },
+      };
+
+    case 'SET_SCORE_CRITERION':
+      return {
+        ...state,
+        params: {
+          ...state.params,
+          scoreConfig: state.params.scoreConfig.map((c, i) =>
+            i === action.index ? { ...c, ...action.patch } : c
+          ),
         },
       };
 
@@ -174,7 +186,8 @@ export function AppProvider({ children }) {
       navigate:    (view, id)      => dispatch({ type: 'SET_VIEW', view, id }),
       selectBuilding: (id)         => dispatch({ type: 'SELECT_BUILDING', id }),
       setParam:    (key, value)    => dispatch({ type: 'SET_PARAM', key, value }),
-      setUnitCost: (measure, val)  => dispatch({ type: 'SET_UNIT_COST', measure, value: val }),
+      setUnitCost:      (measure, val)    => dispatch({ type: 'SET_UNIT_COST', measure, value: val }),
+      setScoreCriterion: (index, patch)  => dispatch({ type: 'SET_SCORE_CRITERION', index, patch }),
       updateBuilding: (id, patch)  => dispatch({ type: 'UPDATE_BUILDING', id, patch }),
       toggleMeasure:  (id, msr)    => dispatch({ type: 'TOGGLE_MEASURE', id, measure: msr }),
       setMeasureValue:(id, msr, field, val) =>

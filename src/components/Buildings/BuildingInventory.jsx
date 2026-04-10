@@ -202,8 +202,8 @@ export default function BuildingInventory() {
       .sort((a, b) => {
         let va, vb;
         if (sort.col === 'score') {
-          va = calculateScore(a, a.calc);
-          vb = calculateScore(b, b.calc);
+          va = calculateScore(a, a.calc, params.scoreConfig).total;
+          vb = calculateScore(b, b.calc, params.scoreConfig).total;
         } else if (sort.col === 'calc') {
           va = a.calc?.energyGain ?? 0;
           vb = b.calc?.energyGain ?? 0;
@@ -293,7 +293,7 @@ export default function BuildingInventory() {
                 const hasGap    = b.gaps.length > 0;
                 const eligible  = isPeebEligible(b);
                 const gain      = b.calc?.energyGain;
-                const score     = calculateScore(b, b.calc);
+                const score     = calculateScore(b, b.calc, params.scoreConfig).total;
                 const grant     = b.calc?._jod?.peebGrant ?? 0;
                 const grantDisplay = grant
                   ? formatCurrency(

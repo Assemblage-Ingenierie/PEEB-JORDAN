@@ -98,25 +98,55 @@ function TierBar({ buildings }) {
 }
 
 // ─── Buildings by Typology ────────────────────────────────────────────────────
-function TypologyChart({ buildings }) {
+function TypologyChart({ buildings, peebTargeted }) {
   const types = ['School', 'Hospital', 'Office', 'Municipality', 'University'];
-  const counts = types
-    .map(t => ({ t, n: buildings.filter(b => b.typology === t).length }))
-    .filter(x => x.n > 0);
-  const max = Math.max(...counts.map(x => x.n), 1);
+  const rows = types
+    .map(t => ({
+      t,
+      total:   buildings.filter(b => b.typology === t).length,
+      targeted: peebTargeted.filter(b => b.typology === t).length,
+    }))
+    .filter(x => x.total > 0);
+  const max = Math.max(...rows.map(x => x.total), 1);
 
   return (
-    <div className="space-y-2.5">
-      {counts.map(({ t, n }) => (
-        <div key={t} className="flex items-center gap-3">
-          <span className="text-xs w-24 flex-shrink-0" style={{ color: 'var(--ai-noir70)' }}>{t}</span>
-          <div className="flex-1 rounded-full h-2" style={{ background: 'var(--ai-gris-clair)' }}>
+    <div className="space-y-1">
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-3">
+        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ai-noir70)' }}>
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--ai-gris)' }} />
+          Full Database
+        </span>
+        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ai-noir70)' }}>
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--ai-rouge)' }} />
+          PEEB Targeted
+        </span>
+      </div>
+
+      {rows.map(({ t, total, targeted }) => (
+        <div key={t} className="space-y-0.5 py-1.5" style={{ borderBottom: '1px solid var(--ai-gris-clair)' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold" style={{ color: 'var(--ai-violet)' }}>{t}</span>
+            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>
+              <strong style={{ color: 'var(--ai-violet)' }}>{targeted}</strong>
+              <span className="mx-0.5">/</span>
+              {total}
+            </span>
+          </div>
+          {/* Full database bar */}
+          <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)' }}>
             <div
               className="h-2 rounded-full transition-all"
-              style={{ width: `${(n / max) * 100}%`, background: 'var(--ai-rouge)' }}
+              style={{ width: `${(total / max) * 100}%`, background: 'var(--ai-gris)' }}
             />
+            {/* PEEB targeted overlay */}
+            {targeted > 0 && (
+              <div
+                className="absolute top-0 left-0 h-2 rounded-full transition-all"
+                style={{ width: `${(targeted / max) * 100}%`, background: 'var(--ai-rouge)' }}
+              />
+            )}
           </div>
-          <span className="text-xs font-bold w-4 text-right" style={{ color: 'var(--ai-violet)' }}>{n}</span>
         </div>
       ))}
     </div>
@@ -330,7 +360,7 @@ export default function Dashboard() {
           <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ai-violet)' }}>
             Buildings by Typology
           </h3>
-          <TypologyChart buildings={buildings} />
+          <TypologyChart buildings={buildings} peebTargeted={peebTargeted} />
         </div>
       </div>
 

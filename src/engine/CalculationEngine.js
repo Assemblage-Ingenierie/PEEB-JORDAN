@@ -233,22 +233,191 @@ export function checkEligibility(building) {
   return { ineligible: !!found, donor: found || null, reason: found ? 'donor' : null };
 }
 
+// ─── Scoring indicator catalogue ─────────────────────────────────────────────
+// Each entry describes how to extract and interpret a measurable indicator.
+// direction 'higher' → more = better (score rises with value up to cap)
+// direction 'lower'  → less = better (score rises as value falls toward 0)
+
+export const SCORE_INDICATORS = {
+  energyGain: {
+    label: 'Energy Savings Potential',
+    unit: '%',
+    direction: 'higher',
+    defaultCap: 45,
+    capLabel: 'Full score at … % gain',
+    getValue: (_b, calc) => calc?.energyGain ?? 0,
+    formatDetail: (v) => `${v.toFixed(1)}% gain`,
+  },
+  area: {
+    label: 'Building Floor Area',
+    unit: 'm²',
+    direction: 'higher',
+    defaultCap: 5000,
+    capLabel: 'Full score at … m²',
+    getValue: (b) => b.area ?? 0,
+    formatDetail: (v) => v > 0 ? `${Math.round(v).toLocaleString()} m²` : 'No area data',
+  },
+  dataCompleteness: {
+    label: 'Data Completeness',
+    unit: '%',
+    direction: 'higher',
+    defaultCap: 100,
+    capLabel: 'Full score at … % fields filled',
+    getValue: (b) => {
+      const gaps = detectDataGaps(b);
+      return (REQUIRED_FIELDS.length - gaps.length) / REQUIRED_FIELDS.length * 100;
+    },
+    formatDetail: (v, b) => {
+      const gaps = detectDataGaps(b);
+      const filled = REQUIRED_FIELDS.length - gaps.length;
+      return `${filled} / ${REQUIRED_FIELDS.length} fields (${v.toFixed(0)}%)`;
+    },
+  },
+  costEffectiveness: {
+    label: 'Cost Effectiveness',
+    unit: '%/yr',
+    direction: 'higher',
+    defaultCap: 8,
+    capLabel: 'Full score at … % annual return',
+    getValue: (_b, calc) => {
+      const s = calc?._jod?.annualSavings ?? 0;
+      const c = calc?._jod?.capex ?? 0;
+      return c > 0 ? (s / c) * 100 : 0;
+    },
+    formatDetail: (v, _b, calc) => {
+      const c = calc?._jod?.capex ?? 0;
+      return c > 0 ? `${v.toFixed(1)}%/yr annual return` : 'No capex yet';
+    },
+  },
+  peebTier: {
+    label: 'PEEB Grant Tier',
+    unit: 'tier (0–4)',
+    direction: 'higher',
+    defaultCap: 4,
+    capLabel: 'Full score at Tier … (max = 4)',
+    getValue: (_b, calc) => {
+      const rates = [0, 0.5, 0.6, 0.7, 0.8];
+      return Math.max(0, rates.indexOf(calc?.tier?.grantRate ?? 0));
+    },
+    formatDetail: (_v, _b, calc) => calc?.tier?.label ?? 'Below Threshold',
+  },
+  baselineEUI: {
+    label: 'Energy Intensity (Baseline EUI)',
+    unit: 'kWh/m²/yr',
+    direction: 'higher',
+    defaultCap: 250,
+    capLabel: 'Full score at … kWh/m²/yr',
+    getValue: (b) => b.baselineEUI ?? 0,
+    formatDetail: (v) => v > 0 ? `${v} kWh/m²/yr` : 'No EUI data',
+  },
+  buildingAge: {
+    label: 'Building Age',
+    unit: 'years',
+    direction: 'higher',
+    defaultCap: 50,
+    capLabel: 'Full score at … years old',
+    getValue: (b) => b.yearBuilt ? (2025 - b.yearBuilt) : 0,
+    formatDetail: (v, b) => b.yearBuilt ? `${v} yrs (built ${b.yearBuilt})` : 'No year data',
+  },
+  co2Avoided: {
+    label: 'CO₂ Reduction Potential',
+    unit: 'tCO₂/yr',
+    direction: 'higher',
+    defaultCap: 100,
+    capLabel: 'Full score at … tCO₂/yr',
+    getValue: (_b, calc) => calc?.co2AvoidedTon ?? 0,
+    formatDetail: (v) => `${v.toFixed(1)} tCO₂/yr`,
+  },
+  annualSavings: {
+    label: 'Annual Energy Savings',
+    unit: 'JOD/yr',
+    direction: 'higher',
+    defaultCap: 50000,
+    capLabel: 'Full score at … JOD/yr',
+    getValue: (_b, calc) => calc?._jod?.annualSavings ?? 0,
+    formatDetail: (v) => `JD ${Math.round(v).toLocaleString()}/yr`,
+  },
+  peebGrant: {
+    label: 'PEEB Grant Amount',
+    unit: 'JOD',
+    direction: 'higher',
+    defaultCap: 500000,
+    capLabel: 'Full score at … JOD grant',
+    getValue: (_b, calc) => calc?._jod?.peebGrant ?? 0,
+    formatDetail: (v) => `JD ${Math.round(v).toLocaleString()} grant`,
+  },
+  payback: {
+    label: 'Payback Period',
+    unit: 'years',
+    direction: 'lower',
+    defaultCap: 25,
+    capLabel: '0 pts at … years payback',
+    getValue: (_b, calc) => calc?.paybackYears ?? Infinity,
+    formatDetail: (v, _b, calc) => calc?.paybackYears ? `${calc.paybackYears} yr payback` : 'N/A (no capex)',
+  },
+  netCapex: {
+    label: 'Net CAPEX after grants',
+    unit: 'JOD',
+    direction: 'lower',
+    defaultCap: 1000000,
+    capLabel: '0 pts at … JOD net cost',
+    getValue: (_b, calc) => {
+      const c = calc?._jod?.capex ?? 0;
+      const g = calc?._jod?.peebGrant ?? 0;
+      return Math.max(0, c - g);
+    },
+    formatDetail: (v) => v > 0 ? `JD ${Math.round(v).toLocaleString()} net` : 'Fully covered',
+  },
+};
+
 /**
- * PEEB eligibility score 0–100.
- * Combines energy performance, data quality, EUI intensity and building age.
+ * Default scoring configuration — array of 5 criteria slots.
+ * Each slot: { indicator: keyof SCORE_INDICATORS, max: pts, cap: threshold }
  */
-export function calculateScore(building, calc) {
-  const energyGain  = calc?.energyGain ?? 0;
-  const gaps        = detectDataGaps(building);
-  const baselineEUI = building.baselineEUI || 0;
-  const age         = building.yearBuilt ? (2025 - building.yearBuilt) : 0;
+export const DEFAULT_SCORE_CONFIG = [
+  { indicator: 'energyGain',        max: 30, cap: 45     },
+  { indicator: 'area',              max: 15, cap: 5000   },
+  { indicator: 'dataCompleteness',  max: 15, cap: 100    },
+  { indicator: 'costEffectiveness', max: 20, cap: 8      },
+  { indicator: 'peebTier',          max: 20, cap: 4      },
+];
 
-  const energyPts  = Math.min(energyGain / 80 * 50, 50);       // 0–50 pts
-  const qualityPts = Math.max(20 - gaps.length * 5, 0);         // 0–20 pts (−5 / gap)
-  const euiPts     = Math.min(baselineEUI / 300 * 20, 20);      // 0–20 pts
-  const agePts     = Math.min(age / 50 * 10, 10);               // 0–10 pts
+/**
+ * PEEB composite score 0–100.
+ * Returns { total, breakdown[] } — breakdown is an ordered array matching scoreConfig slots.
+ * @param {object}   building    — raw building object
+ * @param {object}   calc        — output of calculateBuilding()
+ * @param {Array}    [scoreConfig] — array of criterion slots (default: DEFAULT_SCORE_CONFIG)
+ */
+export function calculateScore(building, calc, scoreConfig = DEFAULT_SCORE_CONFIG) {
+  const cfg = Array.isArray(scoreConfig) ? scoreConfig : DEFAULT_SCORE_CONFIG;
 
-  return Math.round(energyPts + qualityPts + euiPts + agePts);
+  const breakdown = cfg.map((criterion) => {
+    const ind = SCORE_INDICATORS[criterion.indicator];
+    if (!ind) {
+      return { pts: 0, max: criterion.max, label: 'Unknown indicator', detail: '—', indicator: criterion.indicator };
+    }
+
+    const rawValue = ind.getValue(building, calc);
+    let pct;
+    if (ind.direction === 'lower') {
+      // Less is better: full score at 0, zero score at cap
+      pct = isFinite(rawValue) && rawValue > 0
+        ? Math.max(0, (criterion.cap - rawValue) / criterion.cap)
+        : (rawValue <= 0 ? 1 : 0);
+    } else {
+      // More is better: full score at cap
+      pct = criterion.cap > 0 ? Math.min(rawValue / criterion.cap, 1) : 0;
+    }
+
+    const pts = +(pct * criterion.max).toFixed(1);
+    const detail = ind.formatDetail(rawValue, building, calc);
+
+    return { pts, max: criterion.max, label: ind.label, detail, indicator: criterion.indicator, direction: ind.direction };
+  });
+
+  const total = Math.round(breakdown.reduce((s, b) => s + b.pts, 0));
+  return { total, breakdown };
 }
 
 export function suggestDefaults(typology) {

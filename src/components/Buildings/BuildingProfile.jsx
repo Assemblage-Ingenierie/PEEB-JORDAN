@@ -6,7 +6,7 @@ import {
   Sun, Building2, Square, CheckCircle2, ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR, formatCurrency } from '../../engine/CalculationEngine';
+import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
 
 // ─── Palette paliers ──────────────────────────────────────────────────────────
 const TIER_STYLE = {
@@ -257,6 +257,79 @@ function ResultsPanel({ calc, params }) {
   );
 }
 
+// ─── Score breakdown panel ────────────────────────────────────────────────────
+const SLOT_COLORS = [
+  'var(--ai-rouge)', 'var(--ai-violet)', '#22a05a', '#d97706', '#3b82f6',
+];
+
+function ScorePanel({ building, calc, scoreConfig }) {
+  const score = calculateScore(building, calc, scoreConfig);
+  const { total, breakdown } = score;
+  const totalColor = total >= 70 ? '#22a05a' : total >= 40 ? '#d97706' : 'var(--ai-rouge)';
+
+  return (
+    <div className="space-y-4">
+      {/* Total */}
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0 text-center" style={{ minWidth: 64 }}>
+          <p className="font-black leading-none" style={{ fontSize: '2.6rem', color: totalColor }}>
+            {total}
+          </p>
+          <p className="text-xs font-semibold" style={{ color: 'var(--ai-noir70)' }}>/ 100</p>
+        </div>
+        <div className="flex-1">
+          <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)' }}>
+            <div
+              className="h-3 rounded-full transition-all duration-500"
+              style={{ width: `${total}%`, background: totalColor }}
+            />
+          </div>
+          <p className="text-xs mt-1" style={{ color: 'var(--ai-noir70)' }}>
+            {total >= 70 ? 'High priority' : total >= 40 ? 'Medium priority' : 'Low priority'}
+          </p>
+        </div>
+      </div>
+
+      {/* Criterion bars — iterate array */}
+      <div className="space-y-3">
+        {breakdown.map(({ pts, max, label, detail, direction }, i) => {
+          const color = SLOT_COLORS[i % SLOT_COLORS.length];
+          const pct   = max > 0 ? (pts / max) * 100 : 0;
+          return (
+            <div key={i}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--ai-violet)' }}>
+                  {label}
+                  {direction === 'lower' && (
+                    <span className="text-xs" style={{ color: 'var(--ai-noir70)' }} title="Lower is better">↓</span>
+                  )}
+                </span>
+                <span className="flex items-center gap-2 text-xs">
+                  <span style={{ color: 'var(--ai-noir70)' }}>{detail}</span>
+                  <span className="font-black" style={{ color, minWidth: 36, textAlign: 'right' }}>
+                    {pts} <span className="font-normal" style={{ color: 'var(--ai-noir70)' }}>/ {max}</span>
+                  </span>
+                </span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)' }}>
+                <div
+                  className="h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, background: color }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Hint */}
+      <p className="text-xs" style={{ color: 'var(--ai-noir70)', borderTop: '1px dashed var(--ai-gris)', paddingTop: 8 }}>
+        Score updates live as EE measures are selected. Criteria configurable in Parameters.
+      </p>
+    </div>
+  );
+}
+
 // ─── Galerie photos ───────────────────────────────────────────────────────────
 function ImageGallery({ building }) {
   const { addImage, removeImage } = useApp();
@@ -502,11 +575,15 @@ export default function BuildingProfile() {
 
         {/* ── Colonne droite — Résultats ── */}
         <div className="xl:col-span-1 space-y-4">
-          <Section title="Résultats de calcul">
+          <Section title="Calculation Results">
             <ResultsPanel calc={calc} params={params} />
           </Section>
 
-          <Section title="Administratif">
+          <Section title="PEEB Score">
+            <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
+          </Section>
+
+          <Section title="Administrative">
             <div className="space-y-3">
               <div>
                 <label className="label">Statut</label>
