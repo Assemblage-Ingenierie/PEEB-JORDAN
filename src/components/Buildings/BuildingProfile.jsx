@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   MapPin, Clock, Calendar, Layers, Ruler, Zap,
-  Camera, X, Printer, AlertTriangle, Ban,
+  Camera, X, Printer, AlertTriangle, Ban, Info,
   Leaf, Banknote, TrendingUp, Wind, Lightbulb,
   Sun, Building2, Square, CheckCircle2, ShieldCheck,
 } from 'lucide-react';
@@ -102,11 +102,8 @@ function BuildingMiniMap({ building }) {
 
   return (
     <>
-      {/* Carte interactive (écran) */}
       <div ref={mapRef} className="no-print"
         style={{ width: '100%', height: 220, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--ai-gris)' }} />
-
-      {/* Version impression */}
       <div className="print-only"
         style={{ padding: 10, background: 'var(--ai-gris-clair)', borderRadius: 6, fontSize: 10 }}>
         <strong>Localisation :</strong> {building.address}<br />
@@ -154,11 +151,11 @@ function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
           {meta.label}
           {synergy && (
             <span className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded"
-              style={{ background: 'var(--ai-rouge)', color: 'white' }}>✦ Synergie −20%</span>
+              style={{ background: 'var(--ai-rouge)', color: 'white' }}>✦ Synergy −20%</span>
           )}
           {locked && (
             <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(48,50,62,.1)', color: 'var(--ai-violet)' }}>Réhabilitation globale</span>
+              style={{ background: 'rgba(48,50,62,.1)', color: 'var(--ai-violet)' }}>Global Refurb</span>
           )}
         </p>
       </div>
@@ -168,7 +165,6 @@ function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
         className="w-20 input text-xs text-right py-1" title="Capex JOD/m²" />
       <span className="text-xs w-14" style={{ color: 'var(--ai-noir70)' }}>JOD/m²</span>
 
-      {/* Taux d'économie — verrouillé à 0% pour les mesures GR */}
       {locked ? (
         <div className="flex items-center gap-1">
           <span className="w-14 input text-xs text-right py-1 select-none"
@@ -192,30 +188,30 @@ function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
 
 // ─── Résultats ────────────────────────────────────────────────────────────────
 function ResultsPanel({ calc, params }) {
-  if (!calc) return <p className="text-sm" style={{ color: 'var(--ai-noir70)' }}>Sélectionnez au moins une mesure EE.</p>;
+  if (!calc) return <p className="text-sm" style={{ color: 'var(--ai-noir70)' }}>Select at least one EE measure.</p>;
   const tier = calc.tier;
   const ts   = TIER_STYLE[tier.color] || TIER_STYLE.slate;
   const { currency } = params;
 
   return (
     <div className="space-y-4 fade-in">
-      {/* Bandeau palier */}
+      {/* Tier banner */}
       <div className="flex items-center justify-between p-5 rounded-xl" style={{ background: ts.bg, color: ts.fg }}>
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest opacity-70">Palier PEEB</p>
+          <p className="text-xs font-bold uppercase tracking-widest opacity-70">PEEB Tier</p>
           <p className="text-xl font-black mt-0.5">{tier.label}</p>
-          <p className="text-xs opacity-60 mt-1">Subvention sur capex EE uniquement</p>
+          <p className="text-xs opacity-60 mt-1">Grant on EE capex only</p>
         </div>
         <div className="text-right">
           <p className="text-5xl font-black leading-none">{calc.energyGain.toFixed(1)}%</p>
-          <p className="text-xs opacity-70 mt-1">Gain énergie primaire</p>
+          <p className="text-xs opacity-70 mt-1">Primary energy gain</p>
         </div>
       </div>
 
       {calc.synergyApplied && (
         <div className="ai-box-soft flex items-center gap-2 text-sm fade-in">
           <TrendingUp className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
-          <span><strong>Synergie thermique active</strong> — HVAC : capex −20%, efficacité +15%</span>
+          <span><strong>Thermal synergy active</strong> — HVAC: capex −20%, efficiency +15%</span>
         </div>
       )}
 
@@ -235,15 +231,15 @@ function ResultsPanel({ calc, params }) {
         </div>
       </div>
 
-      {/* Grille KPIs */}
+      {/* KPI grid */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: 'Capex total',       value: formatCurrency(calc.capex.total, currency),     icon: Banknote   },
-          { label: 'Subvention PEEB',   value: formatCurrency(calc.peebGrant, currency),        icon: TrendingUp },
-          { label: 'Coût net',          value: formatCurrency(calc.netCapex, currency),         icon: Banknote   },
-          { label: 'Retour invest.',     value: calc.paybackYears ? `${calc.paybackYears} ans` : '—', icon: Clock },
-          { label: 'Économies / an',    value: formatCurrency(calc.annualSavings, currency) + '/an', icon: Zap  },
-          { label: 'CO₂ évité',         value: `${calc.co2AvoidedTon} tCO₂/an`,               icon: Leaf       },
+          { label: 'Total Capex',      value: formatCurrency(calc.capex.total, currency),               icon: Banknote   },
+          { label: 'PEEB Grant',       value: formatCurrency(calc.peebGrant, currency),                  icon: TrendingUp },
+          { label: 'Net Cost',         value: formatCurrency(calc.netCapex, currency),                   icon: Banknote   },
+          { label: 'Payback',          value: calc.paybackYears ? `${calc.paybackYears} yrs` : '—',      icon: Clock      },
+          { label: 'Annual Savings',   value: formatCurrency(calc.annualSavings, currency) + '/yr',      icon: Zap        },
+          { label: 'CO₂ Avoided',      value: `${calc.co2AvoidedTon} tCO₂/yr`,                          icon: Leaf       },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="rounded-xl p-3 flex flex-col gap-1"
             style={{ background: 'var(--ai-gris-clair)', border: '1px solid var(--ai-gris)' }}>
@@ -290,7 +286,7 @@ function ScorePanel({ building, calc, scoreConfig }) {
         </div>
       </div>
 
-      {/* Criterion bars — iterate array */}
+      {/* Criterion bars */}
       <div className="space-y-3">
         {breakdown.map(({ pts, max, label, detail, direction }, i) => {
           const color = SLOT_COLORS[i % SLOT_COLORS.length];
@@ -322,10 +318,150 @@ function ScorePanel({ building, calc, scoreConfig }) {
         })}
       </div>
 
-      {/* Hint */}
       <p className="text-xs" style={{ color: 'var(--ai-noir70)', borderTop: '1px dashed var(--ai-gris)', paddingTop: 8 }}>
         Score updates live as EE measures are selected. Criteria configurable in Parameters.
       </p>
+    </div>
+  );
+}
+
+// ─── Financing panel ──────────────────────────────────────────────────────────
+function FinancingPanel({ building: b, calc }) {
+  const { updateBuilding } = useApp();
+
+  const totalCapexJOD = calc?._jod?.capex   ?? 0;
+  const peebGrantJOD  = b.peebSelected ? (calc?._jod?.peebGrant ?? 0) : 0;
+  const remaining     = Math.max(0, totalCapexJOD - peebGrantJOD);
+
+  // Derive initial percentages from stored amounts
+  const deriveInitPcts = (bld, rem) => {
+    if (rem <= 0) return { afd: 0, national: 0, others: 0 };
+    return {
+      afd:      Math.round((bld.afdLoan        || 0) / rem * 100),
+      national: Math.round((bld.nationalBudget || 0) / rem * 100),
+      others:   Math.round((bld.others         || 0) / rem * 100),
+    };
+  };
+
+  const [pcts, setPcts] = useState(() => deriveInitPcts(b, remaining));
+
+  // Reset percentages when building changes
+  useEffect(() => {
+    setPcts(deriveInitPcts(b, remaining));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [b.id]);
+
+  const pctTotal = pcts.afd + pcts.national + pcts.others;
+  const isValid  = pctTotal === 100;
+
+  const handlePct = (key, raw) => {
+    const val  = Math.max(0, Math.min(100, parseInt(raw) || 0));
+    const next = { ...pcts, [key]: val };
+    setPcts(next);
+    if (remaining > 0) {
+      updateBuilding(b.id, {
+        afdLoan:        Math.round(remaining * next.afd      / 100),
+        nationalBudget: Math.round(remaining * next.national / 100),
+        others:         Math.round(remaining * next.others   / 100),
+      });
+    }
+  };
+
+  const fmtJOD = (v) => `JD ${Math.round(v).toLocaleString()}`;
+
+  const FUNDING_ROWS = [
+    { key: 'afd',      label: 'AFD Loan %'        },
+    { key: 'national', label: 'National Budget %'  },
+    { key: 'others',   label: 'Others %'           },
+  ];
+
+  return (
+    <div className="space-y-3">
+      {/* Summary */}
+      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--ai-gris)' }}>
+        <div className="flex justify-between items-center px-3 py-2"
+          style={{ borderBottom: '1px solid var(--ai-gris-clair)', background: 'white' }}>
+          <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>Total CAPEX</span>
+          <span className="text-sm font-black" style={{ color: 'var(--ai-violet)' }}>
+            {totalCapexJOD > 0 ? fmtJOD(totalCapexJOD) : '—'}
+          </span>
+        </div>
+
+        {b.peebSelected && peebGrantJOD > 0 && (
+          <div className="flex justify-between items-center px-3 py-2"
+            style={{ borderBottom: '1px solid var(--ai-gris-clair)', background: 'white' }}>
+            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>PEEB Grant</span>
+            <span className="text-sm font-bold" style={{ color: '#22a05a' }}>
+              − {fmtJOD(peebGrantJOD)}
+            </span>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center px-3 py-2"
+          style={{ background: 'var(--ai-gris)' }}>
+          <span className="text-xs font-bold" style={{ color: 'var(--ai-violet)' }}>Remaining to finance</span>
+          <span className="text-sm font-black" style={{ color: 'var(--ai-rouge)' }}>
+            {totalCapexJOD > 0 ? fmtJOD(remaining) : '—'}
+          </span>
+        </div>
+      </div>
+
+      {totalCapexJOD === 0 ? (
+        <p className="text-xs" style={{ color: 'var(--ai-noir70)' }}>
+          Select EE or GR measures to compute CAPEX before distributing funding.
+        </p>
+      ) : (
+        <>
+          <p className="text-xs font-semibold" style={{ color: 'var(--ai-violet)' }}>
+            Distribute remaining to finance (must sum to 100%):
+          </p>
+
+          {!isValid && (
+            <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2"
+              style={{ background: 'var(--ai-rouge-clair)', border: '1px solid var(--ai-rouge)' }}>
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+              <span style={{ color: 'var(--ai-rouge)' }}>
+                Percentages must sum to 100%. Current total: <strong>{pctTotal}%</strong>.
+              </span>
+            </div>
+          )}
+
+          {FUNDING_ROWS.map(({ key, label }) => (
+            <div key={key} className="rounded-lg p-3"
+              style={{ background: 'var(--ai-gris)', border: '1px solid var(--ai-gris-clair)' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold" style={{ color: 'var(--ai-violet)' }}>{label}</label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number" min="0" max="100" step="1"
+                    value={pcts[key]}
+                    onChange={e => handlePct(key, e.target.value)}
+                    className="input w-16 text-right text-sm py-0.5"
+                  />
+                  <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
+                </div>
+              </div>
+              <p className="text-xs font-bold text-right" style={{ color: 'var(--ai-rouge)' }}>
+                = {fmtJOD(remaining * pcts[key] / 100)}
+              </p>
+            </div>
+          ))}
+
+          {/* Total indicator */}
+          <div className="flex justify-between items-center px-3 py-2 rounded-lg"
+            style={{
+              background: isValid ? '#dcfce7' : 'var(--ai-rouge-clair)',
+              border: `1px solid ${isValid ? '#22a05a' : 'var(--ai-rouge)'}`,
+            }}>
+            <span className="text-xs font-bold" style={{ color: isValid ? '#16a34a' : 'var(--ai-rouge)' }}>
+              Total
+            </span>
+            <span className="text-sm font-black" style={{ color: isValid ? '#16a34a' : 'var(--ai-rouge)' }}>
+              {pctTotal}% {isValid ? '✓' : '⚠'}
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -356,7 +492,7 @@ function ImageGallery({ building }) {
           onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ai-rouge)'; e.currentTarget.style.color = 'var(--ai-rouge)'; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--ai-gris)'; e.currentTarget.style.color = 'var(--ai-noir70)'; }}>
           <Camera className="w-5 h-5" />
-          <span className="text-xs">Ajouter</span>
+          <span className="text-xs">Add photo</span>
         </button>
       </div>
       <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
@@ -381,50 +517,50 @@ function PrintDatasheet({ building: b, calc, params }) {
         </div>
       </div>
 
-      <h2>Informations bâtiment</h2>
+      <h2>Building Information</h2>
       <table><tbody>
         {[
-          ['ID', b.id], ['Typologie', b.typology], ['Surface', `${b.area} m²`],
-          ['Année', b.yearBuilt], ['Niveaux', b.floors],
-          ['EUI de référence', `${b.baselineEUI} kWh/m²/an`],
-          ['Localisation', b.address],
-          ['Coordonnées GPS', b.coordinates?.join(', ')],
-          ['Horaires', b.operatingHours],
-          ['Financement', b.fundingSource || 'Aucun'],
+          ['ID', b.id], ['Typology', b.typology], ['Floor Area', `${b.area} m²`],
+          ['Year Built', b.yearBuilt], ['Floors', b.floors],
+          ['Baseline EUI', `${b.baselineEUI} kWh/m²/yr`],
+          ['Location', b.address],
+          ['GPS Coordinates', b.coordinates?.join(', ')],
+          ['Operating Hours', b.operatingHours],
+          ['Funding Source', b.fundingSource || 'None'],
+          ['PEEB Selected', b.peebSelected ? 'Yes' : 'No'],
         ].map(([k, v]) => (
           <tr key={k}><td style={{ color:'#4D4D4D', padding:'4px 8px', width:'35%' }}>{k}</td>
           <td style={{ padding:'4px 8px', fontWeight:600 }}>{v ?? '—'}</td></tr>
         ))}
       </tbody></table>
 
-      {/* Localisation */}
       {b.coordinates?.length === 2 && (
         <>
-          <h2>Localisation</h2>
+          <h2>Location</h2>
           <p style={{ fontSize:'9pt' }}>
-            Coordonnées GPS : {b.coordinates.join(', ')}<br />
-            Adresse : {b.address}
+            GPS: {b.coordinates.join(', ')}<br />
+            Address: {b.address}
           </p>
         </>
       )}
 
       {calc && (<>
-        <h2>Résultats énergétiques — {tier?.label}</h2>
+        <h2>Energy Results — {tier?.label}</h2>
         <table>
-          <thead><tr><th>Indicateur</th><th style={{ textAlign:'right' }}>Valeur</th></tr></thead>
+          <thead><tr><th>Indicator</th><th style={{ textAlign:'right' }}>Value</th></tr></thead>
           <tbody>
             {[
-              ['Gain énergie primaire', `${calc.energyGain.toFixed(1)}%`],
-              ['Taux subvention PEEB', `${Math.round(tier.grantRate * 100)}%`],
-              ['Capex EE', formatCurrency(calc.capex.ee.total, params.currency)],
-              ['Capex Réhabilitation globale', formatCurrency(calc.capex.gr.total, params.currency)],
-              ['Capex total', formatCurrency(calc.capex.total, params.currency)],
-              ['Subvention PEEB (sur capex EE)', formatCurrency(calc.peebGrant, params.currency)],
-              ['Coût net', formatCurrency(calc.netCapex, params.currency)],
-              ['Énergie économisée', `${calc.energySavedKWh.toLocaleString()} kWh/an`],
-              ['Économies financières', `${formatCurrency(calc.annualSavings, params.currency)}/an`],
-              ['CO₂ évité', `${calc.co2AvoidedTon} tCO₂/an`],
-              ['Retour sur investissement', calc.paybackYears ? `${calc.paybackYears} ans` : '—'],
+              ['Primary Energy Gain', `${calc.energyGain.toFixed(1)}%`],
+              ['PEEB Grant Rate', `${Math.round(tier.grantRate * 100)}%`],
+              ['EE Capex', formatCurrency(calc.capex.ee.total, params.currency)],
+              ['GR Capex', formatCurrency(calc.capex.gr.total, params.currency)],
+              ['Total Capex', formatCurrency(calc.capex.total, params.currency)],
+              ['PEEB Grant (on EE capex)', formatCurrency(calc.peebGrant, params.currency)],
+              ['Net Cost', formatCurrency(calc.netCapex, params.currency)],
+              ['Energy Saved', `${calc.energySavedKWh.toLocaleString()} kWh/yr`],
+              ['Annual Savings', `${formatCurrency(calc.annualSavings, params.currency)}/yr`],
+              ['CO₂ Avoided', `${calc.co2AvoidedTon} tCO₂/yr`],
+              ['Payback', calc.paybackYears ? `${calc.paybackYears} yrs` : '—'],
             ].map(([k, v], i) => (
               <tr key={k} style={{ background: i%2===0?'white':'#F2F2F2' }}>
                 <td style={{ padding:'5px 8px', color:'#4D4D4D' }}>{k}</td>
@@ -436,7 +572,7 @@ function PrintDatasheet({ building: b, calc, params }) {
       </>)}
 
       {b.siteObservations && (<>
-        <h2>Observations de site</h2>
+        <h2>Site Observations</h2>
         <p style={{ fontSize:'9pt', lineHeight:1.6 }}>{b.siteObservations}</p>
       </>)}
 
@@ -455,111 +591,189 @@ export default function BuildingProfile() {
   if (!selectedBuilding) {
     return (
       <div className="flex items-center justify-center h-64" style={{ color: 'var(--ai-noir70)' }}>
-        <p>Aucun bâtiment sélectionné. Cliquez une ligne dans l'inventaire.</p>
+        <p>No building selected. Click a row in the inventory.</p>
       </div>
     );
   }
 
   const b    = selectedBuilding;
   const calc = b.calc;
+  const ineligible = b.eligibility.ineligible;
 
   return (
     <div className="space-y-6 fade-in">
-      {/* Alertes */}
-      {b.eligibility.ineligible && (
+      {/* Alerts */}
+      {ineligible && (
         <div className="ai-box-soft flex items-center gap-3 text-sm">
           <Ban className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
-          <span><strong>Inéligible à la subvention PEEB</strong> — Financement donateur <strong>{b.eligibility.donor}</strong> déjà engagé.</span>
+          <span>
+            <strong>Ineligible for PEEB grant</strong>
+            {b.eligibility.reason === 'donor' && <> — donor funding already engaged: <strong>{b.eligibility.donor}</strong></>}
+            {b.eligibility.reason === 'manual' && <> — manually marked as ineligible</>}
+          </span>
         </div>
       )}
       {b.gaps.length > 0 && (
         <div className="ai-box-synth flex items-center gap-3 text-sm">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: '#d97706' }} />
-          <span><strong>{b.gaps.length} donnée(s) manquante(s) :</strong> {b.gaps.join(', ')} — valeurs suggérées en <em>italique</em>.</span>
+          <span><strong>{b.gaps.length} missing field(s):</strong> {b.gaps.join(', ')} — suggested values shown in <em>italics</em>.</span>
         </div>
       )}
 
       {/* Action bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="badge" style={{ background: b.eligibility.ineligible ? 'var(--ai-rouge-clair)' : 'var(--ai-rouge)', color: b.eligibility.ineligible ? 'var(--ai-rouge)' : 'white' }}>
-            {b.eligibility.ineligible ? 'Inéligible' : 'Éligible'}
+          <span className="badge" style={{
+            background: ineligible ? 'var(--ai-rouge-clair)' : (b.peebSelected ? 'var(--ai-rouge)' : 'var(--ai-gris)'),
+            color:      ineligible ? 'var(--ai-rouge)'       : (b.peebSelected ? 'white'           : 'var(--ai-violet)'),
+          }}>
+            {ineligible ? 'Ineligible' : b.peebSelected ? 'PEEB Selected' : 'Eligible'}
           </span>
           <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>{b.typology}</span>
           <span className="badge" style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}>{b.governorate}</span>
         </div>
         <button onClick={() => window.print()} className="btn-secondary no-print">
-          <Printer className="w-4 h-4" /> Exporter PDF
+          <Printer className="w-4 h-4" /> Export PDF
         </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-        {/* ── Colonne gauche ── */}
+        {/* ── Left column ── */}
         <div className="xl:col-span-1 space-y-4">
-          <Section title="Informations bâtiment">
+
+          {/* Building info */}
+          <Section title="Building Information">
             <div className="space-y-1">
-              <InfoRow label="ID"            value={b.id}                                        icon={Building2} />
-              <InfoRow label="Adresse"       value={b.address}                                   icon={MapPin}    />
-              <InfoRow label="Coordonnées"   value={b.coordinates?.join(', ')}                   icon={MapPin}    />
-              <InfoRow label="Année"         value={b.yearBuilt}                                 icon={Calendar}  />
-              <InfoRow label="Niveaux"       value={b.floors}                                    icon={Layers}    />
-              <InfoRow label="Surface"       value={b.area ? `${b.area.toLocaleString()} m²` : null} icon={Ruler} italic={!b.area} />
-              <InfoRow label="EUI référence" value={b.baselineEUI ? `${b.baselineEUI} kWh/m²/an` : null} icon={Zap} italic={!b.baselineEUI} />
-              <InfoRow label="Horaires"      value={b.operatingHours}                            icon={Clock}     />
-              <InfoRow label="Financement"   value={b.fundingSource || 'Aucun'}                  icon={Banknote}  />
+              <InfoRow label="ID"             value={b.id}                                        icon={Building2} />
+              <InfoRow label="Address"        value={b.address}                                   icon={MapPin}    />
+              <InfoRow label="Coordinates"    value={b.coordinates?.join(', ')}                   icon={MapPin}    />
+              <InfoRow label="Year Built"     value={b.yearBuilt}                                 icon={Calendar}  />
+              <InfoRow label="Floors"         value={b.floors}                                    icon={Layers}    />
+              <InfoRow label="Floor Area"     value={b.area ? `${b.area.toLocaleString()} m²` : null} icon={Ruler} italic={!b.area} />
+              <InfoRow label="Baseline EUI"   value={b.baselineEUI ? `${b.baselineEUI} kWh/m²/yr` : null} icon={Zap} italic={!b.baselineEUI} />
+              <InfoRow label="Operating Hrs"  value={b.operatingHours}                            icon={Clock}     />
+              <InfoRow label="Funding Source" value={b.fundingSource || 'None'}                   icon={Banknote}  />
             </div>
           </Section>
 
-          <Section title="Localisation">
+          {/* ── PEEB Eligibility ── */}
+          <Section title="PEEB Eligibility">
+            <div className="space-y-4">
+              {/* Auto-detection status */}
+              {b.eligibility.reason === 'donor' && (
+                <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2"
+                  style={{ background: 'var(--ai-rouge-clair)', border: '1px solid var(--ai-rouge)' }}>
+                  <Ban className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+                  <span style={{ color: 'var(--ai-rouge)' }}>
+                    Donor funding detected (<strong>{b.eligibility.donor}</strong>) — building is auto-excluded from PEEB.
+                  </span>
+                </div>
+              )}
+
+              {/* Manual ineligibility checkbox */}
+              <label className="flex items-start gap-3 cursor-pointer rounded-lg p-3 transition-colors"
+                style={{
+                  background: b.manuallyIneligible ? 'var(--ai-rouge-clair)' : 'var(--ai-gris)',
+                  border: `1px solid ${b.manuallyIneligible ? 'var(--ai-rouge)' : 'var(--ai-gris-clair)'}`,
+                }}>
+                <input
+                  type="checkbox"
+                  checked={b.manuallyIneligible || false}
+                  onChange={e => updateBuilding(b.id, { manuallyIneligible: e.target.checked })}
+                  className="mt-0.5 flex-shrink-0"
+                  style={{ accentColor: 'var(--ai-rouge)', width: 16, height: 16 }}
+                />
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--ai-rouge)' }}>
+                    Manually mark as ineligible
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ai-noir70)' }}>
+                    Overrides all automatic eligibility checks
+                  </p>
+                </div>
+              </label>
+
+              {/* PEEB selection — only if fully eligible */}
+              {!ineligible && (
+                <label className="flex items-start gap-3 cursor-pointer rounded-lg p-3 transition-colors"
+                  style={{
+                    background: b.peebSelected ? '#dcfce7' : 'var(--ai-gris)',
+                    border: `1px solid ${b.peebSelected ? '#22a05a' : 'var(--ai-gris-clair)'}`,
+                  }}>
+                  <input
+                    type="checkbox"
+                    checked={b.peebSelected || false}
+                    onChange={e => updateBuilding(b.id, { peebSelected: e.target.checked })}
+                    className="mt-0.5 flex-shrink-0"
+                    style={{ accentColor: '#22a05a', width: 16, height: 16 }}
+                  />
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: '#16a34a' }}>
+                      Include in PEEB program
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--ai-noir70)' }}>
+                      PEEB grant will be applied to remaining-to-finance calculation
+                    </p>
+                  </div>
+                </label>
+              )}
+            </div>
+          </Section>
+
+          <Section title="Location">
             <BuildingMiniMap building={b} />
           </Section>
 
-          <Section title="Financements complémentaires (JOD)">
-            <div className="space-y-3">
-              {[
-                { field: 'afdLoan',        label: 'Prêt AFD (parties non-EE)' },
-                { field: 'nationalBudget', label: 'Budget national'            },
-                { field: 'others',         label: 'Autres financements'        },
-              ].map(({ field, label }) => (
-                <div key={field}>
-                  <label className="label">{label}</label>
-                  <input type="number" min="0" step="1000" value={b[field] || 0}
-                    onChange={e => updateBuilding(b.id, { [field]: parseFloat(e.target.value) || 0 })}
-                    className="input" />
-                </div>
-              ))}
-            </div>
+          {/* ── Financing ── */}
+          <Section title="Complementary Financing (JOD)">
+            <FinancingPanel building={b} calc={calc} />
           </Section>
 
-          <Section title="Observations de site">
+          <Section title="Site Observations">
             <textarea rows={5} value={b.siteObservations}
               onChange={e => updateBuilding(b.id, { siteObservations: e.target.value })}
               className="input resize-none text-sm leading-relaxed"
-              placeholder="Conditions de site, observations, contraintes…" />
+              placeholder="Site conditions, observations, constraints…" />
           </Section>
 
-          <Section title="Galerie photos">
+          <Section title="Photo Gallery">
             <ImageGallery building={b} />
           </Section>
         </div>
 
-        {/* ── Colonne centrale — Mesures ── */}
+        {/* ── Centre column — Measures ── */}
         <div className="xl:col-span-1 space-y-4">
-          <Section title="Mesures — Efficacité énergétique">
+
+          <Section title="Measures — Energy Efficiency">
+            {/* ── Thermal Synergy explanation ── */}
+            <div className="flex items-start gap-3 rounded-lg p-3 mb-3 text-xs"
+              style={{
+                background: calc?.synergyApplied ? 'var(--ai-rouge-clair)' : 'var(--ai-gris)',
+                border: `1px solid ${calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-gris-clair)'}`,
+              }}>
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-noir70)' }} />
+              <div>
+                <p className="font-bold mb-0.5" style={{ color: calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+                  Thermal Synergy {calc?.synergyApplied ? '— Active ✦' : ''}
+                </p>
+                <p style={{ color: 'var(--ai-noir70)', lineHeight: 1.5 }}>
+                  When insulation or window replacement is selected, HVAC capex is reduced by 20%
+                  (smaller equipment needed) and HVAC efficiency improves by 15%. This reflects
+                  the reduced thermal load on the HVAC system.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               {MEASURE_KEYS_EE.map(key => (
                 <MeasureRow key={key} buildingId={b.id} measureKey={key}
                   measure={b.measures[key]} synApplied={calc?.synergyApplied} />
               ))}
             </div>
-            <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>
-              ✦ Isolation ou Fenêtres → <strong>Synergie thermique</strong> : HVAC capex −20%, efficacité +15%.
-              La subvention PEEB s'applique au capex EE uniquement.
-            </p>
           </Section>
 
-          <Section title="Mesures — Réhabilitation globale">
+          <Section title="Measures — Global Refurbishment">
             <div className="space-y-2">
               {MEASURE_KEYS_GR.map(key => (
                 <MeasureRow key={key} buildingId={b.id} measureKey={key}
@@ -567,32 +781,32 @@ export default function BuildingProfile() {
               ))}
             </div>
             <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>
-              Ces mesures contribuent au capex total mais n'améliorent pas le gain EE.
-              Elles peuvent être financées par le Prêt AFD (parties non-EE).
+              These measures add to total capex but do not improve energy gain.
+              They can be financed via the AFD Loan (non-EE portion).
             </p>
           </Section>
         </div>
 
-        {/* ── Colonne droite — Résultats ── */}
+        {/* ── Right column — Results & Score ── */}
         <div className="xl:col-span-1 space-y-4">
           <Section title="Calculation Results">
             <ResultsPanel calc={calc} params={params} />
           </Section>
 
-          <Section title="PEEB Score">
+          <Section title="PEEB Priority Score">
             <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
           </Section>
 
           <Section title="Administrative">
             <div className="space-y-3">
               <div>
-                <label className="label">Statut</label>
+                <label className="label">Status</label>
                 <select value={b.status} onChange={e => updateBuilding(b.id, { status: e.target.value })} className="input">
                   {['Assessed','Pending Audit','Ineligible'].map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Priorité</label>
+                <label className="label">Priority</label>
                 <select value={b.priority} onChange={e => updateBuilding(b.id, { priority: e.target.value })} className="input">
                   {['High','Medium','Low'].map(p => <option key={p}>{p}</option>)}
                 </select>
@@ -606,4 +820,3 @@ export default function BuildingProfile() {
     </div>
   );
 }
-
