@@ -1,46 +1,64 @@
 import {
   Building2, Leaf, Banknote, TrendingUp,
-  AlertTriangle, CheckCircle, Clock, XCircle,
-  BarChart3, ArrowRight,
+  AlertTriangle, CheckCircle, BarChart3, Layers, Zap,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { aggregateKPIs, formatCurrency, getFundingTier } from '../../engine/CalculationEngine';
+import { formatCurrency, getFundingTier } from '../../engine/CalculationEngine';
 
-// ─── Palette Assemblage pour les tiers ────────────────────────────────────────
-// Progression gris → rouge clair → rouge → violet (du plus bas au plus élevé)
+// ─── Tier colours (Assemblage palette) ────────────────────────────────────────
 const TIER_HEX = {
-  slate:  '#DFE4E8',  // below threshold — gris
-  amber:  '#F9E1E3',  // Tier 1 50%     — rouge clair
-  blue:   '#f07070',  // Tier 2 60%     — rouge moyen
-  green:  '#E30513',  // Tier 3 70%     — rouge vif
-  purple: '#30323E',  // Tier 4 80%     — violet sombre
+  slate:  '#DFE4E8',
+  amber:  '#F9E1E3',
+  blue:   '#f07070',
+  green:  '#E30513',
+  purple: '#30323E',
 };
 
-// ─── KPI Card ──────────────────────────────────────────────────────────────────
-function KpiCard({ icon: Icon, bg, label, value, sub }) {
+// ─── Compact KPI card — single-row: icon | value + label ──────────────────────
+function CompactKpi({ icon: Icon, bg, value, label }) {
   return (
-    <div className="kpi-card fade-in">
+    <div className="card flex items-center gap-3 py-2.5 px-4" style={{ minWidth: 0 }}>
       <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center mb-2 flex-shrink-0"
+        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: bg }}
       >
-        <Icon className="w-5 h-5 text-white" />
+        <Icon className="w-4 h-4 text-white" />
       </div>
-      <p className="text-2xl font-bold leading-tight" style={{ color: 'var(--ai-violet)' }}>{value}</p>
-      {sub && <p className="text-xs" style={{ color: 'var(--ai-noir70)' }}>{sub}</p>}
-      <p className="text-xs font-semibold mt-1" style={{ color: 'var(--ai-noir70)' }}>{label}</p>
+      <div className="min-w-0">
+        <p className="font-bold text-sm leading-tight truncate" style={{ color: 'var(--ai-violet)' }}>
+          {value}
+        </p>
+        <p className="text-xs truncate" style={{ color: 'var(--ai-noir70)' }}>{label}</p>
+      </div>
     </div>
   );
 }
 
-// ─── Funding Tier Distribution Bar ────────────────────────────────────────────
+// ─── Labeled KPI row ──────────────────────────────────────────────────────────
+function KpiRow({ title, kpis }) {
+  const gridClass = kpis.length === 5
+    ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3'
+    : 'grid grid-cols-2 lg:grid-cols-4 gap-3';
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--ai-rouge)' }}>
+        {title}
+      </p>
+      <div className={gridClass}>
+        {kpis.map((kpi, i) => <CompactKpi key={i} {...kpi} />)}
+      </div>
+    </div>
+  );
+}
+
+// ─── PEEB Tier Distribution bar ───────────────────────────────────────────────
 function TierBar({ buildings }) {
   const tiers = buildings
     .filter(b => !b.eligibility.ineligible)
     .map(b => getFundingTier(b.calc?.energyGain ?? 0));
 
   const tierCounts = tiers.reduce((acc, t) => {
-    if (!acc[t.label]) acc[t.label] = { count: 0, color: t.color, rate: t.grantRate };
+    if (!acc[t.label]) acc[t.label] = { count: 0, color: t.color };
     acc[t.label].count++;
     return acc;
   }, {});
@@ -51,22 +69,18 @@ function TierBar({ buildings }) {
     <div className="card fade-in">
       <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
         <BarChart3 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-        Répartition par palier PEEB
+        PEEB Tier Distribution
       </h3>
-
-      {/* Barre empilée */}
       <div className="flex h-5 rounded-full overflow-hidden gap-px mb-3">
         {Object.values(tierCounts).map((t, i) => (
           <div
             key={i}
             className="transition-all"
             style={{ width: `${(t.count / total) * 100}%`, background: TIER_HEX[t.color] }}
-            title={`${t.count} bâtiment(s)`}
+            title={`${t.count} building(s)`}
           />
         ))}
       </div>
-
-      {/* Légende */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {Object.entries(tierCounts).map(([label, t]) => (
           <div key={label} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ai-noir70)' }}>
@@ -83,176 +97,279 @@ function TierBar({ buildings }) {
   );
 }
 
-// ─── Top buildings ─────────────────────────────────────────────────────────────
-const STATUS_BADGE = {
-  'Assessed':      'badge-green',
-  'Pending Audit': 'badge-amber',
-  'Ineligible':    'badge-red',
-};
-
-function TopBuildings({ buildings, navigate, selectBuilding }) {
-  const sorted = [...buildings]
-    .filter(b => !b.eligibility.ineligible && b.calc)
-    .sort((a, b) => (b.calc.energyGain ?? 0) - (a.calc.energyGain ?? 0))
-    .slice(0, 5);
+// ─── Buildings by Typology ────────────────────────────────────────────────────
+function TypologyChart({ buildings }) {
+  const types = ['School', 'Hospital', 'Office', 'Municipality', 'University'];
+  const counts = types
+    .map(t => ({ t, n: buildings.filter(b => b.typology === t).length }))
+    .filter(x => x.n > 0);
+  const max = Math.max(...counts.map(x => x.n), 1);
 
   return (
-    <div className="card fade-in">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
-          <TrendingUp className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-          Top bâtiments éligibles par gain d'énergie
-        </h3>
-        <button
-          onClick={() => navigate('inventory')}
-          className="text-xs font-semibold flex items-center gap-1 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--ai-rouge)' }}
-        >
-          Voir tout <ArrowRight className="w-3 h-3" />
-        </button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--ai-rouge)' }}>
-              <th className="th">Bâtiment</th>
-              <th className="th text-right">Gain %</th>
-              <th className="th text-right">Palier</th>
-              <th className="th">Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map(b => {
-              const tier = getFundingTier(b.calc?.energyGain ?? 0);
-              return (
-                <tr
-                  key={b.id}
-                  className="tr-hover"
-                  style={{ borderBottom: '1px solid var(--ai-gris-clair)' }}
-                  onClick={() => selectBuilding(b.id)}
-                >
-                  <td className="td font-semibold" style={{ color: 'var(--ai-rouge)' }}>{b.name}</td>
-                  <td className="td text-right font-bold">{b.calc?.energyGain?.toFixed(1) ?? '—'}%</td>
-                  <td className="td text-right">
-                    <span
-                      className="badge"
-                      style={{ background: TIER_HEX[tier.color], color: ['green','purple'].includes(tier.color) ? 'white' : 'var(--ai-violet)', border: 'none' }}
-                    >
-                      {Math.round(tier.grantRate * 100)}%
-                    </span>
-                  </td>
-                  <td className="td">
-                    <span className={STATUS_BADGE[b.status] || 'badge-slate'}>{b.status}</span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-2.5">
+      {counts.map(({ t, n }) => (
+        <div key={t} className="flex items-center gap-3">
+          <span className="text-xs w-24 flex-shrink-0" style={{ color: 'var(--ai-noir70)' }}>{t}</span>
+          <div className="flex-1 rounded-full h-2" style={{ background: 'var(--ai-gris-clair)' }}>
+            <div
+              className="h-2 rounded-full transition-all"
+              style={{ width: `${(n / max) * 100}%`, background: 'var(--ai-rouge)' }}
+            />
+          </div>
+          <span className="text-xs font-bold w-4 text-right" style={{ color: 'var(--ai-violet)' }}>{n}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ─── Dashboard principal ───────────────────────────────────────────────────────
-export default function Dashboard() {
-  const { buildings, params, navigate, selectBuilding } = useApp();
+// ─── PEEB Targeted Buildings table ───────────────────────────────────────────
+function PeebTargetedTable({ buildings, selectBuilding, params }) {
+  const targeted = buildings
+    .filter(b => !b.eligibility.ineligible && (b.calc?.tier?.grantRate ?? 0) > 0)
+    .sort((a, b) => (b.calc?.energyGain ?? 0) - (a.calc?.energyGain ?? 0));
 
-  const eligible   = buildings.filter(b => !b.eligibility.ineligible);
-  const assessed   = buildings.filter(b => b.status === 'Assessed');
-  const pending    = buildings.filter(b => b.status === 'Pending Audit');
-  const ineligible = buildings.filter(b => b.status === 'Ineligible');
-  const gapped     = buildings.filter(b => b.gaps.length > 0);
+  if (!targeted.length) {
+    return (
+      <p className="text-sm py-2" style={{ color: 'var(--ai-noir70)' }}>
+        No buildings have reached Tier 1 yet. Select EE measures in building profiles to qualify.
+      </p>
+    );
+  }
 
-  const kpis      = aggregateKPIs(eligible.map(b => ({ ...b })));
   const { currency, exchangeRate } = params;
 
-  const grantDisplay = formatCurrency(
-    currency === 'EUR' ? +(kpis.totalPEEBGrant * exchangeRate).toFixed(0) : kpis.totalPEEBGrant,
-    currency, true
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr style={{ background: 'var(--ai-violet)', borderBottom: '2px solid var(--ai-rouge)' }}>
+            {['Building', 'Type', 'Governorate', 'Energy Gain', 'PEEB Tier', 'Grant'].map(h => (
+              <th key={h} className="th" style={{ color: 'white' }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {targeted.map((b, i) => {
+            const tier  = getFundingTier(b.calc?.energyGain ?? 0);
+            const grant = b.calc?._jod?.peebGrant ?? 0;
+            const grantDisplay = formatCurrency(
+              currency === 'EUR' ? +(grant * exchangeRate).toFixed(0) : grant,
+              currency, true
+            );
+            return (
+              <tr
+                key={b.id}
+                className="tr-hover"
+                style={{
+                  background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
+                  borderBottom: '1px solid var(--ai-gris-clair)',
+                }}
+                onClick={() => selectBuilding(b.id)}
+              >
+                <td className="td font-semibold" style={{ color: 'var(--ai-rouge)' }}>{b.name}</td>
+                <td className="td">
+                  <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>
+                    {b.typology}
+                  </span>
+                </td>
+                <td className="td" style={{ color: 'var(--ai-noir70)' }}>{b.governorate}</td>
+                <td className="td text-right font-bold" style={{ color: 'var(--ai-violet)' }}>
+                  {b.calc?.energyGain?.toFixed(1) ?? '—'}%
+                </td>
+                <td className="td">
+                  <span
+                    className="badge"
+                    style={{
+                      background: TIER_HEX[tier.color],
+                      color: ['green', 'purple'].includes(tier.color) ? 'white' : 'var(--ai-violet)',
+                    }}
+                  >
+                    {tier.label}
+                  </span>
+                </td>
+                <td className="td text-right font-semibold" style={{ color: 'var(--ai-violet)' }}>
+                  {grantDisplay}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
+}
+
+// ─── Alerts section ───────────────────────────────────────────────────────────
+function AlertsSection({ buildings }) {
+  const gapped     = buildings.filter(b => b.gaps.length > 0);
+  const ineligible = buildings.filter(b => b.eligibility.ineligible);
+
+  if (!gapped.length && !ineligible.length) {
+    return (
+      <div className="flex items-center gap-2 text-sm" style={{ color: '#22a05a' }}>
+        <CheckCircle className="w-4 h-4" />
+        All buildings have complete data and no conflicts.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {gapped.map(b => (
+        <div
+          key={`gap-${b.id}`}
+          className="flex items-start gap-3 px-4 py-3 rounded-lg text-sm"
+          style={{ background: 'var(--ai-rouge-clair)', borderLeft: '3px solid var(--ai-rouge)' }}
+        >
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-rouge)' }} />
+          <div>
+            <span className="font-semibold" style={{ color: 'var(--ai-violet)' }}>{b.name}</span>
+            <span className="ml-2" style={{ color: 'var(--ai-noir70)' }}>
+              Missing data: <em>{b.gaps.join(', ')}</em>
+            </span>
+          </div>
+        </div>
+      ))}
+      {ineligible.map(b => (
+        <div
+          key={`inelig-${b.id}`}
+          className="flex items-start gap-3 px-4 py-3 rounded-lg text-sm"
+          style={{ background: 'var(--ai-gris-clair)', borderLeft: '3px solid var(--ai-gris)' }}
+        >
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-noir70)' }} />
+          <div>
+            <span className="font-semibold" style={{ color: 'var(--ai-violet)' }}>{b.name}</span>
+            <span className="ml-2" style={{ color: 'var(--ai-noir70)' }}>
+              Ineligible — donor already engaged: <strong>{b.eligibility.donor}</strong>
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+export default function Dashboard() {
+  const { buildings, params, selectBuilding } = useApp();
+  const { currency, exchangeRate } = params;
+
+  // PEEB targeted: eligible AND tier >= 1 (grantRate > 0)
+  const peebTargeted = buildings.filter(
+    b => !b.eligibility.ineligible && (b.calc?.tier?.grantRate ?? 0) > 0
+  );
+
+  // Currency conversion helper
+  const toDisp = (jod) => currency === 'EUR' ? +(jod * exchangeRate).toFixed(0) : jod;
+  const fmt    = (jod) => formatCurrency(toDisp(jod), currency, true);
+
+  // ── Full database ────────────────────────────────────────────────────────────
+  const fullArea       = buildings.reduce((s, b) => s + (b.area || 0), 0);
+  const fullInvestment = buildings.reduce((s, b) => s + (b.calc?._jod?.capex || 0), 0);
+  const fullBaseline   = buildings.reduce((s, b) => s + ((b.baselineEUI || 0) * (b.area || 0)), 0);
+  const fullSaved      = buildings.reduce((s, b) => s + (b.calc?.energySavedKWh || 0), 0);
+  const fullEnergyPct  = fullBaseline > 0 ? (fullSaved / fullBaseline * 100).toFixed(1) : '0.0';
+  const fullCO2        = buildings.reduce((s, b) => s + (b.calc?.co2AvoidedTon || 0), 0);
+
+  // ── PEEB targeted ────────────────────────────────────────────────────────────
+  const tgtArea       = peebTargeted.reduce((s, b) => s + (b.area || 0), 0);
+  const tgtInvestment = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.capex || 0), 0);
+  const tgtBaseline   = peebTargeted.reduce((s, b) => s + ((b.baselineEUI || 0) * (b.area || 0)), 0);
+  const tgtSaved      = peebTargeted.reduce((s, b) => s + (b.calc?.energySavedKWh || 0), 0);
+  const tgtEnergyPct  = tgtBaseline > 0 ? (tgtSaved / tgtBaseline * 100).toFixed(1) : '0.0';
+  const tgtCO2        = peebTargeted.reduce((s, b) => s + (b.calc?.co2AvoidedTon || 0), 0);
+
+  // ── Funding overview (all buildings) ─────────────────────────────────────────
+  const totalPEEB     = buildings.reduce((s, b) => s + (b.calc?._jod?.peebGrant || 0), 0);
+  const totalAFD      = buildings.reduce((s, b) => s + (b.afdLoan || 0), 0);
+  const totalNational = buildings.reduce((s, b) => s + (b.nationalBudget || 0), 0);
+  const totalOthers   = buildings.reduce((s, b) => s + (b.others || 0), 0);
+
+  const kpisFull = [
+    { icon: Building2, bg: 'var(--ai-violet)', value: buildings.length,                    label: 'Number of buildings'   },
+    { icon: Layers,    bg: 'var(--ai-noir70)', value: fullArea.toLocaleString() + ' m²',   label: 'Total floor area'      },
+    { icon: Banknote,  bg: 'var(--ai-rouge)',  value: fmt(fullInvestment),                 label: 'Est. total investment' },
+    { icon: Zap,       bg: 'var(--ai-rouge)',  value: `${fullEnergyPct}%`,                 label: 'Est. energy reduction' },
+    { icon: Leaf,      bg: '#22a05a',          value: `${fullCO2.toFixed(1)} tCO₂eq/yr`,  label: 'Est. GHG reduction'    },
+  ];
+
+  const kpisTargeted = [
+    { icon: Building2, bg: 'var(--ai-violet)', value: peebTargeted.length,                label: 'Targeted buildings'    },
+    { icon: Layers,    bg: 'var(--ai-noir70)', value: tgtArea.toLocaleString() + ' m²',   label: 'Total floor area'      },
+    { icon: Banknote,  bg: 'var(--ai-rouge)',  value: fmt(tgtInvestment),                 label: 'Est. total investment' },
+    { icon: Zap,       bg: 'var(--ai-rouge)',  value: `${tgtEnergyPct}%`,                 label: 'Est. energy reduction' },
+    { icon: Leaf,      bg: '#22a05a',          value: `${tgtCO2.toFixed(1)} tCO₂eq/yr`,  label: 'Est. GHG reduction'    },
+  ];
+
+  const kpisFunding = [
+    { icon: TrendingUp, bg: 'var(--ai-rouge)',  value: fmt(totalPEEB),     label: 'Total PEEB Grant' },
+    { icon: Banknote,   bg: 'var(--ai-violet)', value: fmt(totalAFD),      label: 'AFD Loan'         },
+    { icon: Banknote,   bg: 'var(--ai-noir70)', value: fmt(totalNational), label: 'National Budget'  },
+    { icon: Banknote,   bg: '#64748b',          value: fmt(totalOthers),   label: 'Others'           },
+  ];
+
+  const alertCount = buildings.filter(b => b.gaps.length > 0 || b.eligibility.ineligible).length;
 
   return (
     <div className="space-y-6 fade-in">
 
-      {/* ── Bandeaux d'alerte ── */}
-      {gapped.length > 0 && (
-        <div className="ai-box-soft fade-in flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-rouge)' }} />
-          <span className="text-sm">
-            <strong>{gapped.length} bâtiment(s)</strong> avec données manquantes — valeurs suggérées en <em>italique</em> dans l'inventaire.
-          </span>
-        </div>
-      )}
-      {ineligible.length > 0 && (
-        <div className="ai-box-soft fade-in flex items-start gap-3">
-          <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-rouge)' }} />
-          <span className="text-sm">
-            <strong>{ineligible.length} bâtiment(s) inéligibles</strong> — financement donateur (GIZ / KfW) déjà engagé.
-          </span>
-        </div>
-      )}
-
-      {/* ── KPI strip ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KpiCard icon={Building2}  bg="var(--ai-violet)" label="Total bâtiments"     value={buildings.length}                   sub={`${eligible.length} éligibles`} />
-        <KpiCard icon={BarChart3}  bg="var(--ai-noir70)" label="Surface totale"      value={kpis.totalArea.toLocaleString()}    sub="m² tous sites" />
-        <KpiCard icon={Leaf}       bg="var(--ai-rouge)"  label="tCO₂ évitées / an"   value={kpis.totalCO2Avoided.toLocaleString()} sub="Projection annuelle" />
-        <KpiCard icon={Banknote}   bg="var(--ai-rouge)"  label="Subvention PEEB"     value={grantDisplay}                       sub="Bâtiments éligibles" />
-        <KpiCard icon={CheckCircle} bg="#22a05a"         label="Évalués"              value={assessed.length} />
-        <KpiCard icon={Clock}      bg="#d97706"          label="En attente"           value={pending.length} />
+      {/* ── 3 KPI rows ── */}
+      <div className="space-y-4">
+        <KpiRow title="Full Database"           kpis={kpisFull}    />
+        <KpiRow title="PEEB Targeted Buildings" kpis={kpisTargeted} />
+        <KpiRow title="Funding Overview"        kpis={kpisFunding} />
       </div>
 
-      {/* ── Graphiques ── */}
+      {/* ── Charts row: Tier bar + Typology ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <TierBar buildings={buildings} />
         </div>
-
-        {/* Statuts */}
         <div className="card fade-in">
-          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ai-violet)' }}>Répartition des statuts</h3>
-          <div className="space-y-3">
-            {[
-              { label: 'Évalués',      count: assessed.length,   bg: 'var(--ai-rouge)', text: 'var(--ai-rouge)' },
-              { label: 'En attente',   count: pending.length,    bg: '#d97706',          text: '#d97706' },
-              { label: 'Inéligibles',  count: ineligible.length, bg: 'var(--ai-violet)', text: 'var(--ai-violet)' },
-            ].map(s => (
-              <div key={s.label} className="flex items-center gap-3">
-                <span className="text-xs font-medium w-28 flex-shrink-0" style={{ color: s.text }}>{s.label}</span>
-                <div className="flex-1 rounded-full h-2" style={{ background: 'var(--ai-gris-clair)' }}>
-                  <div
-                    className="h-2 rounded-full transition-all"
-                    style={{ width: `${(s.count / buildings.length) * 100}%`, background: s.bg }}
-                  />
-                </div>
-                <span className="text-xs font-bold w-5 text-right" style={{ color: 'var(--ai-violet)' }}>{s.count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Typologies */}
-        <div className="card fade-in">
-          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ai-violet)' }}>Bâtiments par typologie</h3>
-          <div className="space-y-2">
-            {['School','Hospital','Office','Municipality','University'].map(t => {
-              const cnt = buildings.filter(b => b.typology === t).length;
-              if (!cnt) return null;
-              return (
-                <div key={t} className="flex items-center justify-between text-sm">
-                  <span style={{ color: 'var(--ai-noir70)' }}>{t}</span>
-                  <span className="font-bold" style={{ color: 'var(--ai-violet)' }}>{cnt}</span>
-                </div>
-              );
-            })}
-          </div>
+          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ai-violet)' }}>
+            Buildings by Typology
+          </h3>
+          <TypologyChart buildings={buildings} />
         </div>
       </div>
 
-      {/* ── Top buildings ── */}
-      <TopBuildings buildings={buildings} navigate={navigate} selectBuilding={selectBuilding} />
+      {/* ── PEEB Targeted Buildings table ── */}
+      <div className="card fade-in">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+          <h3 className="text-sm font-bold" style={{ color: 'var(--ai-violet)' }}>
+            PEEB Targeted Buildings
+          </h3>
+          <span
+            className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}
+          >
+            {peebTargeted.length} building{peebTargeted.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <PeebTargetedTable buildings={buildings} selectBuilding={selectBuilding} params={params} />
+      </div>
+
+      {/* ── Alerts ── */}
+      <div className="card fade-in">
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle
+            className="w-4 h-4 flex-shrink-0"
+            style={{ color: alertCount > 0 ? 'var(--ai-rouge)' : '#22a05a' }}
+          />
+          <h3 className="text-sm font-bold" style={{ color: 'var(--ai-violet)' }}>Alerts</h3>
+          {alertCount > 0 && (
+            <span
+              className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}
+            >
+              {alertCount}
+            </span>
+          )}
+        </div>
+        <AlertsSection buildings={buildings} />
+      </div>
 
     </div>
   );
