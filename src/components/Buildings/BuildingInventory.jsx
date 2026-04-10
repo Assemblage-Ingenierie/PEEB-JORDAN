@@ -1,10 +1,21 @@
 import { useState, useMemo } from 'react';
 import {
   Search, ArrowUpDown, ArrowUp, ArrowDown,
-  Upload, AlertTriangle, Ban, Eye,
+  Upload, AlertTriangle, Ban, Eye, ChevronDown,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatCurrency, parseEdgeExport, TYPOLOGY_DEFAULTS, getFundingTier } from '../../engine/CalculationEngine';
+import { formatCurrency, parseEdgeExport, TYPOLOGY_DEFAULTS, calculateScore } from '../../engine/CalculationEngine';
+
+// ─── Jordan region mapping ────────────────────────────────────────────────────
+const JORDAN_REGIONS = {
+  Amman: 'Central', Zarqa: 'Central', Madaba: 'Central', Salt: 'Central', Balqa: 'Central',
+  Irbid: 'North',   Mafraq: 'North',  Ajloun: 'North',   Jerash: 'North',
+  Aqaba: 'South',   Karak: 'South',   Tafilah: 'South',  "Ma'an": 'South',
+};
+const getRegion = (gov) => JORDAN_REGIONS[gov] || '—';
+
+const TYPOLOGIES = ['All', 'School', 'Hospital', 'Office', 'Municipality', 'University'];
+const REGIONS    = ['All', 'North', 'Central', 'South'];
 
 // ─── EDGE Import Modal ────────────────────────────────────────────────────────
 function EdgeImportModal({ onClose, onImport }) {
@@ -15,19 +26,24 @@ function EdgeImportModal({ onClose, onImport }) {
     if (!file) return;
     const ext  = file.name.split('.').pop().toLowerCase();
     const type = ext === 'json' ? 'json' : ext === 'csv' ? 'csv' : null;
-    if (!type) { setError('Seuls les fichiers .json ou .csv sont acceptés.'); return; }
+    if (!type) { setError('Only .json or .csv files are accepted.'); return; }
     const text   = await file.text();
     const parsed = parseEdgeExport(text, type);
-    if (!parsed) { setError('Impossible de lire le fichier. Vérifiez le format.'); return; }
+    if (!parsed) { setError('Unable to read the file. Check the format.'); return; }
     onImport(parsed);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(48,50,62,.45)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(48,50,62,.45)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 fade-in">
-        <h2 className="font-bold mb-1" style={{ color: 'var(--ai-violet)', fontSize: '15px' }}>Importer un export EDGE</h2>
-        <p className="text-xs mb-4" style={{ color: 'var(--ai-noir70)' }}>Glissez-déposez ou sélectionnez un fichier .json ou .csv exporté depuis EDGE.</p>
+        <h2 className="font-bold mb-1" style={{ color: 'var(--ai-violet)', fontSize: '15px' }}>
+          Import EDGE Export
+        </h2>
+        <p className="text-xs mb-4" style={{ color: 'var(--ai-noir70)' }}>
+          Drag and drop or select a .json or .csv file exported from EDGE.
+        </p>
 
         <div
           onDragOver={e => { e.preventDefault(); setDragging(true); }}
@@ -39,44 +55,50 @@ function EdgeImportModal({ onClose, onImport }) {
             background: dragging ? 'var(--ai-rouge-clair)' : 'var(--ai-gris-clair)',
           }}
         >
-          <Upload className="w-8 h-8 mx-auto mb-3" style={{ color: dragging ? 'var(--ai-rouge)' : 'var(--ai-noir70)' }} />
-          <p className="text-sm mb-2" style={{ color: 'var(--ai-violet)' }}>Glisser & déposer ou cliquer pour parcourir</p>
+          <Upload className="w-8 h-8 mx-auto mb-3"
+            style={{ color: dragging ? 'var(--ai-rouge)' : 'var(--ai-noir70)' }} />
+          <p className="text-sm mb-2" style={{ color: 'var(--ai-violet)' }}>
+            Drag &amp; drop or click to browse
+          </p>
           <input type="file" accept=".json,.csv" className="hidden" id="edge-file"
             onChange={e => handleFile(e.target.files[0])} />
-          <label htmlFor="edge-file" className="btn-primary cursor-pointer text-xs">Choisir un fichier</label>
+          <label htmlFor="edge-file" className="btn-primary cursor-pointer text-xs">
+            Choose file
+          </label>
         </div>
 
         {error && <p className="text-xs mt-2" style={{ color: 'var(--ai-rouge)' }}>{error}</p>}
 
         <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="btn-secondary text-xs">Annuler</button>
+          <button onClick={onClose} className="btn-secondary text-xs">Cancel</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Entête triable ───────────────────────────────────────────────────────────
+// ─── Sortable header (white text on dark background) ──────────────────────────
 function SortableHeader({ col, label, sortState, onSort }) {
   const active = sortState.col === col;
   const Icon   = active ? (sortState.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
     <th
       className="th cursor-pointer select-none"
-      style={{ whiteSpace: 'nowrap' }}
+      style={{ whiteSpace: 'nowrap', color: 'white' }}
       onClick={() => onSort(col)}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--ai-rouge-clair)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.08)'}
       onMouseLeave={e => e.currentTarget.style.background = ''}
     >
       <span className="flex items-center gap-1">
         {label}
-        <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--ai-rouge)' : 'var(--ai-gris)' }} />
+        <Icon className="w-3.5 h-3.5"
+          style={{ color: active ? 'var(--ai-rouge)' : 'rgba(255,255,255,.35)' }} />
       </span>
     </th>
   );
 }
 
-// ─── Cellule avec lacune ou valeur suggérée ───────────────────────────────────
+// ─── Gap / suggested value cell ───────────────────────────────────────────────
 function GapCell({ value, field, typology, unit = '' }) {
   if (value !== null && value !== undefined && value !== '') {
     return <span>{value}{unit}</span>;
@@ -84,139 +106,203 @@ function GapCell({ value, field, typology, unit = '' }) {
   const defaults  = TYPOLOGY_DEFAULTS[typology];
   const suggested = defaults && field === 'baselineEUI' ? defaults.baselineEUI : null;
   if (suggested !== null) {
-    return <span className="data-suggested" title="Valeur suggérée selon la typologie">~{suggested}{unit}</span>;
+    return (
+      <span className="data-suggested" title="Suggested value based on typology">
+        ~{suggested}{unit}
+      </span>
+    );
   }
-  return <span className="data-gap text-xs px-1.5 py-0.5 rounded">Manquant</span>;
+  return <span className="data-gap text-xs px-1.5 py-0.5 rounded">Missing</span>;
 }
 
-// ─── Paliers → couleurs Assemblage ────────────────────────────────────────────
+// ─── Score badge ──────────────────────────────────────────────────────────────
+function ScoreBadge({ score }) {
+  const bg = score >= 70 ? '#22a05a' : score >= 40 ? '#d97706' : 'var(--ai-rouge)';
+  return (
+    <span
+      className="inline-flex items-center justify-center w-10 h-6 rounded-full text-xs font-bold text-white"
+      style={{ background: bg }}
+    >
+      {score}
+    </span>
+  );
+}
+
+// ─── Filter dropdown ──────────────────────────────────────────────────────────
+function FilterDropdown({ value, onChange, options, placeholder }) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="input appearance-none pr-7 text-xs"
+        style={{ minWidth: '130px' }}
+      >
+        {options.map(o => (
+          <option key={o.value ?? o} value={o.value ?? o}>
+            {o.label ?? o}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+        style={{ color: 'var(--ai-noir70)' }}
+      />
+    </div>
+  );
+}
+
+// ─── Tier hex palette ─────────────────────────────────────────────────────────
 const TIER_HEX = {
-  slate:  '#DFE4E8', amber: '#F9E1E3', blue: '#f07070',
-  green:  '#E30513', purple: '#30323E',
+  slate: '#DFE4E8', amber: '#F9E1E3', blue: '#f07070',
+  green: '#E30513', purple: '#30323E',
 };
 
-const STATUS_BADGE = {
-  'Assessed':      'badge-green',
-  'Pending Audit': 'badge-amber',
-  'Ineligible':    'badge-red',
-};
-const PRIORITY_BADGE = { High: 'badge-red', Medium: 'badge-amber', Low: 'badge-slate' };
-
-// ─── Inventaire principal ──────────────────────────────────────────────────────
+// ─── Inventory ────────────────────────────────────────────────────────────────
 export default function BuildingInventory() {
   const { buildings, selectBuilding, addBuildings, params } = useApp();
-  const [search, setSearch]         = useState('');
-  const [filter, setFilter]         = useState('all');
-  const [sort, setSort]             = useState({ col: 'name', dir: 'asc' });
-  const [showImport, setShowImport] = useState(false);
+
+  const [search,         setSearch]         = useState('');
+  const [typologyFilter, setTypologyFilter] = useState('All');
+  const [cityFilter,     setCityFilter]     = useState('All');
+  const [regionFilter,   setRegionFilter]   = useState('All');
+  const [sort,           setSort]           = useState({ col: 'name', dir: 'asc' });
+  const [showImport,     setShowImport]     = useState(false);
 
   const handleSort = (col) =>
     setSort(prev => ({ col, dir: prev.col === col && prev.dir === 'asc' ? 'desc' : 'asc' }));
+
+  // Derive unique city list from data
+  const cities = useMemo(() => [
+    'All',
+    ...[...new Set(buildings.map(b => b.governorate).filter(Boolean))].sort(),
+  ], [buildings]);
+
+  // PEEB eligibility: not ineligible AND energy gain >= 30%
+  const isPeebEligible = (b) =>
+    !b.eligibility.ineligible && (b.calc?.energyGain ?? 0) >= 30;
 
   const filtered = useMemo(() => {
     return buildings
       .filter(b => {
         const q = search.toLowerCase();
-        const match = !q || b.name.toLowerCase().includes(q) ||
-          b.governorate.toLowerCase().includes(q) ||
+        if (q && !(
+          b.name.toLowerCase().includes(q) ||
+          (b.governorate || '').toLowerCase().includes(q) ||
           b.typology.toLowerCase().includes(q) ||
-          b.id.toLowerCase().includes(q);
-        if (!match) return false;
-        if (filter === 'eligible')   return !b.eligibility.ineligible;
-        if (filter === 'gap')        return b.gaps.length > 0;
-        if (filter === 'ineligible') return b.eligibility.ineligible;
+          b.id.toLowerCase().includes(q)
+        )) return false;
+
+        if (typologyFilter !== 'All' && b.typology !== typologyFilter) return false;
+        if (cityFilter !== 'All' && b.governorate !== cityFilter) return false;
+        if (regionFilter !== 'All' && getRegion(b.governorate) !== regionFilter) return false;
+
         return true;
       })
       .sort((a, b) => {
-        let va = a[sort.col] ?? '', vb = b[sort.col] ?? '';
-        if (sort.col === 'calc')      { va = a.calc?.energyGain ?? 0;        vb = b.calc?.energyGain ?? 0; }
-        if (sort.col === 'peebGrant') { va = a.calc?._jod?.peebGrant ?? 0;   vb = b.calc?._jod?.peebGrant ?? 0; }
+        let va, vb;
+        if (sort.col === 'score') {
+          va = calculateScore(a, a.calc);
+          vb = calculateScore(b, b.calc);
+        } else if (sort.col === 'calc') {
+          va = a.calc?.energyGain ?? 0;
+          vb = b.calc?.energyGain ?? 0;
+        } else if (sort.col === 'peebGrant') {
+          va = a.calc?._jod?.peebGrant ?? 0;
+          vb = b.calc?._jod?.peebGrant ?? 0;
+        } else {
+          va = a[sort.col] ?? '';
+          vb = b[sort.col] ?? '';
+        }
         if (typeof va === 'string') va = va.toLowerCase();
         if (typeof vb === 'string') vb = vb.toLowerCase();
         if (va < vb) return sort.dir === 'asc' ? -1 : 1;
         if (va > vb) return sort.dir === 'asc' ?  1 : -1;
         return 0;
       });
-  }, [buildings, search, filter, sort]);
+  }, [buildings, search, typologyFilter, cityFilter, regionFilter, sort]);
 
-  const FILTERS = [
-    { id: 'all', label: 'Tous' },
-    { id: 'eligible',   label: 'Éligibles' },
-    { id: 'gap',        label: 'Lacunes' },
-    { id: 'ineligible', label: 'Inéligibles' },
+  const columns = [
+    { col: 'id',          label: 'ID'         },
+    { col: 'name',        label: 'Building'   },
+    { col: 'typology',    label: 'Type'       },
+    { col: 'governorate', label: 'City'       },
+    { col: 'area',        label: 'Area m²'    },
+    { col: 'baselineEUI', label: 'EUI'        },
+    { col: 'calc',        label: 'Gain %'     },
+    { col: 'peebGrant',   label: 'Grant'      },
+    { col: 'score',       label: 'Score /100' },
   ];
 
   return (
     <div className="space-y-4 fade-in">
 
-      {/* ── Barre d'outils ── */}
+      {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--ai-noir70)' }} />
+
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+            style={{ color: 'var(--ai-noir70)' }} />
           <input
             className="input pl-9"
-            placeholder="Rechercher par nom, type, gouvernorat…"
+            placeholder="Search by name, type, city…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
 
-        {/* Filtres pills */}
-        <div className="flex gap-1 rounded-lg p-1" style={{ background: 'var(--ai-gris)' }}>
-          {FILTERS.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className="px-3 py-1 rounded text-xs font-semibold transition-all"
-              style={
-                filter === f.id
-                  ? { background: 'var(--ai-rouge)', color: 'white', boxShadow: '0 1px 2px rgba(0,0,0,.12)' }
-                  : { background: 'transparent', color: 'var(--ai-violet)' }
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {/* Dropdown filters */}
+        <FilterDropdown
+          value={typologyFilter}
+          onChange={setTypologyFilter}
+          options={TYPOLOGIES.map(t => ({ value: t, label: t === 'All' ? 'All typologies' : t }))}
+        />
+        <FilterDropdown
+          value={cityFilter}
+          onChange={setCityFilter}
+          options={cities.map(c => ({ value: c, label: c === 'All' ? 'All cities' : c }))}
+        />
+        <FilterDropdown
+          value={regionFilter}
+          onChange={setRegionFilter}
+          options={REGIONS.map(r => ({ value: r, label: r === 'All' ? 'All regions' : r }))}
+        />
 
         <button onClick={() => setShowImport(true)} className="btn-secondary">
           <Upload className="w-4 h-4" /> Import EDGE
         </button>
       </div>
 
-      {/* ── Tableau ── */}
+      {/* ── Table ── */}
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr style={{ background: 'var(--ai-violet)', borderBottom: '2px solid var(--ai-rouge)' }}>
-                {[
-                  { col: 'id',          label: 'ID'        },
-                  { col: 'name',        label: 'Bâtiment'  },
-                  { col: 'typology',    label: 'Type'      },
-                  { col: 'governorate', label: 'Gov.'      },
-                  { col: 'area',        label: 'Surface m²'},
-                  { col: 'baselineEUI', label: 'EUI'       },
-                  { col: 'calc',        label: 'Gain %'    },
-                  { col: 'peebGrant',   label: 'Subvention'},
-                ].map(({ col, label }) => (
-                  <SortableHeader key={col} col={col} label={label} sortState={sort} onSort={handleSort}
-                    style={{ color: 'white' }}
-                  />
+                {columns.map(({ col, label }) => (
+                  <SortableHeader key={col} col={col} label={label} sortState={sort} onSort={handleSort} />
                 ))}
-                <th className="th" style={{ color: 'white' }}>Statut</th>
-                <th className="th" style={{ color: 'white' }}>Priorité</th>
                 <th className="th" style={{ color: 'white' }}></th>
               </tr>
             </thead>
 
             <tbody className="divide-y" style={{ borderColor: 'var(--ai-gris-clair)' }}>
               {filtered.map((b, rowIdx) => {
-                const inelig  = b.eligibility.ineligible;
-                const hasGap  = b.gaps.length > 0;
-                const gain    = b.calc?.energyGain;
-                // tier variable kept for future use
-                void getFundingTier;
+                const inelig    = b.eligibility.ineligible;
+                const hasGap    = b.gaps.length > 0;
+                const eligible  = isPeebEligible(b);
+                const gain      = b.calc?.energyGain;
+                const score     = calculateScore(b, b.calc);
+                const grant     = b.calc?._jod?.peebGrant ?? 0;
+                const grantDisplay = grant
+                  ? formatCurrency(
+                      params.currency === 'EUR'
+                        ? +(grant * params.exchangeRate).toFixed(0)
+                        : grant,
+                      params.currency, true
+                    )
+                  : '—';
 
                 return (
                   <tr
@@ -224,58 +310,83 @@ export default function BuildingInventory() {
                     className="tr-hover"
                     style={{
                       background: rowIdx % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
-                      opacity: inelig ? 0.65 : 1,
+                      opacity: inelig ? 0.6 : 1,
                     }}
                     onClick={() => selectBuilding(b.id)}
                   >
-                    <td className="td font-mono text-xs" style={{ color: 'var(--ai-noir70)' }}>{b.id}</td>
+                    {/* ID */}
+                    <td className="td font-mono text-xs" style={{ color: 'var(--ai-noir70)' }}>
+                      {b.id}
+                    </td>
+
+                    {/* Building name */}
                     <td className="td font-semibold max-w-[180px]" style={{ color: 'var(--ai-rouge)' }}>
                       <span className="flex items-center gap-1.5">
-                        {inelig  && <Ban className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />}
-                        {hasGap && !inelig && <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d97706' }} />}
+                        {inelig && (
+                          <Ban className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }}
+                            title={b.eligibility.reason === 'manual' ? 'Manually ineligible' : `Donor: ${b.eligibility.donor}`} />
+                        )}
+                        {hasGap && !inelig && (
+                          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d97706' }}
+                            title="Missing data" />
+                        )}
                         <span className="truncate">{b.name}</span>
                       </span>
                     </td>
+
+                    {/* Type */}
                     <td className="td">
-                      <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>
+                      <span className="badge"
+                        style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>
                         {b.typology}
                       </span>
                     </td>
-                    <td className="td" style={{ color: 'var(--ai-noir70)' }}>{b.governorate}</td>
+
+                    {/* City */}
+                    <td className="td" style={{ color: 'var(--ai-noir70)' }}>
+                      {b.governorate || '—'}
+                    </td>
+
+                    {/* Area */}
                     <td className={`td text-right ${b.gaps.includes('area') ? 'data-gap' : ''}`}>
                       <GapCell value={b.area} field="area" typology={b.typology} />
                     </td>
+
+                    {/* EUI */}
                     <td className={`td text-right ${b.gaps.includes('baselineEUI') ? 'data-gap' : ''}`}>
                       <GapCell value={b.baselineEUI} field="baselineEUI" typology={b.typology} unit=" kWh/m²" />
                     </td>
-                    <td className="td text-right font-bold" style={{ color: 'var(--ai-violet)' }}>
-                      {gain !== undefined && gain !== null ? `${gain.toFixed(1)}%` : '—'}
+
+                    {/* Energy gain */}
+                    <td className="td text-right font-bold" style={{ color: eligible ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+                      {gain != null ? `${gain.toFixed(1)}%` : '—'}
                     </td>
+
+                    {/* PEEB Grant */}
                     <td className="td text-right font-semibold" style={{ color: 'var(--ai-violet)' }}>
-                      {b.calc?._jod?.peebGrant
-                        ? formatCurrency(
-                            params.currency === 'EUR'
-                              ? +(b.calc._jod.peebGrant * params.exchangeRate).toFixed(0)
-                              : b.calc._jod.peebGrant,
-                            params.currency, true
-                          )
-                        : '—'
-                      }
+                      {grantDisplay}
                     </td>
+
+                    {/* Score */}
                     <td className="td">
-                      <span className={STATUS_BADGE[b.status] || 'badge-slate'}>{b.status}</span>
+                      <ScoreBadge score={score} />
                     </td>
-                    <td className="td">
-                      <span className={PRIORITY_BADGE[b.priority] || 'badge-slate'}>{b.priority}</span>
-                    </td>
+
+                    {/* Action */}
                     <td className="td">
                       <button
                         className="p-1.5 rounded-lg transition-colors"
                         style={{ color: 'var(--ai-noir70)' }}
                         onClick={e => { e.stopPropagation(); selectBuilding(b.id); }}
-                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--ai-rouge)'; e.currentTarget.style.background = 'var(--ai-rouge-clair)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--ai-noir70)'; e.currentTarget.style.background = ''; }}
-                        title="Ouvrir la fiche"
+                        onMouseEnter={e => {
+                          e.currentTarget.style.color = 'var(--ai-rouge)';
+                          e.currentTarget.style.background = 'var(--ai-rouge-clair)';
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.color = 'var(--ai-noir70)';
+                          e.currentTarget.style.background = '';
+                        }}
+                        title="Open profile"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -287,13 +398,24 @@ export default function BuildingInventory() {
           </table>
         </div>
 
-        {/* Pied de tableau */}
+        {/* Table footer */}
         <div
-          className="px-4 py-2.5 text-xs"
+          className="px-4 py-2.5 text-xs flex items-center gap-4"
           style={{ borderTop: '1px solid var(--ai-gris)', background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}
         >
-          <strong>{filtered.length}</strong> / <strong>{buildings.length}</strong> bâtiments affichés
-          {search && ` · filtre : "${search}"`}
+          <span>
+            <strong>{filtered.length}</strong> / <strong>{buildings.length}</strong> buildings
+            {search && ` · filter: "${search}"`}
+          </span>
+          <span className="ml-auto flex items-center gap-3 text-xs">
+            <span>Score: </span>
+            {[{ label: '≥70', bg: '#22a05a' }, { label: '40–69', bg: '#d97706' }, { label: '<40', bg: 'var(--ai-rouge)' }].map(s => (
+              <span key={s.label} className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.bg }} />
+                {s.label}
+              </span>
+            ))}
+          </span>
         </div>
       </div>
 

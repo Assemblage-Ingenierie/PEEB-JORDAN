@@ -225,9 +225,30 @@ export function detectDataGaps(building) {
 }
 
 export function checkEligibility(building) {
-  if (!building.fundingSource) return { ineligible: false, donor: null };
+  if (building.manuallyIneligible === true)
+    return { ineligible: true, donor: null, reason: 'manual' };
+  if (!building.fundingSource)
+    return { ineligible: false, donor: null, reason: null };
   const found = DONOR_MARKERS.find(d => building.fundingSource.toUpperCase().includes(d.toUpperCase()));
-  return { ineligible: !!found, donor: found || null };
+  return { ineligible: !!found, donor: found || null, reason: found ? 'donor' : null };
+}
+
+/**
+ * PEEB eligibility score 0–100.
+ * Combines energy performance, data quality, EUI intensity and building age.
+ */
+export function calculateScore(building, calc) {
+  const energyGain  = calc?.energyGain ?? 0;
+  const gaps        = detectDataGaps(building);
+  const baselineEUI = building.baselineEUI || 0;
+  const age         = building.yearBuilt ? (2025 - building.yearBuilt) : 0;
+
+  const energyPts  = Math.min(energyGain / 80 * 50, 50);       // 0–50 pts
+  const qualityPts = Math.max(20 - gaps.length * 5, 0);         // 0–20 pts (−5 / gap)
+  const euiPts     = Math.min(baselineEUI / 300 * 20, 20);      // 0–20 pts
+  const agePts     = Math.min(age / 50 * 10, 10);               // 0–10 pts
+
+  return Math.round(energyPts + qualityPts + euiPts + agePts);
 }
 
 export function suggestDefaults(typology) {
