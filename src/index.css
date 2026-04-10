@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Charte graphique Assemblage ingénierie ──────────────────────────────── */
+:root {
+  --ai-rouge:           #E30513;
+  --ai-violet:          #30323E;
+  --ai-gris:            #DFE4E8;
+  --ai-rouge-clair:     #F9E1E3;
+  --ai-gris-clair:      #F2F2F2;
+  --ai-noir70:          #4D4D4D;
+
+  --ai-header-bg:       #F2F2F2;
+  --ai-header-height:   72px;
+  --ai-sidebar-width:   220px;
+  --ai-sidebar-bg:      #30323E;
+  --ai-content-bg:      #FFFFFF;
+  --ai-content-padding: 32px;
+
+  --ai-font: 'Open Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ai-gris-clair);
+    color: #000000;
+    font-family: var(--ai-font);
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  h1, h2, h3, h4 { font-weight: 700; }
+}
+
+@layer components {
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-white rounded-xl p-6;
+    border: 1px solid var(--ai-gris);
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold
+           rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--ai-rouge);
+  }
+  .btn-primary:hover { background: #c20411; }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+           rounded-lg transition-all;
+    background: white;
+    color: var(--ai-violet);
+    border: 1px solid var(--ai-gris);
+  }
+  .btn-secondary:hover { background: var(--ai-gris-clair); }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all;
+    background: var(--ai-violet);
+  }
+  .btn-danger:hover { opacity: 0.9; }
+
+  /* ── Form controls ── */
+  .input {
+    @apply w-full px-3 py-2 rounded-lg text-sm bg-white transition-shadow;
+    border: 1px solid var(--ai-gris);
+    color: #000;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--ai-rouge);
+    box-shadow: 0 0 0 3px rgba(227,5,19,.12);
+  }
+  .label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ai-noir70);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 4px;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+  /* tier "blue" → rouge clair sur rouge */
+  .badge-blue   { background: var(--ai-rouge-clair); color: var(--ai-rouge); }
+  /* tier "green" → rouge plein blanc */
+  .badge-green  { background: var(--ai-rouge); color: white; }
+  /* tier "amber" → gris */
+  .badge-amber  { background: var(--ai-gris); color: var(--ai-violet); }
+  /* tier "red" → rouge clair */
+  .badge-red    { background: var(--ai-rouge-clair); color: var(--ai-rouge); }
+  /* tier "slate" → gris clair */
+  .badge-slate  { background: var(--ai-gris-clair); color: var(--ai-noir70); }
+  /* tier "purple" → violet */
+  .badge-purple { background: var(--ai-violet); color: white; }
+
+  /* ── KPI card ── */
+  .kpi-card { @apply card flex flex-col gap-1; min-width: 150px; }
+
+  /* ── Table helpers ── */
+  .th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--ai-noir70);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .td { @apply px-3 py-2.5 text-sm align-middle; color: #1a1a1a; }
+  .tr-hover { cursor: pointer; transition: background .15s; }
+  .tr-hover:hover { background: var(--ai-rouge-clair); }
+
+  /* ── Data quality ── */
+  .data-gap       { background: var(--ai-rouge-clair); color: var(--ai-rouge); font-style: italic; }
+  .data-suggested { font-style: italic; color: var(--ai-noir70); }
+
+  /* ── Section separator ── */
+  .ai-separator {
+    border: none;
+    border-top: 1px dashed var(--ai-rouge);
+    margin: 16px 0;
+  }
+
+  /* ── Info box types (§4.7) ── */
+  .ai-box-info      { background: var(--ai-gris); color: #000; border-radius: 8px; padding: 12px 16px; }
+  .ai-box-important { background: var(--ai-violet); color: white; border-radius: 8px; padding: 12px 16px; }
+  .ai-box-strong    { background: var(--ai-rouge); color: white; border-radius: 8px; padding: 12px 16px; }
+  .ai-box-soft      { background: var(--ai-rouge-clair); color: #000; border-left: 3px solid var(--ai-rouge); border-radius: 0 8px 8px 0; padding: 12px 16px; }
+  .ai-box-synth     { background: var(--ai-gris-clair); color: #000; border-left: 3px solid var(--ai-gris); border-radius: 0 8px 8px 0; padding: 12px 16px; }
+}
+
+/* ─── Print / PDF ─────────────────────────────────────────────────────────── */
+@media print {
+  body { background: white !important; font-size: 11pt; font-family: 'Open Sans', sans-serif; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  .card { box-shadow: none !important; border: 1px solid #DFE4E8 !important; }
+  #sidebar { display: none !important; }
+  #main-content { margin-left: 0 !important; }
+  .ai-watermark { display: none !important; }
+
+  .peeb-datasheet { page-break-inside: avoid; max-width: 100%; }
+  .peeb-datasheet h1 { font-size: 18pt; color: #E30513; font-family: 'Open Sans', sans-serif; }
+  .peeb-datasheet h2 { font-size: 13pt; color: #E30513; border-bottom: 2px solid #E30513; padding-bottom: 4px; font-family: 'Open Sans', sans-serif; }
+  .peeb-datasheet table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  .peeb-datasheet th { background: #30323E; color: white; padding: 6px 8px; font-family: 'Open Sans', sans-serif; }
+  .peeb-datasheet td { padding: 5px 8px; border-bottom: 1px solid #DFE4E8; }
+  .peeb-datasheet .kpi-bar { background: #E30513; color: white; padding: 12px; margin-bottom: 12px; border-radius: 6px; }
+  .peeb-datasheet .footer-legal { font-size: 7pt; color: #4D4D4D; border-top: 1px solid #DFE4E8; padding-top: 6px; margin-top: 24px; }
+}
+
+.print-only { display: none; }
+
+/* ─── Leaflet marker fix ───────────────────────────────────────────────────── */
+.leaflet-default-icon-path {
+  background-image: url('https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png');
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ai-gris); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c0c7cc; }
+
+/* ─── Transitions ────────────────────────────────────────────────────────────── */
+.fade-in { animation: fadeIn 0.18s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ─── Sigle .A watermark ─────────────────────────────────────────────────────── */
+.ai-watermark {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 9999;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--ai-rouge);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}

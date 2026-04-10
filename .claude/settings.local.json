@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for d:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/gesti/peeb-med-jordan/src/components/**)",
+      "Bash(done)"
+    ]
+  }
+}
