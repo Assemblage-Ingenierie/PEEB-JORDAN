@@ -156,13 +156,13 @@ function TypologyChart({ buildings, peebTargeted }) {
 // ─── PEEB Targeted Buildings table ───────────────────────────────────────────
 function PeebTargetedTable({ buildings, selectBuilding, params }) {
   const targeted = buildings
-    .filter(b => !b.eligibility.ineligible && (b.calc?.tier?.grantRate ?? 0) > 0)
+    .filter(b => b.peebSelected === true && !b.eligibility.ineligible)
     .sort((a, b) => (b.calc?.energyGain ?? 0) - (a.calc?.energyGain ?? 0));
 
   if (!targeted.length) {
     return (
       <p className="text-sm py-2" style={{ color: 'var(--ai-noir70)' }}>
-        No buildings have reached Tier 1 yet. Select EE measures in building profiles to qualify.
+        No buildings selected for PEEB. Enable &ldquo;Include in PEEB program&rdquo; in each building profile.
       </p>
     );
   }
@@ -285,9 +285,9 @@ export default function Dashboard() {
   const { buildings, params, selectBuilding } = useApp();
   const { currency, exchangeRate } = params;
 
-  // PEEB targeted: eligible AND tier >= 1 (grantRate > 0)
+  // PEEB targeted: explicitly selected (peebSelected = true) AND still eligible
   const peebTargeted = buildings.filter(
-    b => !b.eligibility.ineligible && (b.calc?.tier?.grantRate ?? 0) > 0
+    b => b.peebSelected === true && !b.eligibility.ineligible
   );
 
   // Currency conversion helper
@@ -310,11 +310,11 @@ export default function Dashboard() {
   const tgtEnergyPct  = tgtBaseline > 0 ? (tgtSaved / tgtBaseline * 100).toFixed(1) : '0.0';
   const tgtCO2        = peebTargeted.reduce((s, b) => s + (b.calc?.co2AvoidedTon || 0), 0);
 
-  // ── Funding overview (all buildings) ─────────────────────────────────────────
-  const totalPEEB     = buildings.reduce((s, b) => s + (b.calc?._jod?.peebGrant || 0), 0);
-  const totalAFD      = buildings.reduce((s, b) => s + (b.afdLoan || 0), 0);
-  const totalNational = buildings.reduce((s, b) => s + (b.nationalBudget || 0), 0);
-  const totalOthers   = buildings.reduce((s, b) => s + (b.others || 0), 0);
+  // ── Funding overview (peebSelected buildings only) ───────────────────────────
+  const totalPEEB     = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.peebGrant || 0), 0);
+  const totalAFD      = peebTargeted.reduce((s, b) => s + (b.afdLoan || 0), 0);
+  const totalNational = peebTargeted.reduce((s, b) => s + (b.nationalBudget || 0), 0);
+  const totalOthers   = peebTargeted.reduce((s, b) => s + (b.others || 0), 0);
 
   const kpisFull = [
     { icon: Building2, bg: 'var(--ai-violet)', value: buildings.length,                    label: 'Number of buildings'   },

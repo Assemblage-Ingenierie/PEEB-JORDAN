@@ -58,17 +58,19 @@ export default function MapView() {
         const tier   = getFundingTier(b.calc?.energyGain ?? 0);
         const color  = b.eligibility.ineligible ? INELIGIBLE_COLOR : TIER_COLOR[tier.color];
 
+        const peebSelected = b.peebSelected === true && !b.eligibility.ineligible;
         const circleMarker = L.circleMarker([lat, lng], {
           radius:      b.area ? Math.min(8 + b.area / 1500, 16) : 9,
           fillColor:   color,
-          color:       '#fff',
-          weight:      2,
+          color:       peebSelected ? '#22a05a' : '#fff',
+          weight:      peebSelected ? 3 : 2,
           opacity:     1,
-          fillOpacity: 0.85,
+          fillOpacity: b.eligibility.ineligible ? 0.55 : 0.85,
         });
 
         const gainStr  = b.calc?.energyGain != null ? `${b.calc.energyGain.toFixed(1)}%` : '—';
         const tierStr  = b.eligibility.ineligible ? '🚫 Ineligible' : tier.label;
+        const selStr   = peebSelected ? '✅ PEEB Selected' : b.eligibility.ineligible ? '' : '⬜ Not selected';
 
         circleMarker.bindPopup(`
           <div style="min-width:200px;font-family:Inter,sans-serif;">
@@ -79,6 +81,7 @@ export default function MapView() {
               <tr><td style="color:#64748b;padding:2px 4px">EUI</td><td style="font-weight:600;padding:2px 4px">${b.baselineEUI ? b.baselineEUI + ' kWh/m²/yr' : '—'}</td></tr>
               <tr><td style="color:#64748b;padding:2px 4px">Energy Gain</td><td style="font-weight:600;padding:2px 4px">${gainStr}</td></tr>
               <tr><td style="color:#64748b;padding:2px 4px">Tier</td><td style="font-weight:600;padding:2px 4px">${tierStr}</td></tr>
+              ${selStr ? `<tr><td style="color:#64748b;padding:2px 4px">PEEB</td><td style="font-weight:600;padding:2px 4px">${selStr}</td></tr>` : ''}
             </table>
             <button
               onclick="window.__peebSelect('${b.id}')"
@@ -131,6 +134,13 @@ export default function MapView() {
               {label}
             </span>
           ))}
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-3 h-3 rounded-full shadow-sm"
+              style={{ background: TIER_COLOR.amber, border: '2px solid #22a05a' }}
+            />
+            PEEB Selected
+          </span>
           <span className="text-slate-400 ml-auto">Circle size ∝ floor area · Click marker to open profile</span>
         </div>
       </div>

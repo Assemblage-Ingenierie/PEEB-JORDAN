@@ -95,7 +95,7 @@ function BuildingMiniMap({ building }) {
     return (
       <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--ai-gris-clair)', borderRadius: 8, color: 'var(--ai-noir70)', fontSize: 13 }}>
-        Coordonnées non disponibles
+        Coordinates not available
       </div>
     );
   }
@@ -106,11 +106,11 @@ function BuildingMiniMap({ building }) {
         style={{ width: '100%', height: 220, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--ai-gris)' }} />
       <div className="print-only"
         style={{ padding: 10, background: 'var(--ai-gris-clair)', borderRadius: 6, fontSize: 10 }}>
-        <strong>Localisation :</strong> {building.address}<br />
-        <strong>Coordonnées GPS :</strong> {coords.join(', ')}<br />
+        <strong>Location:</strong> {building.address}<br />
+        <strong>GPS Coordinates:</strong> {coords.join(', ')}<br />
         <a href={`https://www.openstreetmap.org/?mlat=${coords[0]}&mlon=${coords[1]}&zoom=14`}
           style={{ color: 'var(--ai-rouge)' }}>
-          Voir sur OpenStreetMap →
+          View on OpenStreetMap →
         </a>
       </div>
     </>
@@ -512,8 +512,8 @@ function PrintDatasheet({ building: b, calc, params }) {
           <p style={{ margin:0, opacity:.75, fontSize:'10pt' }}>{b.typology} · {b.governorate} · {b.address}</p>
         </div>
         <div style={{ textAlign:'right' }}>
-          <p style={{ fontSize:'9pt', opacity:.7, margin:0 }}>PEEB Med Jordan — Fiche D2</p>
-          <p style={{ fontSize:'9pt', opacity:.7, margin:0 }}>{new Date().toLocaleDateString('fr-FR')}</p>
+          <p style={{ fontSize:'9pt', opacity:.7, margin:0 }}>PEEB Med Jordan — Sheet D2</p>
+          <p style={{ fontSize:'9pt', opacity:.7, margin:0 }}>{new Date().toLocaleDateString('en-GB')}</p>
         </div>
       </div>
 

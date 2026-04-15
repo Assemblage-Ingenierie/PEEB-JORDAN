@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Search, ArrowUpDown, ArrowUp, ArrowDown,
-  Upload, AlertTriangle, Ban, Eye, ChevronDown,
+  Upload, AlertTriangle, Ban, Eye, ChevronDown, CheckCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency, parseEdgeExport, TYPOLOGY_DEFAULTS, calculateScore } from '../../engine/CalculationEngine';
@@ -330,6 +330,10 @@ export default function BuildingInventory() {
                           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d97706' }}
                             title="Missing data" />
                         )}
+                        {b.peebSelected && !inelig && (
+                          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#22a05a' }}
+                            title="PEEB Selected" />
+                        )}
                         <span className="truncate">{b.name}</span>
                       </span>
                     </td>
@@ -415,6 +419,10 @@ export default function BuildingInventory() {
                 {s.label}
               </span>
             ))}
+            <span className="flex items-center gap-1 ml-2" style={{ color: '#22a05a' }}>
+              <CheckCircle className="w-3 h-3" />
+              PEEB Selected
+            </span>
           </span>
         </div>
       </div>

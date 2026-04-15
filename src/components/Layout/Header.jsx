@@ -3,12 +3,12 @@ import { useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
 const VIEW_TITLES = {
-  dashboard:  { title: 'Dashboard',            subtitle: 'Vue d\'ensemble & KPIs du programme' },
-  inventory:  { title: 'Inventaire bâtiments', subtitle: 'Registre consultable et triable' },
-  profile:    { title: 'Fiche bâtiment',        subtitle: 'Datasheet & calcul de rénovation' },
-  map:        { title: 'Carte',                 subtitle: 'Localisation géographique — OpenStreetMap' },
-  parameters: { title: 'Paramètres',            subtitle: 'Monnaie, coûts unitaires & taux de change' },
-  calculator: { title: 'Calculateur EE',        subtitle: 'Modélisation de scénarios de rénovation' },
+  dashboard:  { title: 'Dashboard',          subtitle: 'Program overview & KPIs'                     },
+  inventory:  { title: 'Building Inventory', subtitle: 'Searchable and sortable register'              },
+  profile:    { title: 'Building Profile',   subtitle: 'Datasheet & renovation calculation'            },
+  map:        { title: 'Map',                subtitle: 'Geographic location — OpenStreetMap'           },
+  parameters: { title: 'Parameters',         subtitle: 'Currency, unit costs & exchange rate'          },
+  calculator: { title: 'EE Calculator',      subtitle: 'Renovation scenario modelling'                 },
 };
 
 const notifStyle = {
