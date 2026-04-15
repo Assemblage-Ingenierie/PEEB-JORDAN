@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
   SlidersHorizontal, Calculator, ChevronRight,
@@ -14,6 +15,7 @@ const NAV = [
 
 export default function Sidebar() {
   const { view, navigate, buildings } = useApp();
+  const [logoFailed, setLogoFailed] = useState(false);
 
   return (
     <aside
@@ -26,31 +28,28 @@ export default function Sidebar() {
         className="flex items-center px-5 py-4"
         style={{ borderBottom: '1px solid rgba(255,255,255,.08)', minHeight: 'var(--ai-header-height)' }}
       >
-        {/* PNG logo — place logo_assemblage.png in /public/ to override */}
-        <img
-          src="/logo_assemblage.png"
-          alt="Assemblage ingénierie"
-          style={{ height: '40px', maxWidth: '180px', objectFit: 'contain' }}
-          onError={e => {
-            // Fallback text if image not found
-            e.currentTarget.style.display = 'none';
-            e.currentTarget.nextSibling.style.display = 'block';
-          }}
-        />
-        {/* Text fallback (hidden by default) */}
-        <span
-          style={{
-            display: 'none',
-            fontWeight: 800,
-            fontStyle: 'italic',
-            fontSize: '16px',
-            color: '#E30513',
-            lineHeight: 1.1,
-            fontFamily: 'var(--ai-font)',
-          }}
-        >
-          Assembl!age<br />ingénierie
-        </span>
+        {/* PNG logo from /public/logo_assemblage.png */}
+        {!logoFailed ? (
+          <img
+            src="/logo_assemblage.png"
+            alt="Assemblage ingénierie"
+            style={{ height: '40px', maxWidth: '180px', objectFit: 'contain' }}
+            onError={() => setLogoFailed(true)}
+          />
+        ) : (
+          <span
+            style={{
+              fontWeight: 800,
+              fontStyle: 'italic',
+              fontSize: '16px',
+              color: '#E30513',
+              lineHeight: 1.1,
+              fontFamily: 'var(--ai-font)',
+            }}
+          >
+            Assembl!age<br />ingénierie
+          </span>
+        )}
       </div>
 
       {/* ── Navigation ── */}
