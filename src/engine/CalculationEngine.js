@@ -182,7 +182,11 @@ export function calculateCapex(measures, area) {
  */
 export function calculateBuilding({ building, measures, params }) {
   const { area, baselineEUI, typology } = building;
-  const { currency, exchangeRate, energyCost, afdLoan = 0, nationalBudget = 0, others = 0, savingsByTypology } = params;
+  const { currency, exchangeRate, energyCost, savingsByTypology } = params;
+  // Read per-building funding values — NOT from global params (which don't store them)
+  const afdLoan      = building.afdLoan      ?? 0;
+  const nationalBudget = building.nationalBudget ?? 0;
+  const others       = building.others       ?? 0;
 
   // Apply typology-specific savings rates (override per-measure rate if a typology matrix is configured)
   const typRates = savingsByTypology?.[typology];
@@ -346,7 +350,7 @@ export const SCORE_INDICATORS = {
     direction: 'higher',
     defaultCap: 50,
     capLabel: 'Full score at … years old',
-    getValue: (b) => b.yearBuilt ? (2025 - b.yearBuilt) : 0,
+    getValue: (b) => b.yearBuilt ? (new Date().getFullYear() - b.yearBuilt) : 0,
     formatDetail: (v, b) => b.yearBuilt ? `${v} yrs (built ${b.yearBuilt})` : 'No year data',
   },
   co2Avoided: {

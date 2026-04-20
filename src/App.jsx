@@ -8,6 +8,7 @@ import NewBuilding       from './components/Buildings/NewBuilding';
 import MapView           from './components/Map/MapView';
 import Parameters        from './components/Parameters/Parameters';
 import FundingCalculator from './components/Calculator/FundingCalculator';
+import ErrorBoundary     from './components/ErrorBoundary';
 
 function ActiveView() {
   const { view } = useApp();
@@ -23,7 +24,29 @@ function ActiveView() {
   }
 }
 
+function LoadingScreen() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', background: 'var(--ai-gris-clair)',
+      fontFamily: 'var(--ai-font)',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{
+          width: 40, height: 40, border: '3px solid var(--ai-gris)',
+          borderTopColor: 'var(--ai-rouge)', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
+        }} />
+        <p style={{ color: 'var(--ai-noir70)', fontSize: 13 }}>Loading data…</p>
+      </div>
+    </div>
+  );
+}
+
 function Shell() {
+  const { loading } = useApp();
+  if (loading) return <LoadingScreen />;
+
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--ai-gris-clair)' }}>
 
@@ -55,8 +78,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <Shell />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <Shell />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

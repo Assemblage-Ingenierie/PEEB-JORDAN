@@ -1,19 +1,12 @@
 /**
  * Excel I/O — download template, export DB, parse uploaded files.
- * Uses xlsx-js-style (loaded via CDN in index.html as window.XLSX) so cell
- * styles (fills, fonts, borders) are actually written to the output file.
+ * Uses xlsx-js-style (npm) for cell styles (fills, fonts, borders).
  */
 
+import XLSX from 'xlsx-js-style';
 import {
   MEASURE_KEYS, MEASURE_KEYS_EE, MEASURE_META, TYPOLOGY_DEFAULTS,
 } from '../engine/CalculationEngine';
-
-const XLSX = () => {
-  if (typeof window === 'undefined' || !window.XLSX) {
-    throw new Error('SheetJS not loaded. Check the <script> tag in index.html.');
-  }
-  return window.XLSX;
-};
 
 // ─── Brand palette ───────────────────────────────────────────────────────────
 // Ported from the Assemblage template, with every red background swapped to
@@ -232,13 +225,13 @@ function writeHeaderBlock(ws, cols) {
 
 // Ensure the sheet's declared !ref spans all cells we populated.
 function recomputeRef(ws, nRows, nCols) {
-  const X = XLSX();
+  const X = XLSX;
   ws['!ref'] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: nRows - 1, c: nCols - 1 } });
 }
 
 // ─── Typology defaults sheet ────────────────────────────────────────────────
 function buildTypologySheet() {
-  const X = XLSX();
+  const X = XLSX;
   const keys = MEASURE_KEYS;
   const header = ['Typology', 'Baseline EUI', ...keys.flatMap(k => {
     const s = MEASURE_META[k].short;
@@ -279,7 +272,7 @@ function buildTypologySheet() {
 
 // ─── Instructions sheet ─────────────────────────────────────────────────────
 function buildInstructionsSheet() {
-  const X = XLSX();
+  const X = XLSX;
   const lines = [
     ['PEEB Med Jordan — Import template'],
     [''],
@@ -325,7 +318,7 @@ function buildInstructionsSheet() {
 
 // ─── Template: empty Buildings sheet + Typology + Instructions ──────────────
 export function downloadTemplate() {
-  const X = XLSX();
+  const X = XLSX;
   const cols = allColumns();
 
   const wsBuildings = {};
@@ -341,7 +334,7 @@ export function downloadTemplate() {
 
 // ─── Export the live database ───────────────────────────────────────────────
 export function exportBuildings(buildings) {
-  const X = XLSX();
+  const X = XLSX;
   const cols = allColumns();
 
   const ws = {};
@@ -388,7 +381,7 @@ export function exportBuildings(buildings) {
 
 // ─── Parse an uploaded file into partial buildings ───────────────────────────
 export async function parseBuildingsFile(file) {
-  const X = XLSX();
+  const X = XLSX;
   const buf = await file.arrayBuffer();
   const wb = X.read(buf, { type: 'array' });
   const sheetName = wb.SheetNames.find(n => /building/i.test(n)) || wb.SheetNames[0];
