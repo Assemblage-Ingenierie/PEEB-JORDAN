@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
-  SlidersHorizontal, Calculator, ChevronRight,
+  SlidersHorizontal, PlusCircle, ChevronRight,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const NAV = [
-  { id: 'dashboard',  label: 'Dashboard',   Icon: LayoutDashboard   },
-  { id: 'inventory',  label: 'Buildings',   Icon: Building2         },
-  { id: 'map',        label: 'Map View',    Icon: Map               },
-  { id: 'calculator', label: 'Calculator',  Icon: Calculator        },
-  { id: 'parameters', label: 'Parameters',  Icon: SlidersHorizontal },
+  { id: 'dashboard',    label: 'Dashboard',     Icon: LayoutDashboard   },
+  { id: 'inventory',    label: 'Buildings',     Icon: Building2         },
+  { id: 'map',          label: 'Map View',      Icon: Map               },
+  { id: 'new-building', label: 'New Building',  Icon: PlusCircle        },
+  { id: 'parameters',   label: 'Parameters',    Icon: SlidersHorizontal },
 ];
 
 export default function Sidebar() {
@@ -79,7 +79,7 @@ export default function Sidebar() {
                 {id === 'inventory' && (
                   <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                     style={{ background: 'rgba(255,255,255,.12)', color: 'rgba(255,255,255,.7)' }}>
-                    {buildings.length}
+                    {buildings.filter(b => !b.isDraft).length}
                   </span>
                 )}
                 {active && <ChevronRight className="w-3 h-3" style={{ color: 'var(--ai-rouge)' }} />}

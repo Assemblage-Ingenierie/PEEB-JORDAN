@@ -8,7 +8,8 @@ const VIEW_TITLES = {
   profile:    { title: 'Building Profile',   subtitle: 'Datasheet & renovation calculation'            },
   map:        { title: 'Map',                subtitle: 'Geographic location — OpenStreetMap'           },
   parameters: { title: 'Parameters',         subtitle: 'Currency, unit costs & exchange rate'          },
-  calculator: { title: 'EE Calculator',      subtitle: 'Renovation scenario modelling'                 },
+  calculator:     { title: 'EE Calculator',  subtitle: 'Renovation scenario modelling'                 },
+  'new-building': { title: 'New Building',   subtitle: 'Create a new building from scratch'            },
 };
 
 const notifStyle = {

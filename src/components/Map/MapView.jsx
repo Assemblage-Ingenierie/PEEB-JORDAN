@@ -15,7 +15,8 @@ const TIER_COLOR = {
 const INELIGIBLE_COLOR = '#ef4444';
 
 export default function MapView() {
-  const { buildings, selectBuilding } = useApp();
+  const { buildings: allBuildings, selectBuilding } = useApp();
+  const buildings = allBuildings.filter(b => !b.isDraft);
   const mapRef     = useRef(null);
   const leafletRef = useRef(null);
 

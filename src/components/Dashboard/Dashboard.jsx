@@ -282,7 +282,9 @@ function AlertsSection({ buildings }) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { buildings, params, selectBuilding } = useApp();
+  const { buildings: allBuildings, params, selectBuilding } = useApp();
+  // Exclude in-progress drafts from dashboard KPIs.
+  const buildings = allBuildings.filter(b => !b.isDraft);
   const { currency, exchangeRate } = params;
 
   // PEEB targeted: explicitly selected (peebSelected = true) AND still eligible

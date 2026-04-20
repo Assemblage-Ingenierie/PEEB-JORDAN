@@ -16,7 +16,7 @@ export const FUNDING_TIERS = [
 ];
 
 /** EE measures — contribute to energy gain & PEEB grant */
-export const MEASURE_KEYS_EE = ['insulation', 'windows', 'hvac', 'lighting', 'pv'];
+export const MEASURE_KEYS_EE = ['insulation', 'windows', 'hvac', 'lighting', 'pv', 'solarThermal'];
 
 /** Global Refurbishment measures — 0% energy savings, non-EE capex, eligible for AFD */
 export const MEASURE_KEYS_GR = ['structure', 'accessibility', 'hygieneAndSecurity'];
@@ -25,15 +25,16 @@ export const MEASURE_KEYS = [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR];
 
 export const MEASURE_META = {
   // ── Energy Efficiency ──────────────────────────────────────────────────────
-  insulation:         { label: 'Roof / Wall Insulation', unit: 'JOD/m²', icon: 'Layers',      isEE: true,  lockSavings: false },
-  windows:            { label: 'Window Replacement',     unit: 'JOD/m²', icon: 'Square',      isEE: true,  lockSavings: false },
-  hvac:               { label: 'HVAC Upgrade',           unit: 'JOD/m²', icon: 'Wind',        isEE: true,  lockSavings: false },
-  lighting:           { label: 'LED Lighting',           unit: 'JOD/m²', icon: 'Lightbulb',   isEE: true,  lockSavings: false },
-  pv:                 { label: 'PV Solar System',        unit: 'JOD/m²', icon: 'Sun',         isEE: true,  lockSavings: false },
+  insulation:         { label: 'Roof / Wall Insulation',  short: 'Insulation',    unit: 'JOD/m²', icon: 'Layers',      isEE: true,  lockSavings: false },
+  windows:            { label: 'Window Replacement',      short: 'Windows',       unit: 'JOD/m²', icon: 'Square',      isEE: true,  lockSavings: false },
+  hvac:               { label: 'HVAC Upgrade',            short: 'HVAC',          unit: 'JOD/m²', icon: 'Wind',        isEE: true,  lockSavings: false },
+  lighting:           { label: 'LED Lighting',            short: 'Lighting',      unit: 'JOD/m²', icon: 'Lightbulb',   isEE: true,  lockSavings: false },
+  pv:                 { label: 'PV Solar System',         short: 'PV',            unit: 'JOD/m²', icon: 'Sun',         isEE: true,  lockSavings: false },
+  solarThermal:       { label: 'Solar Thermal (hot water)', short: 'Solar Thermal', unit: 'JOD/m²', icon: 'Droplets',   isEE: true,  lockSavings: false },
   // ── Global Refurbishment (0 % energy savings, locked) ─────────────────────
-  structure:          { label: 'Structure',              unit: 'JOD/m²', icon: 'Building2',   isEE: false, lockSavings: true  },
-  accessibility:      { label: 'Accessibility',          unit: 'JOD/m²', icon: 'Accessibility', isEE: false, lockSavings: true },
-  hygieneAndSecurity: { label: 'Hygiene & Security',     unit: 'JOD/m²', icon: 'ShieldCheck', isEE: false, lockSavings: true  },
+  structure:          { label: 'Structure',               short: 'Structure',     unit: 'JOD/m²', icon: 'Building2',   isEE: false, lockSavings: true  },
+  accessibility:      { label: 'Accessibility',           short: 'Accessibility', unit: 'JOD/m²', icon: 'Accessibility', isEE: false, lockSavings: true },
+  hygieneAndSecurity: { label: 'Hygiene & Security',      short: 'Hygiene',       unit: 'JOD/m²', icon: 'ShieldCheck', isEE: false, lockSavings: true  },
 };
 
 /** Typology-based defaults (JOD/m² capex, savings rates) */
@@ -45,6 +46,7 @@ export const TYPOLOGY_DEFAULTS = {
     hvac:               { capex: 120, savingsRate: 0.25 },
     lighting:           { capex: 20,  savingsRate: 0.30 },
     pv:                 { capex: 150, savingsRate: 0.20 },
+    solarThermal:       { capex: 110, savingsRate: 0.05 },
     structure:          { capex: 130, savingsRate: 0 },
     accessibility:      { capex: 70,  savingsRate: 0 },
     hygieneAndSecurity: { capex: 60,  savingsRate: 0 },
@@ -56,6 +58,7 @@ export const TYPOLOGY_DEFAULTS = {
     hvac:               { capex: 200, savingsRate: 0.30 },
     lighting:           { capex: 25,  savingsRate: 0.25 },
     pv:                 { capex: 160, savingsRate: 0.15 },
+    solarThermal:       { capex: 140, savingsRate: 0.18 },
     structure:          { capex: 180, savingsRate: 0 },
     accessibility:      { capex: 100, savingsRate: 0 },
     hygieneAndSecurity: { capex: 120, savingsRate: 0 },
@@ -67,6 +70,7 @@ export const TYPOLOGY_DEFAULTS = {
     hvac:               { capex: 140, savingsRate: 0.28 },
     lighting:           { capex: 22,  savingsRate: 0.32 },
     pv:                 { capex: 150, savingsRate: 0.22 },
+    solarThermal:       { capex: 120, savingsRate: 0.04 },
     structure:          { capex: 140, savingsRate: 0 },
     accessibility:      { capex: 75,  savingsRate: 0 },
     hygieneAndSecurity: { capex: 65,  savingsRate: 0 },
@@ -78,6 +82,7 @@ export const TYPOLOGY_DEFAULTS = {
     hvac:               { capex: 130, savingsRate: 0.26 },
     lighting:           { capex: 21,  savingsRate: 0.31 },
     pv:                 { capex: 145, savingsRate: 0.21 },
+    solarThermal:       { capex: 115, savingsRate: 0.05 },
     structure:          { capex: 130, savingsRate: 0 },
     accessibility:      { capex: 70,  savingsRate: 0 },
     hygieneAndSecurity: { capex: 60,  savingsRate: 0 },
@@ -89,11 +94,24 @@ export const TYPOLOGY_DEFAULTS = {
     hvac:               { capex: 155, savingsRate: 0.27 },
     lighting:           { capex: 23,  savingsRate: 0.33 },
     pv:                 { capex: 155, savingsRate: 0.23 },
+    solarThermal:       { capex: 125, savingsRate: 0.08 },
     structure:          { capex: 155, savingsRate: 0 },
     accessibility:      { capex: 85,  savingsRate: 0 },
     hygieneAndSecurity: { capex: 70,  savingsRate: 0 },
   },
 };
+
+/** Build a savings-rate matrix { [typology]: { [measure]: rate } } from TYPOLOGY_DEFAULTS */
+export function buildDefaultSavingsByTypology() {
+  const out = {};
+  for (const [typ, def] of Object.entries(TYPOLOGY_DEFAULTS)) {
+    out[typ] = {};
+    for (const k of MEASURE_KEYS_EE) {
+      out[typ][k] = def[k]?.savingsRate ?? 0;
+    }
+  }
+  return out;
+}
 
 export const DONOR_MARKERS = ['GIZ', 'KfW', 'USAID', 'EU', 'World Bank', 'EBRD', 'AFD'];
 
@@ -163,13 +181,25 @@ export function calculateCapex(measures, area) {
  * params.others — additional funding source (JOD)
  */
 export function calculateBuilding({ building, measures, params }) {
-  const { area, baselineEUI } = building;
-  const { currency, exchangeRate, energyCost, afdLoan = 0, nationalBudget = 0, others = 0 } = params;
+  const { area, baselineEUI, typology } = building;
+  const { currency, exchangeRate, energyCost, afdLoan = 0, nationalBudget = 0, others = 0, savingsByTypology } = params;
 
-  const { measures: synMeasures, synergyApplied } = applyThermalSynergy(measures);
-  const energyGain = calculateEnergyGain(measures);
+  // Apply typology-specific savings rates (override per-measure rate if a typology matrix is configured)
+  const typRates = savingsByTypology?.[typology];
+  const measuresWithTyp = typRates
+    ? Object.fromEntries(
+        Object.entries(measures).map(([k, m]) =>
+          typRates[k] != null && !MEASURE_META[k]?.lockSavings
+            ? [k, { ...m, savingsRate: typRates[k] }]
+            : [k, m]
+        )
+      )
+    : measures;
+
+  const { measures: synMeasures, synergyApplied } = applyThermalSynergy(measuresWithTyp);
+  const energyGain = calculateEnergyGain(measuresWithTyp);
   const tier       = getFundingTier(energyGain);
-  const capexJOD   = calculateCapex(measures, area);
+  const capexJOD   = calculateCapex(measuresWithTyp, area);
 
   // Energy & CO₂
   const energySavedKWh  = baselineEUI * area * (energyGain / 100);
@@ -335,7 +365,7 @@ export const SCORE_INDICATORS = {
     defaultCap: 50000,
     capLabel: 'Full score at … JOD/yr',
     getValue: (_b, calc) => calc?._jod?.annualSavings ?? 0,
-    formatDetail: (v) => `JD ${Math.round(v).toLocaleString()}/yr`,
+    formatDetail: (v) => `JOD ${Math.round(v).toLocaleString()}/yr`,
   },
   peebGrant: {
     label: 'PEEB Grant Amount',
@@ -344,7 +374,7 @@ export const SCORE_INDICATORS = {
     defaultCap: 500000,
     capLabel: 'Full score at … JOD grant',
     getValue: (_b, calc) => calc?._jod?.peebGrant ?? 0,
-    formatDetail: (v) => `JD ${Math.round(v).toLocaleString()} grant`,
+    formatDetail: (v) => `JOD ${Math.round(v).toLocaleString()} grant`,
   },
   payback: {
     label: 'Payback Period',
@@ -366,7 +396,7 @@ export const SCORE_INDICATORS = {
       const g = calc?._jod?.peebGrant ?? 0;
       return Math.max(0, c - g);
     },
-    formatDetail: (v) => v > 0 ? `JD ${Math.round(v).toLocaleString()} net` : 'Fully covered',
+    formatDetail: (v) => v > 0 ? `JOD ${Math.round(v).toLocaleString()} net` : 'Fully covered',
   },
 };
 
@@ -464,6 +494,6 @@ export function formatCurrency(value, currency, compact = false) {
   const opts = compact
     ? { notation: 'compact', maximumFractionDigits: 1 }
     : { minimumFractionDigits: 0, maximumFractionDigits: 0 };
-  const sym = currency === 'EUR' ? '€' : 'JD';
+  const sym = currency === 'EUR' ? '€' : 'JOD';
   return `${sym} ${new Intl.NumberFormat('en-JO', opts).format(value)}`;
 }

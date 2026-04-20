@@ -1,10 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Search, ArrowUpDown, ArrowUp, ArrowDown,
-  Upload, AlertTriangle, Ban, Eye, ChevronDown, CheckCircle,
+  Upload, AlertTriangle, Ban, ChevronDown, CheckCircle,
+  Layers, Square, Wind, Lightbulb, Sun, Droplets,
+  Building2, ShieldCheck, GripVertical, Check,
+  Plus, FileSpreadsheet, Download,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatCurrency, parseEdgeExport, TYPOLOGY_DEFAULTS, calculateScore } from '../../engine/CalculationEngine';
+import {
+  formatCurrency, parseEdgeExport, calculateScore,
+  MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR,
+} from '../../engine/CalculationEngine';
+import UploadBuildingsDialog from './UploadBuildingsDialog';
+import { exportBuildings } from '../../utils/excelIO';
 
 // ─── Jordan region mapping ────────────────────────────────────────────────────
 const JORDAN_REGIONS = {
@@ -16,6 +24,13 @@ const getRegion = (gov) => JORDAN_REGIONS[gov] || '—';
 
 const TYPOLOGIES = ['All', 'School', 'Hospital', 'Office', 'Municipality', 'University'];
 const REGIONS    = ['All', 'North', 'Central', 'South'];
+
+// ─── Icon map for measure columns ─────────────────────────────────────────────
+const MEASURE_ICONS = {
+  insulation: Layers, windows: Square, hvac: Wind, lighting: Lightbulb,
+  pv: Sun, solarThermal: Droplets,
+  structure: Building2, accessibility: Building2, hygieneAndSecurity: ShieldCheck,
+};
 
 // ─── EDGE Import Modal ────────────────────────────────────────────────────────
 function EdgeImportModal({ onClose, onImport }) {
@@ -77,51 +92,13 @@ function EdgeImportModal({ onClose, onImport }) {
   );
 }
 
-// ─── Sortable header (white text on dark background) ──────────────────────────
-function SortableHeader({ col, label, sortState, onSort }) {
-  const active = sortState.col === col;
-  const Icon   = active ? (sortState.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
-  return (
-    <th
-      className="th cursor-pointer select-none"
-      style={{ whiteSpace: 'nowrap', color: 'white' }}
-      onClick={() => onSort(col)}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.08)'}
-      onMouseLeave={e => e.currentTarget.style.background = ''}
-    >
-      <span className="flex items-center gap-1">
-        {label}
-        <Icon className="w-3.5 h-3.5"
-          style={{ color: active ? 'var(--ai-rouge)' : 'rgba(255,255,255,.35)' }} />
-      </span>
-    </th>
-  );
-}
-
-// ─── Gap / suggested value cell ───────────────────────────────────────────────
-function GapCell({ value, field, typology, unit = '' }) {
-  if (value !== null && value !== undefined && value !== '') {
-    return <span>{value}{unit}</span>;
-  }
-  const defaults  = TYPOLOGY_DEFAULTS[typology];
-  const suggested = defaults && field === 'baselineEUI' ? defaults.baselineEUI : null;
-  if (suggested !== null) {
-    return (
-      <span className="data-suggested" title="Suggested value based on typology">
-        ~{suggested}{unit}
-      </span>
-    );
-  }
-  return <span className="data-gap text-xs px-1.5 py-0.5 rounded">Missing</span>;
-}
-
 // ─── Score badge ──────────────────────────────────────────────────────────────
 function ScoreBadge({ score }) {
   const bg = score >= 70 ? '#22a05a' : score >= 40 ? '#d97706' : 'var(--ai-rouge)';
   return (
     <span
-      className="inline-flex items-center justify-center w-10 h-6 rounded-full text-xs font-bold text-white"
-      style={{ background: bg }}
+      className="inline-flex items-center justify-center rounded-full text-white font-bold"
+      style={{ background: bg, width: 32, height: 18, fontSize: 10 }}
     >
       {score}
     </span>
@@ -129,7 +106,7 @@ function ScoreBadge({ score }) {
 }
 
 // ─── Filter dropdown ──────────────────────────────────────────────────────────
-function FilterDropdown({ value, onChange, options, placeholder }) {
+function FilterDropdown({ value, onChange, options }) {
   return (
     <div className="relative">
       <select
@@ -152,15 +129,181 @@ function FilterDropdown({ value, onChange, options, placeholder }) {
   );
 }
 
-// ─── Tier hex palette ─────────────────────────────────────────────────────────
-const TIER_HEX = {
-  slate: '#DFE4E8', amber: '#F9E1E3', blue: '#f07070',
-  green: '#E30513', purple: '#30323E',
-};
+// ─── Column definitions ──────────────────────────────────────────────────────
+// Each column: { key, label, width, sortable, type: 'meta'|'measure', measureKey?, render(b, ctx) => ReactNode }
+function buildColumns(params) {
+  const fmtGrant = (grant) => {
+    if (!grant) return '—';
+    const v = params.currency === 'EUR' ? +(grant * params.exchangeRate).toFixed(0) : grant;
+    return formatCurrency(v, params.currency, true);
+  };
+
+  const metaCols = [
+    { key: 'id',            label: 'ID',           width: 56,  sortable: true,  type: 'meta',
+      render: b => <span className="font-mono" style={{ color: 'var(--ai-noir70)' }}>{b.id}</span> },
+    { key: 'name',          label: 'Building',     width: 200, sortable: true,  type: 'meta',
+      render: (b) => (
+        <span className="font-semibold flex items-center gap-1.5" style={{ color: 'var(--ai-rouge)' }}>
+          {b.eligibility.ineligible && (
+            <Ban className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }}
+              title={b.eligibility.reason === 'manual' ? 'Manually ineligible' : `Donor: ${b.eligibility.donor}`} />
+          )}
+          {b.gaps.length > 0 && !b.eligibility.ineligible && (
+            <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#d97706' }} title="Missing data" />
+          )}
+          {b.peebSelected && !b.eligibility.ineligible && (
+            <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: '#22a05a' }} title="PEEB Selected" />
+          )}
+          <span className="truncate" title={b.name}>{b.name}</span>
+        </span>
+      )
+    },
+    { key: 'typology',      label: 'Type',         width: 110, sortable: true,  type: 'meta',
+      render: b => (
+        <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)', fontSize: 10 }}>
+          {b.typology}
+        </span>
+      ) },
+    { key: 'governorate',   label: 'City',         width: 95,  sortable: true,  type: 'meta',
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.governorate || '—'}</span> },
+    { key: 'region',        label: 'Region',       width: 75,  sortable: false, type: 'meta',
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{getRegion(b.governorate)}</span> },
+    { key: 'area',          label: 'Area m²',      width: 80,  sortable: true,  type: 'meta', align: 'right',
+      render: b => b.area ? b.area.toLocaleString() : <span className="data-gap text-xs px-1 rounded">—</span> },
+    { key: 'floors',        label: 'Floors',       width: 55,  sortable: true,  type: 'meta', align: 'right',
+      render: b => b.floors ?? '—' },
+    { key: 'yearBuilt',     label: 'Year',         width: 55,  sortable: true,  type: 'meta', align: 'right',
+      render: b => b.yearBuilt ?? '—' },
+    { key: 'baselineEUI',   label: 'EUI',          width: 70,  sortable: true,  type: 'meta', align: 'right',
+      render: b => b.baselineEUI ? `${b.baselineEUI}` : <span className="data-gap text-xs px-1 rounded">—</span>,
+      title: 'Baseline EUI kWh/m²/yr' },
+    { key: 'operatingHours',label: 'Hours',        width: 130, sortable: false, type: 'meta',
+      render: b => <span className="truncate" title={b.operatingHours} style={{ color: 'var(--ai-noir70)' }}>{b.operatingHours || '—'}</span> },
+    { key: 'fundingSource', label: 'Donor',        width: 75,  sortable: true,  type: 'meta',
+      render: b => b.fundingSource
+        ? <span className="badge" style={{ background: 'var(--ai-gris)', color: 'var(--ai-violet)', fontSize: 10 }}>{b.fundingSource}</span>
+        : <span style={{ color: 'var(--ai-noir70)' }}>—</span> },
+    { key: 'status',        label: 'Status',       width: 95,  sortable: true,  type: 'meta',
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.status}</span> },
+    { key: 'priority',      label: 'Priority',     width: 75,  sortable: true,  type: 'meta',
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.priority}</span> },
+    { key: 'calc',          label: 'Gain %',       width: 65,  sortable: true,  type: 'meta', align: 'right',
+      render: b => {
+        const gain = b.calc?.energyGain;
+        if (gain == null) return '—';
+        const eligible = !b.eligibility.ineligible && gain >= 30;
+        return <span className="font-bold" style={{ color: eligible ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+          {gain.toFixed(1)}%
+        </span>;
+      }
+    },
+    { key: 'peebGrant',     label: 'Grant',        width: 85,  sortable: true,  type: 'meta', align: 'right',
+      render: b => <span className="font-semibold" style={{ color: 'var(--ai-violet)' }}>
+        {fmtGrant(b.calc?._jod?.peebGrant ?? 0)}
+      </span>
+    },
+    { key: 'score',         label: 'Score',        width: 55,  sortable: true,  type: 'meta', align: 'center',
+      render: (b, { scoreCfg }) => <ScoreBadge score={calculateScore(b, b.calc, scoreCfg).total} />
+    },
+  ];
+
+  // Measure columns — one per measure key. Shown as checkmark (selected = ✓).
+  const measureCols = [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR].map(key => ({
+    key: `m_${key}`,
+    label: MEASURE_META[key].short ?? MEASURE_META[key].label,
+    width: 36,
+    sortable: false,
+    type: 'measure',
+    measureKey: key,
+    vertical: true,
+    align: 'center',
+    render: (b) => {
+      const m = b.measures?.[key];
+      const selected = !!m?.selected;
+      const locked = MEASURE_META[key].lockSavings;
+      const Icon = MEASURE_ICONS[key] || Check;
+      return (
+        <span
+          className="inline-flex items-center justify-center rounded"
+          style={{
+            width: 22, height: 22,
+            background: selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-gris-clair)',
+            color: selected ? 'white' : 'var(--ai-noir70)',
+            opacity: selected ? 1 : 0.4,
+          }}
+          title={`${MEASURE_META[key].label}${selected ? ' — planned' : ''}${m?.notes ? `\n${m.notes}` : ''}`}
+        >
+          {selected
+            ? <Check className="w-3.5 h-3.5" strokeWidth={3} />
+            : <Icon className="w-3 h-3" />}
+        </span>
+      );
+    }
+  }));
+
+  return [...metaCols, ...measureCols];
+}
+
+// ─── Sortable, draggable header ───────────────────────────────────────────────
+function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, isDragTarget }) {
+  const active = sortState.col === col.key;
+  const Icon   = active ? (sortState.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
+
+  return (
+    <th
+      draggable
+      onDragStart={e => onDragStart(e, col.key)}
+      onDragOver={e => { e.preventDefault(); onDragOver(col.key); }}
+      onDrop={e => { e.preventDefault(); onDrop(col.key); }}
+      className="th select-none"
+      style={{
+        color: 'white',
+        cursor: col.sortable ? 'pointer' : 'grab',
+        whiteSpace: 'nowrap',
+        width: col.width,
+        minWidth: col.width,
+        maxWidth: col.width,
+        padding: col.vertical ? '4px 2px' : '6px 8px',
+        textAlign: col.align === 'right' ? 'right' : col.align === 'center' ? 'center' : 'left',
+        borderLeft: isDragTarget ? '2px solid var(--ai-rouge)' : 'none',
+        background: isDragTarget ? 'rgba(255,255,255,.12)' : 'transparent',
+        verticalAlign: col.vertical ? 'bottom' : 'middle',
+        height: col.vertical ? 110 : 'auto',
+      }}
+      onClick={() => col.sortable && onSort(col.key)}
+      title={col.title ?? col.label}
+    >
+      {col.vertical ? (
+        <div
+          style={{
+            writingMode: 'vertical-rl',
+            transform: 'rotate(180deg)',
+            fontSize: 10,
+            letterSpacing: '.04em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            margin: '0 auto',
+          }}
+        >
+          {col.label}
+        </div>
+      ) : (
+        <span className="flex items-center gap-1" style={{ justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }}>
+          <GripVertical className="w-3 h-3 opacity-30 flex-shrink-0" />
+          <span>{col.label}</span>
+          {col.sortable && (
+            <Icon className="w-3 h-3 flex-shrink-0"
+              style={{ color: active ? 'var(--ai-rouge)' : 'rgba(255,255,255,.35)' }} />
+          )}
+        </span>
+      )}
+    </th>
+  );
+}
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 export default function BuildingInventory() {
-  const { buildings, selectBuilding, addBuildings, params } = useApp();
+  const { buildings, selectBuilding, addBuildings, navigate, params } = useApp();
 
   const [search,         setSearch]         = useState('');
   const [typologyFilter, setTypologyFilter] = useState('All');
@@ -168,9 +311,49 @@ export default function BuildingInventory() {
   const [regionFilter,   setRegionFilter]   = useState('All');
   const [sort,           setSort]           = useState({ col: 'name', dir: 'asc' });
   const [showImport,     setShowImport]     = useState(false);
+  const [showUpload,     setShowUpload]     = useState(false);
+
+  const allColumns = useMemo(() => buildColumns(params), [params]);
+
+  // Column order state — stores array of keys
+  const [columnOrder, setColumnOrder] = useState(() => allColumns.map(c => c.key));
+  const [dragKey, setDragKey] = useState(null);
+  const [dragTarget, setDragTarget] = useState(null);
+
+  // Keep columnOrder in sync if new columns appear (e.g. after adding a measure)
+  useEffect(() => {
+    setColumnOrder(prev => {
+      const known = new Set(prev);
+      const missing = allColumns.filter(c => !known.has(c.key)).map(c => c.key);
+      return missing.length ? [...prev, ...missing] : prev;
+    });
+  }, [allColumns.length]);
+
+  const columns = columnOrder
+    .map(k => allColumns.find(c => c.key === k))
+    .filter(Boolean);
 
   const handleSort = (col) =>
     setSort(prev => ({ col, dir: prev.col === col && prev.dir === 'asc' ? 'desc' : 'asc' }));
+
+  const handleDragStart = (e, key) => {
+    setDragKey(key);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const handleDragOver = (key) => {
+    if (key !== dragTarget) setDragTarget(key);
+  };
+  const handleDrop = (targetKey) => {
+    if (!dragKey || dragKey === targetKey) { setDragKey(null); setDragTarget(null); return; }
+    setColumnOrder(prev => {
+      const next = prev.filter(k => k !== dragKey);
+      const idx  = next.indexOf(targetKey);
+      next.splice(idx, 0, dragKey);
+      return next;
+    });
+    setDragKey(null);
+    setDragTarget(null);
+  };
 
   // Derive unique city list from data
   const cities = useMemo(() => [
@@ -178,12 +361,9 @@ export default function BuildingInventory() {
     ...[...new Set(buildings.map(b => b.governorate).filter(Boolean))].sort(),
   ], [buildings]);
 
-  // PEEB eligibility: not ineligible AND energy gain >= 30%
-  const isPeebEligible = (b) =>
-    !b.eligibility.ineligible && (b.calc?.energyGain ?? 0) >= 30;
-
   const filtered = useMemo(() => {
     return buildings
+      .filter(b => !b.isDraft)
       .filter(b => {
         const q = search.toLowerCase();
         if (q && !(
@@ -220,19 +400,7 @@ export default function BuildingInventory() {
         if (va > vb) return sort.dir === 'asc' ?  1 : -1;
         return 0;
       });
-  }, [buildings, search, typologyFilter, cityFilter, regionFilter, sort]);
-
-  const columns = [
-    { col: 'id',          label: 'ID'         },
-    { col: 'name',        label: 'Building'   },
-    { col: 'typology',    label: 'Type'       },
-    { col: 'governorate', label: 'City'       },
-    { col: 'area',        label: 'Area m²'    },
-    { col: 'baselineEUI', label: 'EUI'        },
-    { col: 'calc',        label: 'Gain %'     },
-    { col: 'peebGrant',   label: 'Grant'      },
-    { col: 'score',       label: 'Score /100' },
-  ];
+  }, [buildings, search, typologyFilter, cityFilter, regionFilter, sort, params.scoreConfig]);
 
   return (
     <div className="space-y-4 fade-in">
@@ -253,57 +421,58 @@ export default function BuildingInventory() {
         </div>
 
         {/* Dropdown filters */}
-        <FilterDropdown
-          value={typologyFilter}
-          onChange={setTypologyFilter}
-          options={TYPOLOGIES.map(t => ({ value: t, label: t === 'All' ? 'All typologies' : t }))}
-        />
-        <FilterDropdown
-          value={cityFilter}
-          onChange={setCityFilter}
-          options={cities.map(c => ({ value: c, label: c === 'All' ? 'All cities' : c }))}
-        />
-        <FilterDropdown
-          value={regionFilter}
-          onChange={setRegionFilter}
-          options={REGIONS.map(r => ({ value: r, label: r === 'All' ? 'All regions' : r }))}
-        />
+        <FilterDropdown value={typologyFilter} onChange={setTypologyFilter}
+          options={TYPOLOGIES.map(t => ({ value: t, label: t === 'All' ? 'All typologies' : t }))} />
+        <FilterDropdown value={cityFilter} onChange={setCityFilter}
+          options={cities.map(c => ({ value: c, label: c === 'All' ? 'All cities' : c }))} />
+        <FilterDropdown value={regionFilter} onChange={setRegionFilter}
+          options={REGIONS.map(r => ({ value: r, label: r === 'All' ? 'All regions' : r }))} />
 
-        <button onClick={() => setShowImport(true)} className="btn-secondary">
-          <Upload className="w-4 h-4" /> Import EDGE
-        </button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button onClick={() => exportBuildings(buildings.filter(b => !b.isDraft))}
+                  className="btn-secondary text-xs"
+                  title="Download the full buildings database as Excel">
+            <Download className="w-3.5 h-3.5" /> Download Excel
+          </button>
+          <button onClick={() => setShowImport(true)}
+                  className="btn-secondary text-xs"
+                  title="Import from an EDGE export (.json / .csv)">
+            <Upload className="w-3.5 h-3.5" /> EDGE
+          </button>
+          <button onClick={() => setShowUpload(true)}
+                  className="btn-secondary text-xs">
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Upload new buildings
+          </button>
+          <button onClick={() => navigate('new-building')}
+                  className="btn-primary text-xs">
+            <Plus className="w-3.5 h-3.5" /> Create new building
+          </button>
+        </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Spreadsheet-style table ── */}
       <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
+        <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+          <table style={{ borderCollapse: 'separate', borderSpacing: 0, fontSize: 12 }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
               <tr style={{ background: 'var(--ai-violet)', borderBottom: '2px solid var(--ai-rouge)' }}>
-                {columns.map(({ col, label }) => (
-                  <SortableHeader key={col} col={col} label={label} sortState={sort} onSort={handleSort} />
+                {columns.map(col => (
+                  <HeaderCell key={col.key}
+                    col={col}
+                    sortState={sort}
+                    onSort={handleSort}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    isDragTarget={dragTarget === col.key && dragKey !== col.key}
+                  />
                 ))}
-                <th className="th" style={{ color: 'white' }}></th>
               </tr>
             </thead>
 
-            <tbody className="divide-y" style={{ borderColor: 'var(--ai-gris-clair)' }}>
+            <tbody>
               {filtered.map((b, rowIdx) => {
-                const inelig    = b.eligibility.ineligible;
-                const hasGap    = b.gaps.length > 0;
-                const eligible  = isPeebEligible(b);
-                const gain      = b.calc?.energyGain;
-                const score     = calculateScore(b, b.calc, params.scoreConfig).total;
-                const grant     = b.calc?._jod?.peebGrant ?? 0;
-                const grantDisplay = grant
-                  ? formatCurrency(
-                      params.currency === 'EUR'
-                        ? +(grant * params.exchangeRate).toFixed(0)
-                        : grant,
-                      params.currency, true
-                    )
-                  : '—';
-
+                const inelig = b.eligibility.ineligible;
                 return (
                   <tr
                     key={b.id}
@@ -311,90 +480,29 @@ export default function BuildingInventory() {
                     style={{
                       background: rowIdx % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
                       opacity: inelig ? 0.6 : 1,
+                      borderBottom: '1px solid var(--ai-gris-clair)',
                     }}
                     onClick={() => selectBuilding(b.id)}
                   >
-                    {/* ID */}
-                    <td className="td font-mono text-xs" style={{ color: 'var(--ai-noir70)' }}>
-                      {b.id}
-                    </td>
-
-                    {/* Building name */}
-                    <td className="td font-semibold max-w-[180px]" style={{ color: 'var(--ai-rouge)' }}>
-                      <span className="flex items-center gap-1.5">
-                        {inelig && (
-                          <Ban className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }}
-                            title={b.eligibility.reason === 'manual' ? 'Manually ineligible' : `Donor: ${b.eligibility.donor}`} />
-                        )}
-                        {hasGap && !inelig && (
-                          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#d97706' }}
-                            title="Missing data" />
-                        )}
-                        {b.peebSelected && !inelig && (
-                          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#22a05a' }}
-                            title="PEEB Selected" />
-                        )}
-                        <span className="truncate">{b.name}</span>
-                      </span>
-                    </td>
-
-                    {/* Type */}
-                    <td className="td">
-                      <span className="badge"
-                        style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>
-                        {b.typology}
-                      </span>
-                    </td>
-
-                    {/* City */}
-                    <td className="td" style={{ color: 'var(--ai-noir70)' }}>
-                      {b.governorate || '—'}
-                    </td>
-
-                    {/* Area */}
-                    <td className={`td text-right ${b.gaps.includes('area') ? 'data-gap' : ''}`}>
-                      <GapCell value={b.area} field="area" typology={b.typology} />
-                    </td>
-
-                    {/* EUI */}
-                    <td className={`td text-right ${b.gaps.includes('baselineEUI') ? 'data-gap' : ''}`}>
-                      <GapCell value={b.baselineEUI} field="baselineEUI" typology={b.typology} unit=" kWh/m²" />
-                    </td>
-
-                    {/* Energy gain */}
-                    <td className="td text-right font-bold" style={{ color: eligible ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
-                      {gain != null ? `${gain.toFixed(1)}%` : '—'}
-                    </td>
-
-                    {/* PEEB Grant */}
-                    <td className="td text-right font-semibold" style={{ color: 'var(--ai-violet)' }}>
-                      {grantDisplay}
-                    </td>
-
-                    {/* Score */}
-                    <td className="td">
-                      <ScoreBadge score={score} />
-                    </td>
-
-                    {/* Action */}
-                    <td className="td">
-                      <button
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: 'var(--ai-noir70)' }}
-                        onClick={e => { e.stopPropagation(); selectBuilding(b.id); }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.color = 'var(--ai-rouge)';
-                          e.currentTarget.style.background = 'var(--ai-rouge-clair)';
+                    {columns.map(col => (
+                      <td key={col.key}
+                        style={{
+                          padding: '3px 6px',
+                          width: col.width,
+                          minWidth: col.width,
+                          maxWidth: col.width,
+                          textAlign: col.align ?? 'left',
+                          fontSize: 12,
+                          lineHeight: 1.25,
+                          color: '#1a1a1a',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
                         }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.color = 'var(--ai-noir70)';
-                          e.currentTarget.style.background = '';
-                        }}
-                        title="Open profile"
                       >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
+                        {col.render(b, { scoreCfg: params.scoreConfig })}
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
@@ -404,11 +512,11 @@ export default function BuildingInventory() {
 
         {/* Table footer */}
         <div
-          className="px-4 py-2.5 text-xs flex items-center gap-4"
+          className="px-4 py-2 text-xs flex items-center gap-4"
           style={{ borderTop: '1px solid var(--ai-gris)', background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}
         >
           <span>
-            <strong>{filtered.length}</strong> / <strong>{buildings.length}</strong> buildings
+            <strong>{filtered.length}</strong> / <strong>{buildings.filter(b => !b.isDraft).length}</strong> buildings
             {search && ` · filter: "${search}"`}
           </span>
           <span className="ml-auto flex items-center gap-3 text-xs">
@@ -423,6 +531,9 @@ export default function BuildingInventory() {
               <CheckCircle className="w-3 h-3" />
               PEEB Selected
             </span>
+            <span className="ml-2" style={{ fontStyle: 'italic' }}>
+              Drag column headers to reorder · click a row to open
+            </span>
           </span>
         </div>
       </div>
@@ -430,6 +541,8 @@ export default function BuildingInventory() {
       {showImport && (
         <EdgeImportModal onClose={() => setShowImport(false)} onImport={addBuildings} />
       )}
+
+      <UploadBuildingsDialog open={showUpload} onClose={() => setShowUpload(false)} />
     </div>
   );
 }

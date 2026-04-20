@@ -3,7 +3,8 @@ import {
   MapPin, Clock, Calendar, Layers, Ruler, Zap,
   Camera, X, Printer, AlertTriangle, Ban, Info,
   Leaf, Banknote, TrendingUp, Wind, Lightbulb,
-  Sun, Building2, Square, CheckCircle2, ShieldCheck,
+  Sun, Building2, Square, CheckCircle2, ShieldCheck, Droplets,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
@@ -18,7 +19,7 @@ const TIER_STYLE = {
 };
 
 // ─── Section ──────────────────────────────────────────────────────────────────
-function Section({ title, children }) {
+export function Section({ title, children }) {
   return (
     <section className="card">
       <h3 className="text-xs font-bold uppercase tracking-wide mb-4 pb-2"
@@ -30,7 +31,7 @@ function Section({ title, children }) {
   );
 }
 
-function InfoRow({ label, value, icon: Icon, italic }) {
+export function InfoRow({ label, value, icon: Icon, italic }) {
   return (
     <div className="flex items-start gap-2 text-sm py-1">
       {Icon && <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />}
@@ -39,6 +40,59 @@ function InfoRow({ label, value, icon: Icon, italic }) {
         style={{ color: italic ? 'var(--ai-noir70)' : 'var(--ai-violet)' }}>
         {value ?? '—'}
       </span>
+    </div>
+  );
+}
+
+/** Editable variant — click row to edit, commits on blur/Enter. */
+export function EditableInfoRow({ label, icon: Icon, value, onCommit, type = 'text', italic, suffix, options }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? '');
+
+  useEffect(() => { setDraft(value ?? ''); }, [value]);
+
+  const commit = () => {
+    setEditing(false);
+    const v = type === 'number'
+      ? (draft === '' || draft === null ? null : Number(draft))
+      : draft;
+    if (v !== (value ?? '')) onCommit(v);
+  };
+  const cancel = () => { setDraft(value ?? ''); setEditing(false); };
+
+  const display = value === null || value === undefined || value === '' ? '—' : value;
+
+  return (
+    <div className="flex items-start gap-2 text-sm py-1 group">
+      {Icon && <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />}
+      <span className="w-36 flex-shrink-0 text-xs" style={{ color: 'var(--ai-noir70)' }}>{label}</span>
+      {editing ? (
+        options ? (
+          <select autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+                  onBlur={commit}
+                  className="input text-sm flex-1 py-1">
+            {options.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        ) : (
+          <input autoFocus type={type}
+                 value={draft}
+                 onChange={e => setDraft(e.target.value)}
+                 onBlur={commit}
+                 onKeyDown={e => {
+                   if (e.key === 'Enter') commit();
+                   if (e.key === 'Escape') cancel();
+                 }}
+                 className="input text-sm flex-1 py-1" />
+        )
+      ) : (
+        <button type="button"
+                onClick={() => setEditing(true)}
+                className={`flex-1 text-left font-medium text-sm rounded px-1 -mx-1 cursor-text hover:bg-slate-50 ${italic ? 'italic' : ''}`}
+                style={{ color: italic ? 'var(--ai-noir70)' : 'var(--ai-violet)' }}
+                title="Click to edit">
+          {display}{suffix && display !== '—' ? ` ${suffix}` : ''}
+        </button>
+      )}
     </div>
   );
 }
@@ -118,10 +172,10 @@ function BuildingMiniMap({ building }) {
 }
 
 // ─── Icônes mesures ───────────────────────────────────────────────────────────
-const ICON_MAP = { Layers, Square, Wind, Lightbulb, Sun, Building2, Accessibility: MapPin, ShieldCheck };
+const ICON_MAP = { Layers, Square, Wind, Lightbulb, Sun, Droplets, Building2, Accessibility: MapPin, ShieldCheck };
 
 // ─── Ligne de mesure ─────────────────────────────────────────────────────────
-function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
+export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
   const { toggleMeasure, setMeasureValue } = useApp();
   const meta    = MEASURE_META[measureKey];
   const Icon    = ICON_MAP[meta.icon] || Layers;
@@ -129,58 +183,73 @@ function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
   const locked  = meta.lockSavings;
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl transition-all"
+    <div className="rounded-xl transition-all"
       style={{
         border:     `1px solid ${measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-gris)'}`,
         background: measure.selected ? (locked ? 'rgba(48,50,62,.06)' : 'var(--ai-rouge-clair)') : 'white',
       }}>
-      <button onClick={() => toggleMeasure(buildingId, measureKey)}
-        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
-        style={{
-          background: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'white',
-          border: measure.selected ? 'none' : '2px solid var(--ai-gris)',
-        }}>
-        {measure.selected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-      </button>
+      <div className="flex items-center gap-3 p-3">
+        <button onClick={() => toggleMeasure(buildingId, measureKey)}
+          className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+          style={{
+            background: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'white',
+            border: measure.selected ? 'none' : '2px solid var(--ai-gris)',
+          }}>
+          {measure.selected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+        </button>
 
-      <Icon className="w-4 h-4 flex-shrink-0"
-        style={{ color: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-noir70)' }} />
+        <Icon className="w-4 h-4 flex-shrink-0"
+          style={{ color: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-noir70)' }} />
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold" style={{ color: 'var(--ai-violet)' }}>
-          {meta.label}
-          {synergy && (
-            <span className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded"
-              style={{ background: 'var(--ai-rouge)', color: 'white' }}>✦ Synergy −20%</span>
-          )}
-          {locked && (
-            <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(48,50,62,.1)', color: 'var(--ai-violet)' }}>Global Refurb</span>
-          )}
-        </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: 'var(--ai-violet)' }}>
+            {meta.label}
+            {synergy && (
+              <span className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded"
+                style={{ background: 'var(--ai-rouge)', color: 'white' }}>✦ Synergy −20%</span>
+            )}
+            {locked && (
+              <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(48,50,62,.1)', color: 'var(--ai-violet)' }}>Global Refurb</span>
+            )}
+          </p>
+        </div>
+
+        <input type="number" min="0" step="1" value={measure.capex}
+          onChange={e => setMeasureValue(buildingId, measureKey, 'capex', parseFloat(e.target.value) || 0)}
+          className="w-20 input text-xs text-right py-1" title="Capex JOD/m²" />
+        <span className="text-xs w-14" style={{ color: 'var(--ai-noir70)' }}>JOD/m²</span>
+
+        {locked ? (
+          <div className="flex items-center gap-1">
+            <span className="w-14 input text-xs text-right py-1 select-none"
+              style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)', border: '1px solid var(--ai-gris)', borderRadius: 6, padding: '4px 8px', display: 'inline-flex', justifyContent: 'flex-end' }}>
+              0
+            </span>
+            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
+          </div>
+        ) : (
+          <>
+            <input type="number" min="0" max="99" step="1"
+              value={+(measure.savingsRate * 100).toFixed(1)}
+              onChange={e => setMeasureValue(buildingId, measureKey, 'savingsRate', (parseFloat(e.target.value) || 0) / 100)}
+              className="w-14 input text-xs text-right py-1" />
+            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
+          </>
+        )}
       </div>
 
-      <input type="number" min="0" step="1" value={measure.capex}
-        onChange={e => setMeasureValue(buildingId, measureKey, 'capex', parseFloat(e.target.value) || 0)}
-        className="w-20 input text-xs text-right py-1" title="Capex JOD/m²" />
-      <span className="text-xs w-14" style={{ color: 'var(--ai-noir70)' }}>JOD/m²</span>
-
-      {locked ? (
-        <div className="flex items-center gap-1">
-          <span className="w-14 input text-xs text-right py-1 select-none"
-            style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)', border: '1px solid var(--ai-gris)', borderRadius: 6, padding: '4px 8px', display: 'inline-flex', justifyContent: 'flex-end' }}>
-            0
-          </span>
-          <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
+      {/* Notes textarea — appears only when the measure is selected */}
+      {measure.selected && (
+        <div className="px-3 pb-3 fade-in">
+          <textarea
+            rows={2}
+            value={measure.notes ?? ''}
+            onChange={e => setMeasureValue(buildingId, measureKey, 'notes', e.target.value)}
+            className="input resize-none text-xs leading-snug w-full"
+            placeholder={`Precisions about ${meta.short ?? meta.label} — scope, brands, constraints…`}
+          />
         </div>
-      ) : (
-        <>
-          <input type="number" min="0" max="99" step="1"
-            value={+(measure.savingsRate * 100).toFixed(1)}
-            onChange={e => setMeasureValue(buildingId, measureKey, 'savingsRate', (parseFloat(e.target.value) || 0) / 100)}
-            className="w-14 input text-xs text-right py-1" />
-          <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
-        </>
       )}
     </div>
   );
@@ -327,7 +396,9 @@ function ScorePanel({ building, calc, scoreConfig }) {
 
 // ─── Financing panel ──────────────────────────────────────────────────────────
 function FinancingPanel({ building: b, calc }) {
-  const { updateBuilding } = useApp();
+  const { updateBuilding, params } = useApp();
+  const { currency, exchangeRate } = params;
+  const convert = (jod) => currency === 'EUR' ? jod * exchangeRate : jod;
 
   const totalCapexJOD = calc?._jod?.capex   ?? 0;
   const peebGrantJOD  = b.peebSelected ? (calc?._jod?.peebGrant ?? 0) : 0;
@@ -367,7 +438,7 @@ function FinancingPanel({ building: b, calc }) {
     }
   };
 
-  const fmtJOD = (v) => `JD ${Math.round(v).toLocaleString()}`;
+  const fmtJOD = (jod) => formatCurrency(convert(jod), currency);
 
   const FUNDING_ROWS = [
     { key: 'afd',      label: 'AFD Loan %'        },
@@ -467,7 +538,7 @@ function FinancingPanel({ building: b, calc }) {
 }
 
 // ─── Galerie photos ───────────────────────────────────────────────────────────
-function ImageGallery({ building }) {
+export function ImageGallery({ building }) {
   const { addImage, removeImage } = useApp();
   const fileRef = useRef();
   const handleFiles = (files) => {
@@ -586,7 +657,8 @@ function PrintDatasheet({ building: b, calc, params }) {
 
 // ─── Profil principal ─────────────────────────────────────────────────────────
 export default function BuildingProfile() {
-  const { selectedBuilding, updateBuilding, params } = useApp();
+  const { selectedBuilding, updateBuilding, params, deleteBuilding } = useApp();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!selectedBuilding) {
     return (
@@ -632,29 +704,108 @@ export default function BuildingProfile() {
           <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>{b.typology}</span>
           <span className="badge" style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}>{b.governorate}</span>
         </div>
-        <button onClick={() => window.print()} className="btn-secondary no-print">
-          <Printer className="w-4 h-4" /> Export PDF
-        </button>
+        <div className="flex items-center gap-2 no-print">
+          <button onClick={() => window.print()} className="btn-secondary">
+            <Printer className="w-4 h-4" /> Export PDF
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="btn-secondary"
+            style={{ color: 'var(--ai-rouge)', borderColor: 'var(--ai-rouge)' }}
+            title="Delete this building"
+          >
+            <Trash2 className="w-4 h-4" /> Delete
+          </button>
+        </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 fade-in no-print"
+          onClick={() => setConfirmDelete(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: 'var(--ai-rouge-clair)' }}
+              >
+                <Trash2 className="w-5 h-5" style={{ color: 'var(--ai-rouge)' }} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Delete building?</h3>
+            </div>
+            <div className="px-6 py-5 text-sm text-slate-700 space-y-2">
+              <p>
+                You are about to permanently delete{' '}
+                <strong style={{ color: 'var(--ai-violet)' }}>{b.name}</strong> from the database.
+              </p>
+              <p className="text-xs text-slate-500">
+                This action cannot be undone. All associated measures, photos and observations will be removed.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50 rounded-b-2xl">
+              <button onClick={() => setConfirmDelete(false)} className="btn-secondary text-sm">
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmDelete(false); deleteBuilding(b.id); }}
+                className="btn-primary text-sm"
+                style={{ background: 'var(--ai-rouge)', borderColor: 'var(--ai-rouge)' }}
+              >
+                <Trash2 className="w-4 h-4" /> Delete permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         {/* ── Left column ── */}
         <div className="xl:col-span-1 space-y-4">
 
-          {/* Building info */}
+          {/* Building info — all fields editable (click a row) */}
           <Section title="Building Information">
             <div className="space-y-1">
-              <InfoRow label="ID"             value={b.id}                                        icon={Building2} />
-              <InfoRow label="Address"        value={b.address}                                   icon={MapPin}    />
-              <InfoRow label="Coordinates"    value={b.coordinates?.join(', ')}                   icon={MapPin}    />
-              <InfoRow label="Year Built"     value={b.yearBuilt}                                 icon={Calendar}  />
-              <InfoRow label="Floors"         value={b.floors}                                    icon={Layers}    />
-              <InfoRow label="Floor Area"     value={b.area ? `${b.area.toLocaleString()} m²` : null} icon={Ruler} italic={!b.area} />
-              <InfoRow label="Baseline EUI"   value={b.baselineEUI ? `${b.baselineEUI} kWh/m²/yr` : null} icon={Zap} italic={!b.baselineEUI} />
-              <InfoRow label="Operating Hrs"  value={b.operatingHours}                            icon={Clock}     />
-              <InfoRow label="Funding Source" value={b.fundingSource || 'None'}                   icon={Banknote}  />
+              <InfoRow label="ID" value={b.id} icon={Building2} />
+              <EditableInfoRow label="Name"           icon={Building2} value={b.name}
+                               onCommit={v => updateBuilding(b.id, { name: v })} />
+              <EditableInfoRow label="Typology"       icon={Building2} value={b.typology}
+                               options={['School','Hospital','Office','Municipality','University']}
+                               onCommit={v => updateBuilding(b.id, { typology: v })} />
+              <EditableInfoRow label="Governorate"    icon={MapPin}    value={b.governorate}
+                               onCommit={v => updateBuilding(b.id, { governorate: v })} />
+              <EditableInfoRow label="Address"        icon={MapPin}    value={b.address}
+                               onCommit={v => updateBuilding(b.id, { address: v })} />
+              <EditableInfoRow label="Year Built"     icon={Calendar}  value={b.yearBuilt} type="number"
+                               italic={!b.yearBuilt}
+                               onCommit={v => updateBuilding(b.id, { yearBuilt: v })} />
+              <EditableInfoRow label="Floors"         icon={Layers}    value={b.floors} type="number"
+                               italic={!b.floors}
+                               onCommit={v => updateBuilding(b.id, { floors: v })} />
+              <EditableInfoRow label="Floor Area"     icon={Ruler}     value={b.area} type="number"
+                               italic={!b.area}      suffix="m²"
+                               onCommit={v => updateBuilding(b.id, { area: v })} />
+              <EditableInfoRow label="Baseline EUI"   icon={Zap}       value={b.baselineEUI} type="number"
+                               italic={!b.baselineEUI} suffix="kWh/m²/yr"
+                               onCommit={v => updateBuilding(b.id, { baselineEUI: v })} />
+              <EditableInfoRow label="Operating Hrs"  icon={Clock}     value={b.operatingHours}
+                               italic={!b.operatingHours}
+                               onCommit={v => updateBuilding(b.id, { operatingHours: v })} />
+              <EditableInfoRow label="Funding Source" icon={Banknote}  value={b.fundingSource}
+                               italic={!b.fundingSource}
+                               onCommit={v => updateBuilding(b.id, { fundingSource: v })} />
+              <EditableInfoRow label="Status"         icon={Building2} value={b.status || 'Planning'}
+                               options={['Planning','Ongoing','Completed']}
+                               onCommit={v => updateBuilding(b.id, { status: v })} />
             </div>
+            <p className="text-xs mt-2" style={{ color: 'var(--ai-noir70)' }}>
+              Click any value to edit. Press Enter to save, Esc to cancel.
+            </p>
           </Section>
 
           {/* ── PEEB Eligibility ── */}
@@ -726,7 +877,7 @@ export default function BuildingProfile() {
           </Section>
 
           {/* ── Financing ── */}
-          <Section title="Complementary Financing (JOD)">
+          <Section title={`Complementary Financing (${params.currency})`}>
             <FinancingPanel building={b} calc={calc} />
           </Section>
 

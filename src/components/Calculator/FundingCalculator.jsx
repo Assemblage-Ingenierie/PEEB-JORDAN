@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   Calculator, Leaf, Banknote, Zap, TrendingUp,
   RotateCcw, ChevronDown, CheckCircle2, Info, ShieldCheck,
+  Save, PlusCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -91,7 +92,18 @@ function CalcMeasureRow({ mKey, measure, synApplied, onChange, onToggle }) {
 
 // ─── Calculateur principal ────────────────────────────────────────────────────
 export default function FundingCalculator() {
-  const { params } = useApp();
+  const { params, buildings, addBuilding, selectBuilding, notify } = useApp();
+
+  // ── Identity fields (new) ──
+  const [name, setName]                 = useState('');
+  const [governorate, setGovernorate]   = useState('');
+  const [address, setAddress]           = useState('');
+  const [yearBuilt, setYearBuilt]       = useState('');
+  const [floors, setFloors]             = useState('');
+  const [operatingHours, setOpHours]    = useState('');
+  const [fundingSource, setFundingSrc]  = useState('');
+  const [status, setStatus]             = useState('Planning');
+  const [saveError, setSaveError]       = useState('');
 
   // ── Building params (sans AFD / national) ──
   const [typology, setTypology] = useState('School');
@@ -107,7 +119,7 @@ export default function FundingCalculator() {
     const def = TYPOLOGY_DEFAULTS['School'];
     return Object.fromEntries(
       [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR].map(k => [
-        k, { selected: false, capex: def[k].capex, savingsRate: def[k].savingsRate }
+        k, { selected: false, capex: def[k]?.capex ?? 0, savingsRate: def[k]?.savingsRate ?? 0, notes: '' }
       ])
     );
   });
@@ -119,7 +131,7 @@ export default function FundingCalculator() {
       setEui(def.baselineEUI);
       setMeasures(Object.fromEntries(
         [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR].map(k => [
-          k, { selected: false, capex: def[k].capex, savingsRate: def[k].savingsRate }
+          k, { selected: false, capex: def[k]?.capex ?? 0, savingsRate: def[k]?.savingsRate ?? 0, notes: '' }
         ])
       ));
     }
@@ -128,6 +140,51 @@ export default function FundingCalculator() {
   const toggleMeasure = (key) => setMeasures(m => ({ ...m, [key]: { ...m[key], selected: !m[key].selected } }));
   const setField      = (key, f, v) => setMeasures(m => ({ ...m, [key]: { ...m[key], [f]: v } }));
   const reset         = () => { handleTypology(typology); setAfdLoan(0); setNatBudget(0); setOthers(0); };
+
+  const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+  const genId = (base) => {
+    const existing = new Set(buildings.map(b => b.id));
+    let id = base, i = 2;
+    while (existing.has(id)) { id = `${base}-${i++}`; }
+    return id;
+  };
+
+  const saveBuilding = () => {
+    setSaveError('');
+    if (!name.trim())     { setSaveError('Building name is required.');  return; }
+    if (!typology)        { setSaveError('Typology is required.');       return; }
+    if (buildings.some(b => b.name.trim().toLowerCase() === name.trim().toLowerCase())) {
+      setSaveError('A building with this name already exists. Pick another name.');
+      return;
+    }
+    const id = genId(slug(name) || 'building');
+    const b = {
+      id,
+      name:            name.trim(),
+      typology,
+      governorate:     governorate.trim(),
+      region:          '',
+      address:         address.trim(),
+      area:            Number(area) || null,
+      yearBuilt:       yearBuilt === '' ? null : Number(yearBuilt),
+      floors:          floors === ''    ? null : Number(floors),
+      baselineEUI:     Number(eui) || null,
+      operatingHours:  operatingHours.trim(),
+      lat:             null,
+      lng:             null,
+      fundingSource:   fundingSource.trim(),
+      status,
+      siteObservations:'',
+      priority:        null,
+      images:          [],
+      measures: Object.fromEntries(
+        Object.entries(measures).map(([k, m]) => [k, { ...m }])
+      ),
+    };
+    addBuilding(b);
+    selectBuilding(id);
+    notify?.('success', `${b.name} created.`);
+  };
 
   const result = useMemo(() => {
     if (!area || !eui) return null;
@@ -144,18 +201,77 @@ export default function FundingCalculator() {
 
   return (
     <div className="space-y-6 fade-in">
-      <div className="ai-box-info flex items-start gap-3 text-sm">
-        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-violet)' }} />
-        <span>
-          Outil de simulation standalone. Le capex EE est séparé du capex Réhabilitation globale.
-          La subvention PEEB s'applique au capex EE uniquement.
-        </span>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-black flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+            <PlusCircle className="w-5 h-5" style={{ color: 'var(--ai-rouge)' }} />
+            New Building
+          </h1>
+          <p className="text-xs mt-1" style={{ color: 'var(--ai-noir70)' }}>
+            Fill in the identity and measures, then save to add a new building to the database. The live simulation below updates as you type.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {saveError && <span className="text-xs" style={{ color: 'var(--ai-rouge)' }}>{saveError}</span>}
+          <button onClick={saveBuilding}
+                  disabled={!name.trim()}
+                  className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            <Save className="w-3.5 h-3.5" /> Save as new building
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
 
         {/* ── Paramètres bâtiment + mesures ── */}
         <div className="xl:col-span-2 space-y-4">
+
+          {/* Identity — new building info */}
+          <div className="card">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+              <PlusCircle className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} /> Building identity
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="label">Name <span style={{ color: 'var(--ai-rouge)' }}>*</span></label>
+                <input value={name} onChange={e => setName(e.target.value)} className="input" placeholder="e.g. Al-Hussein Secondary School" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Governorate</label>
+                  <input value={governorate} onChange={e => setGovernorate(e.target.value)} className="input" placeholder="Amman" />
+                </div>
+                <div>
+                  <label className="label">Address</label>
+                  <input value={address} onChange={e => setAddress(e.target.value)} className="input" placeholder="Street, district" />
+                </div>
+                <div>
+                  <label className="label">Year built</label>
+                  <input type="number" min="1800" max="2100" value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} className="input" />
+                </div>
+                <div>
+                  <label className="label">Floors</label>
+                  <input type="number" min="1" max="100" value={floors} onChange={e => setFloors(e.target.value)} className="input" />
+                </div>
+                <div>
+                  <label className="label">Operating hours</label>
+                  <input value={operatingHours} onChange={e => setOpHours(e.target.value)} className="input" placeholder="Mon–Fri 7:00–16:00" />
+                </div>
+                <div>
+                  <label className="label">Funding source</label>
+                  <input value={fundingSource} onChange={e => setFundingSrc(e.target.value)} className="input" placeholder="PEEB, AFD, EU, Self…" />
+                </div>
+                <div>
+                  <label className="label">Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value)} className="input">
+                    <option>Planning</option>
+                    <option>Ongoing</option>
+                    <option>Completed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Paramètres bâtiment — sans AFD / national */}
           <div className="card">
