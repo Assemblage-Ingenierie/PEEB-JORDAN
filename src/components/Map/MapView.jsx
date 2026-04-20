@@ -26,12 +26,12 @@ export default function MapView() {
     import('leaflet').then(mod => {
       L = mod.default;
 
-      // Fix default marker URLs for Vite
+      // Fix Leaflet default marker asset URLs broken by Vite's asset pipeline
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
-        iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconUrl:       new URL('leaflet/dist/images/marker-icon.png',    import.meta.url).href,
+        iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+        shadowUrl:     new URL('leaflet/dist/images/marker-shadow.png',  import.meta.url).href,
       });
 
       if (leafletRef.current) {
@@ -69,36 +69,57 @@ export default function MapView() {
           fillOpacity: b.eligibility.ineligible ? 0.55 : 0.85,
         });
 
-        const gainStr  = b.calc?.energyGain != null ? `${b.calc.energyGain.toFixed(1)}%` : '—';
-        const tierStr  = b.eligibility.ineligible ? '🚫 Ineligible' : tier.label;
-        const selStr   = peebSelected ? '✅ PEEB Selected' : b.eligibility.ineligible ? '' : '⬜ Not selected';
+        // Build popup DOM with textContent — no HTML injection (XSS-safe)
+        const popup = document.createElement('div');
+        popup.style.cssText = 'min-width:200px;font-family:Inter,sans-serif;';
 
-        circleMarker.bindPopup(`
-          <div style="min-width:200px;font-family:Inter,sans-serif;">
-            <p style="font-weight:700;color:#1e3a5f;margin:0 0 4px">${b.name}</p>
-            <p style="color:#64748b;font-size:12px;margin:0 0 6px">${b.typology} · ${b.governorate}</p>
-            <table style="width:100%;font-size:12px;border-collapse:collapse;">
-              <tr><td style="color:#64748b;padding:2px 4px">Area</td><td style="font-weight:600;padding:2px 4px">${b.area ? b.area.toLocaleString() + ' m²' : '—'}</td></tr>
-              <tr><td style="color:#64748b;padding:2px 4px">EUI</td><td style="font-weight:600;padding:2px 4px">${b.baselineEUI ? b.baselineEUI + ' kWh/m²/yr' : '—'}</td></tr>
-              <tr><td style="color:#64748b;padding:2px 4px">Energy Gain</td><td style="font-weight:600;padding:2px 4px">${gainStr}</td></tr>
-              <tr><td style="color:#64748b;padding:2px 4px">Tier</td><td style="font-weight:600;padding:2px 4px">${tierStr}</td></tr>
-              ${selStr ? `<tr><td style="color:#64748b;padding:2px 4px">PEEB</td><td style="font-weight:600;padding:2px 4px">${selStr}</td></tr>` : ''}
-            </table>
-            <button
-              onclick="window.__peebSelect('${b.id}')"
-              style="margin-top:8px;width:100%;padding:6px;background:#2563eb;color:white;border:none;
-                     border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;"
-            >
-              Open Profile →
-            </button>
-          </div>
-        `, { maxWidth: 250 });
+        const nameEl = document.createElement('p');
+        nameEl.style.cssText = 'font-weight:700;color:#1e3a5f;margin:0 0 4px';
+        nameEl.textContent = b.name;
+        popup.appendChild(nameEl);
 
+        const subEl = document.createElement('p');
+        subEl.style.cssText = 'color:#64748b;font-size:12px;margin:0 0 6px';
+        subEl.textContent = `${b.typology} · ${b.governorate}`;
+        popup.appendChild(subEl);
+
+        const gainStr = b.calc?.energyGain != null ? `${b.calc.energyGain.toFixed(1)}%` : '—';
+        const tierStr = b.eligibility.ineligible ? 'Ineligible' : tier.label;
+        const selStr  = peebSelected ? 'PEEB Selected' : b.eligibility.ineligible ? '' : 'Not selected';
+
+        const rows = [
+          ['Area',        b.area ? `${b.area.toLocaleString()} m²` : '—'],
+          ['EUI',         b.baselineEUI ? `${b.baselineEUI} kWh/m²/yr` : '—'],
+          ['Energy Gain', gainStr],
+          ['Tier',        tierStr],
+          ...(selStr ? [['PEEB', selStr]] : []),
+        ];
+        const table = document.createElement('table');
+        table.style.cssText = 'width:100%;font-size:12px;border-collapse:collapse;';
+        rows.forEach(([label, value]) => {
+          const tr = document.createElement('tr');
+          const td1 = document.createElement('td');
+          td1.style.cssText = 'color:#64748b;padding:2px 4px';
+          td1.textContent = label;
+          const td2 = document.createElement('td');
+          td2.style.cssText = 'font-weight:600;padding:2px 4px';
+          td2.textContent = value;
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          table.appendChild(tr);
+        });
+        popup.appendChild(table);
+
+        const btn = document.createElement('button');
+        btn.style.cssText = 'margin-top:8px;width:100%;padding:6px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;';
+        btn.textContent = 'Open Profile →';
+        // Use native Leaflet event — no global window exposure needed
+        btn.addEventListener('click', () => selectBuilding(b.id));
+        popup.appendChild(btn);
+
+        circleMarker.bindPopup(popup, { maxWidth: 250 });
         circleMarker.addTo(map);
       });
-
-      // Expose selectBuilding to popup onclick
-      window.__peebSelect = (id) => selectBuilding(id);
     });
 
     return () => {
@@ -106,7 +127,6 @@ export default function MapView() {
         leafletRef.current.remove();
         leafletRef.current = null;
       }
-      delete window.__peebSelect;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildings]);
