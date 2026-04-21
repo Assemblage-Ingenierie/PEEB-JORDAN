@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency } from '../../engine/CalculationEngine';
@@ -8,9 +8,11 @@ const COLOR_PEEB        = '#E30513'; // var(--ai-rouge)
 const COLOR_DB_WORKS    = '#30323E'; // var(--ai-violet) — full DB with works (dark grey)
 const COLOR_DB_NO_WORKS = '#B7C0C8'; // lighter than --ai-gris for DB without works
 
+const UNIFORM_RADIUS = 8;
+
 // Circle radius scaled by EE investment (JOD). No-works buildings get a fixed
 // small dot so they stay visually secondary.
-function radiusFor(eeCapexJod, hasWorks) {
+function scaledRadius(eeCapexJod, hasWorks) {
   if (!hasWorks) return 5;
   const r = 8 + Math.sqrt(Math.max(0, eeCapexJod) / 10_000);
   return Math.min(Math.max(r, 8), 22);
@@ -21,6 +23,7 @@ export default function MapView() {
   const buildings = allBuildings.filter(b => !b.isDraft);
   const mapRef     = useRef(null);
   const leafletRef = useRef(null);
+  const [scaleBySize, setScaleBySize] = useState(true);
   const { currency, exchangeRate } = params;
   const toDisp = jod => currency === 'EUR' ? +(jod * exchangeRate).toFixed(0) : jod;
 
@@ -66,7 +69,9 @@ export default function MapView() {
         const color  = isPeebTarget ? COLOR_PEEB
           : hasWorks ? COLOR_DB_WORKS
           : COLOR_DB_NO_WORKS;
-        const radius = radiusFor(eeCapexJod, hasWorks || isPeebTarget);
+        const radius = scaleBySize
+          ? scaledRadius(eeCapexJod, hasWorks || isPeebTarget)
+          : UNIFORM_RADIUS;
 
         const circleMarker = L.circleMarker([lat, lng], {
           radius,
@@ -140,7 +145,7 @@ export default function MapView() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildings, currency, exchangeRate]);
+  }, [buildings, currency, exchangeRate, scaleBySize]);
 
   return (
     <div className="space-y-4 fade-in">
@@ -175,8 +180,22 @@ export default function MapView() {
             Full DB · no works
           </span>
 
-          <span className="ml-auto" style={{ color: 'var(--ai-noir70)', fontStyle: 'italic' }}>
-            Circle size ∝ EE investment · Click marker to open profile
+          <label
+            className="ml-auto flex items-center gap-2 cursor-pointer select-none"
+            style={{ color: 'var(--ai-violet)' }}
+            title="Toggle between circles sized by EE investment and uniform dots"
+          >
+            <input
+              type="checkbox"
+              checked={scaleBySize}
+              onChange={e => setScaleBySize(e.target.checked)}
+              style={{ accentColor: 'var(--ai-rouge)' }}
+            />
+            <span className="font-semibold">Scale circles by EE investment</span>
+          </label>
+
+          <span style={{ color: 'var(--ai-noir70)', fontStyle: 'italic' }}>
+            Click a marker to open profile
           </span>
         </div>
       </div>

@@ -59,7 +59,7 @@ function slugId(name) {
 
 // ─── Default parameters ────────────────────────────────────────────────────────
 const DEFAULT_PARAMS = {
-  currency:     'JOD',
+  currency:     'EUR',
   exchangeRate: 1.36,
   energyCost:   0.085,
   unitCosts: {
