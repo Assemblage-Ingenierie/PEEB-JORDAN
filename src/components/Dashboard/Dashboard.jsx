@@ -1,9 +1,10 @@
 import {
-  Building2, Leaf, Banknote, TrendingUp,
-  AlertTriangle, CheckCircle, BarChart3, Layers, Zap,
+  AlertTriangle, CheckCircle, BarChart3, TrendingUp, Calculator, Banknote,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatCurrency, getFundingTier } from '../../engine/CalculationEngine';
+import {
+  formatCurrency, getFundingTier, computeBudgetBreakdown, DEFAULT_BUDGET_CONFIG,
+} from '../../engine/CalculationEngine';
 
 // ─── Tier colours (Assemblage palette) ────────────────────────────────────────
 const TIER_HEX = {
@@ -14,38 +15,136 @@ const TIER_HEX = {
   purple: '#30323E',
 };
 
-// ─── Compact KPI card — single-row: icon | value + label ──────────────────────
-function CompactKpi({ icon: Icon, bg, value, label }) {
+// ─── KPI Table: Full Database vs PEEB side-by-side ────────────────────────────
+function KpiTable({ rows }) {
   return (
-    <div className="card flex items-center gap-3 py-2.5 px-4" style={{ minWidth: 0 }}>
-      <div
-        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ background: bg }}
-      >
-        <Icon className="w-4 h-4 text-white" />
-      </div>
-      <div className="min-w-0">
-        <p className="font-bold text-sm leading-tight truncate" style={{ color: 'var(--ai-violet)' }}>
-          {value}
-        </p>
-        <p className="text-xs truncate" style={{ color: 'var(--ai-noir70)' }}>{label}</p>
+    <div className="card fade-in">
+      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+        <BarChart3 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+        Portfolio KPIs
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead>
+            <tr style={{ background: 'var(--ai-violet)' }}>
+              <th className="th" style={{ color: 'white' }}>Indicator</th>
+              <th className="th" style={{ color: 'white', textAlign: 'right' }}>Full Database</th>
+              <th className="th" style={{ color: 'white', textAlign: 'right' }}>PEEB Targeted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.label} style={{
+                background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
+                borderBottom: '1px solid var(--ai-gris-clair)',
+              }}>
+                <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{r.label}</td>
+                <td className="td text-right" style={{ color: 'var(--ai-noir70)' }}>{r.full}</td>
+                <td className="td text-right font-bold" style={{ color: 'var(--ai-rouge)' }}>{r.peeb}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-// ─── Labeled KPI row ──────────────────────────────────────────────────────────
-function KpiRow({ title, kpis }) {
-  const gridClass = kpis.length === 5
-    ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3'
-    : 'grid grid-cols-2 lg:grid-cols-4 gap-3';
+// ─── Funding overview: single-column table ────────────────────────────────────
+function FundingTable({ rows, total }) {
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--ai-rouge)' }}>
-        {title}
-      </p>
-      <div className={gridClass}>
-        {kpis.map((kpi, i) => <CompactKpi key={i} {...kpi} />)}
+    <div className="card fade-in">
+      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+        <Banknote className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+        Funding overview (PEEB targeted)
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead>
+            <tr style={{ background: 'var(--ai-violet)' }}>
+              <th className="th" style={{ color: 'white' }}>Source</th>
+              <th className="th" style={{ color: 'white', textAlign: 'right' }}>Amount</th>
+              <th className="th" style={{ color: 'white', textAlign: 'right', width: 100 }}>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const pct = total > 0 ? (r.raw / total * 100).toFixed(1) : '0.0';
+              return (
+                <tr key={r.label} style={{
+                  background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
+                  borderBottom: '1px solid var(--ai-gris-clair)',
+                }}>
+                  <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{r.label}</td>
+                  <td className="td text-right font-bold" style={{ color: 'var(--ai-violet)' }}>{r.amount}</td>
+                  <td className="td text-right text-xs" style={{ color: 'var(--ai-noir70)' }}>{pct}%</td>
+                </tr>
+              );
+            })}
+            <tr style={{ background: 'var(--ai-violet)' }}>
+              <td className="td font-black text-white">Total funding</td>
+              <td className="td text-right font-black text-white">{formatCurrency(total, rows[0]?.currency ?? 'JOD', true)}</td>
+              <td className="td text-right font-black text-white">100%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Budget decomposition: ordered breakdown ──────────────────────────────────
+function BudgetTable({ breakdown, currency }) {
+  const fmt = (v) => formatCurrency(v, currency, true);
+  return (
+    <div className="card fade-in">
+      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+        <Calculator className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+        Project budget decomposition
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead>
+            <tr style={{ background: 'var(--ai-violet)' }}>
+              <th className="th" style={{ color: 'white' }}>Line item</th>
+              <th className="th" style={{ color: 'white' }}>Basis</th>
+              <th className="th" style={{ color: 'white', textAlign: 'right' }}>Amount</th>
+              <th className="th" style={{ color: 'white', textAlign: 'right', width: 100 }}>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {breakdown.rows.map((r, i) => {
+              const pct = breakdown.total > 0 ? (r.amount / breakdown.total * 100).toFixed(1) : '0.0';
+              const basis = r.base
+                ? 'Works (from buildings)'
+                : r.locked
+                  ? `${r.value}% × all items above`
+                  : r.type === 'absolute'
+                    ? `Fixed amount`
+                    : `${r.value}% × ${(r.appliesTo ?? []).length} item(s)`;
+              return (
+                <tr key={r.id} style={{
+                  background: r.locked ? 'var(--ai-rouge-clair)' : (i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)'),
+                  borderBottom: '1px solid var(--ai-gris-clair)',
+                }}>
+                  <td className="td font-semibold" style={{ color: r.locked ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+                    {r.label}
+                  </td>
+                  <td className="td text-xs" style={{ color: 'var(--ai-noir70)' }}>{basis}</td>
+                  <td className="td text-right font-bold" style={{ color: r.locked ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+                    {fmt(r.amount)}
+                  </td>
+                  <td className="td text-right text-xs" style={{ color: 'var(--ai-noir70)' }}>{pct}%</td>
+                </tr>
+              );
+            })}
+            <tr style={{ background: 'var(--ai-violet)' }}>
+              <td className="td font-black text-white" colSpan={2}>Total project budget</td>
+              <td className="td text-right font-black text-white">{fmt(breakdown.total)}</td>
+              <td className="td text-right font-black text-white">100%</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -111,7 +210,6 @@ function TypologyChart({ buildings, peebTargeted }) {
 
   return (
     <div className="space-y-1">
-      {/* Legend */}
       <div className="flex items-center gap-4 mb-3">
         <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ai-noir70)' }}>
           <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: 'var(--ai-gris)' }} />
@@ -133,13 +231,11 @@ function TypologyChart({ buildings, peebTargeted }) {
               {total}
             </span>
           </div>
-          {/* Full database bar */}
           <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)' }}>
             <div
               className="h-2 rounded-full transition-all"
               style={{ width: `${(total / max) * 100}%`, background: 'var(--ai-gris)' }}
             />
-            {/* PEEB targeted overlay */}
             {targeted > 0 && (
               <div
                 className="absolute top-0 left-0 h-2 rounded-full transition-all"
@@ -230,14 +326,14 @@ function PeebTargetedTable({ buildings, selectBuilding, params }) {
   );
 }
 
-// ─── Alerts section ───────────────────────────────────────────────────────────
+// ─── Alerts: compact row format matching Buildings inventory ──────────────────
 function AlertsSection({ buildings }) {
   const gapped     = buildings.filter(b => b.gaps.length > 0);
   const ineligible = buildings.filter(b => b.eligibility.ineligible);
 
   if (!gapped.length && !ineligible.length) {
     return (
-      <div className="flex items-center gap-2 text-sm" style={{ color: '#22a05a' }}>
+      <div className="flex items-center gap-2 text-sm px-3 py-2.5" style={{ color: '#22a05a' }}>
         <CheckCircle className="w-4 h-4" />
         All buildings have complete data and no conflicts.
       </div>
@@ -245,112 +341,117 @@ function AlertsSection({ buildings }) {
   }
 
   return (
-    <div className="space-y-2">
-      {gapped.map(b => (
-        <div
-          key={`gap-${b.id}`}
-          className="flex items-start gap-3 px-4 py-3 rounded-lg text-sm"
-          style={{ background: 'var(--ai-rouge-clair)', borderLeft: '3px solid var(--ai-rouge)' }}
-        >
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-rouge)' }} />
-          <div>
-            <span className="font-semibold" style={{ color: 'var(--ai-violet)' }}>{b.name}</span>
-            <span className="ml-2" style={{ color: 'var(--ai-noir70)' }}>
+    <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+      <tbody>
+        {gapped.map((b, i) => (
+          <tr key={`gap-${b.id}`} style={{
+            background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
+            borderLeft: '3px solid var(--ai-rouge)',
+          }}>
+            <td className="td" style={{ width: 28 }}>
+              <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--ai-rouge)' }} />
+            </td>
+            <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{b.name}</td>
+            <td className="td" style={{ color: 'var(--ai-noir70)' }}>
               Missing data: <em>{b.gaps.join(', ')}</em>
-            </span>
-          </div>
-        </div>
-      ))}
-      {ineligible.map(b => (
-        <div
-          key={`inelig-${b.id}`}
-          className="flex items-start gap-3 px-4 py-3 rounded-lg text-sm"
-          style={{ background: 'var(--ai-gris-clair)', borderLeft: '3px solid var(--ai-gris)' }}
-        >
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--ai-noir70)' }} />
-          <div>
-            <span className="font-semibold" style={{ color: 'var(--ai-violet)' }}>{b.name}</span>
-            <span className="ml-2" style={{ color: 'var(--ai-noir70)' }}>
+            </td>
+          </tr>
+        ))}
+        {ineligible.map((b, i) => (
+          <tr key={`inelig-${b.id}`} style={{
+            background: (gapped.length + i) % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
+            borderLeft: '3px solid var(--ai-gris)',
+          }}>
+            <td className="td" style={{ width: 28 }}>
+              <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--ai-noir70)' }} />
+            </td>
+            <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{b.name}</td>
+            <td className="td" style={{ color: 'var(--ai-noir70)' }}>
               Ineligible — donor already engaged: <strong>{b.eligibility.donor}</strong>
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { buildings: allBuildings, params, selectBuilding } = useApp();
-  // Exclude in-progress drafts from dashboard KPIs.
   const buildings = allBuildings.filter(b => !b.isDraft);
   const { currency, exchangeRate } = params;
 
-  // PEEB targeted: explicitly selected (peebSelected = true) AND still eligible
   const peebTargeted = buildings.filter(
     b => b.peebSelected === true && !b.eligibility.ineligible
   );
 
-  // Currency conversion helper
   const toDisp = (jod) => currency === 'EUR' ? +(jod * exchangeRate).toFixed(0) : jod;
   const fmt    = (jod) => formatCurrency(toDisp(jod), currency, true);
 
-  // ── Full database ────────────────────────────────────────────────────────────
+  // ── Full database aggregates ───────────────────────────────────────────────
   const fullArea       = buildings.reduce((s, b) => s + (b.area || 0), 0);
-  const fullInvestment = buildings.reduce((s, b) => s + (b.calc?._jod?.capex || 0), 0);
+  const fullInvestment = buildings.reduce((s, b) => s + (b.calc?._jod?.capex   || 0), 0);
+  const fullEeCapex    = buildings.reduce((s, b) => s + (b.calc?._jod?.eeCapex || 0), 0);
+  const fullGrCapex    = buildings.reduce((s, b) => s + (b.calc?._jod?.grCapex || 0), 0);
   const fullBaseline   = buildings.reduce((s, b) => s + ((b.baselineEUI || 0) * (b.area || 0)), 0);
   const fullSaved      = buildings.reduce((s, b) => s + (b.calc?.energySavedKWh || 0), 0);
   const fullEnergyPct  = fullBaseline > 0 ? (fullSaved / fullBaseline * 100).toFixed(1) : '0.0';
   const fullCO2        = buildings.reduce((s, b) => s + (b.calc?.co2AvoidedTon || 0), 0);
 
-  // ── PEEB targeted ────────────────────────────────────────────────────────────
+  // ── PEEB targeted aggregates ───────────────────────────────────────────────
   const tgtArea       = peebTargeted.reduce((s, b) => s + (b.area || 0), 0);
-  const tgtInvestment = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.capex || 0), 0);
+  const tgtInvestment = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.capex   || 0), 0);
+  const tgtEeCapex    = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.eeCapex || 0), 0);
+  const tgtGrCapex    = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.grCapex || 0), 0);
   const tgtBaseline   = peebTargeted.reduce((s, b) => s + ((b.baselineEUI || 0) * (b.area || 0)), 0);
   const tgtSaved      = peebTargeted.reduce((s, b) => s + (b.calc?.energySavedKWh || 0), 0);
   const tgtEnergyPct  = tgtBaseline > 0 ? (tgtSaved / tgtBaseline * 100).toFixed(1) : '0.0';
   const tgtCO2        = peebTargeted.reduce((s, b) => s + (b.calc?.co2AvoidedTon || 0), 0);
 
-  // ── Funding overview (peebSelected buildings only) ───────────────────────────
+  const kpiRows = [
+    { label: 'Number of buildings',         full: buildings.length,                        peeb: peebTargeted.length },
+    { label: 'Total floor area',            full: fullArea.toLocaleString() + ' m²',       peeb: tgtArea.toLocaleString() + ' m²' },
+    { label: 'Est. total investment',       full: fmt(fullInvestment),                     peeb: fmt(tgtInvestment) },
+    { label: 'CAPEX — Energy efficiency',   full: fmt(fullEeCapex),                        peeb: fmt(tgtEeCapex) },
+    { label: 'CAPEX — Global refurbishment',full: fmt(fullGrCapex),                        peeb: fmt(tgtGrCapex) },
+    { label: 'Est. energy reduction',       full: `${fullEnergyPct}%`,                     peeb: `${tgtEnergyPct}%` },
+    { label: 'Est. GHG reduction',          full: `${fullCO2.toFixed(1)} tCO₂eq/yr`,       peeb: `${tgtCO2.toFixed(1)} tCO₂eq/yr` },
+  ];
+
+  // ── Funding overview (PEEB-targeted only) ──────────────────────────────────
   const totalPEEB     = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.peebGrant || 0), 0);
   const totalAFD      = peebTargeted.reduce((s, b) => s + (b.afdLoan || 0), 0);
   const totalNational = peebTargeted.reduce((s, b) => s + (b.nationalBudget || 0), 0);
   const totalOthers   = peebTargeted.reduce((s, b) => s + (b.others || 0), 0);
+  const fundingTotal  = toDisp(totalPEEB + totalAFD + totalNational + totalOthers);
 
-  const kpisFull = [
-    { icon: Building2, bg: 'var(--ai-violet)', value: buildings.length,                    label: 'Number of buildings'   },
-    { icon: Layers,    bg: 'var(--ai-noir70)', value: fullArea.toLocaleString() + ' m²',   label: 'Total floor area'      },
-    { icon: Banknote,  bg: 'var(--ai-rouge)',  value: fmt(fullInvestment),                 label: 'Est. total investment' },
-    { icon: Zap,       bg: 'var(--ai-rouge)',  value: `${fullEnergyPct}%`,                 label: 'Est. energy reduction' },
-    { icon: Leaf,      bg: '#22a05a',          value: `${fullCO2.toFixed(1)} tCO₂eq/yr`,  label: 'Est. GHG reduction'    },
+  const fundingRows = [
+    { label: 'PEEB Grant',      raw: toDisp(totalPEEB),     amount: fmt(totalPEEB),     currency },
+    { label: 'AFD Loan',        raw: toDisp(totalAFD),      amount: fmt(totalAFD),      currency },
+    { label: 'National Budget', raw: toDisp(totalNational), amount: fmt(totalNational), currency },
+    { label: 'Others',          raw: toDisp(totalOthers),   amount: fmt(totalOthers),   currency },
   ];
 
-  const kpisTargeted = [
-    { icon: Building2, bg: 'var(--ai-violet)', value: peebTargeted.length,                label: 'Targeted buildings'    },
-    { icon: Layers,    bg: 'var(--ai-noir70)', value: tgtArea.toLocaleString() + ' m²',   label: 'Total floor area'      },
-    { icon: Banknote,  bg: 'var(--ai-rouge)',  value: fmt(tgtInvestment),                 label: 'Est. total investment' },
-    { icon: Zap,       bg: 'var(--ai-rouge)',  value: `${tgtEnergyPct}%`,                 label: 'Est. energy reduction' },
-    { icon: Leaf,      bg: '#22a05a',          value: `${tgtCO2.toFixed(1)} tCO₂eq/yr`,  label: 'Est. GHG reduction'    },
-  ];
-
-  const kpisFunding = [
-    { icon: TrendingUp, bg: 'var(--ai-rouge)',  value: fmt(totalPEEB),     label: 'Total PEEB Grant' },
-    { icon: Banknote,   bg: 'var(--ai-violet)', value: fmt(totalAFD),      label: 'AFD Loan'         },
-    { icon: Banknote,   bg: 'var(--ai-noir70)', value: fmt(totalNational), label: 'National Budget'  },
-    { icon: Banknote,   bg: '#64748b',          value: fmt(totalOthers),   label: 'Others'           },
-  ];
+  // ── Budget decomposition (PEEB-targeted works baseline) ────────────────────
+  const budgetConfig = params.budgetConfig ?? DEFAULT_BUDGET_CONFIG;
+  const breakdown = computeBudgetBreakdown(
+    { ee_works: toDisp(tgtEeCapex), gr_works: toDisp(tgtGrCapex) },
+    budgetConfig,
+  );
 
   const alertCount = buildings.filter(b => b.gaps.length > 0 || b.eligibility.ineligible).length;
 
   return (
     <div className="space-y-6 fade-in">
 
-      {/* ── 3 KPI rows ── */}
-      <div className="space-y-4">
-        <KpiRow title="Full Database"           kpis={kpisFull}    />
-        <KpiRow title="PEEB Targeted Buildings" kpis={kpisTargeted} />
-        <KpiRow title="Funding Overview"        kpis={kpisFunding} />
+      {/* ── KPI table ── */}
+      <KpiTable rows={kpiRows} />
+
+      {/* ── Funding + Budget side by side on wide screens ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FundingTable rows={fundingRows} total={fundingTotal} />
+        <BudgetTable breakdown={breakdown} currency={currency} />
       </div>
 
       {/* ── Charts row: Tier bar + Typology ── */}
@@ -383,9 +484,9 @@ export default function Dashboard() {
         <PeebTargetedTable buildings={buildings} selectBuilding={selectBuilding} params={params} />
       </div>
 
-      {/* ── Alerts ── */}
-      <div className="card fade-in">
-        <div className="flex items-center gap-2 mb-4">
+      {/* ── Compact alerts — constrained width, same row height as Buildings ── */}
+      <div className="card fade-in" style={{ maxWidth: '900px' }}>
+        <div className="flex items-center gap-2 mb-3">
           <AlertTriangle
             className="w-4 h-4 flex-shrink-0"
             style={{ color: alertCount > 0 ? 'var(--ai-rouge)' : '#22a05a' }}

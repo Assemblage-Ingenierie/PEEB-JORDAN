@@ -129,6 +129,7 @@ export async function loadParams() {
     unitCosts:          data.unit_costs,
     scoreConfig:        data.score_config,
     savingsByTypology:  data.savings_by_typology,
+    budgetConfig:       data.budget_config,
   };
 }
 
@@ -143,6 +144,7 @@ export async function saveParams(params) {
       unit_costs:          params.unitCosts,
       score_config:        params.scoreConfig,
       savings_by_typology: params.savingsByTypology,
+      budget_config:       params.budgetConfig,
     }, { onConflict: 'id' });
   if (error) throw error;
 }

@@ -4,6 +4,7 @@ import {
   calculateBuilding, checkEligibility, detectDataGaps,
   DEFAULT_SCORE_CONFIG, SCORE_INDICATORS,
   buildDefaultSavingsByTypology,
+  DEFAULT_BUDGET_CONFIG,
   MEASURE_KEYS, TYPOLOGY_DEFAULTS,
 } from '../engine/CalculationEngine';
 import * as db from '../lib/db';
@@ -62,15 +63,22 @@ const DEFAULT_PARAMS = {
   exchangeRate: 1.36,
   energyCost:   0.085,
   unitCosts: {
-    insulation:   25,
-    windows:      80,
-    hvac:         130,
-    lighting:     20,
-    pv:           150,
-    solarThermal: 120,
+    insulation:         25,
+    windows:            80,
+    hvac:               130,
+    lighting:           20,
+    pv:                 150,
+    solarThermal:       120,
+    structure:          130,
+    accessibility:      70,
+    hygieneAndSecurity: 60,
   },
-  scoreConfig:      DEFAULT_SCORE_CONFIG.map(c => ({ ...c })),
+  scoreConfig:       DEFAULT_SCORE_CONFIG.map(c => ({ ...c })),
   savingsByTypology: buildDefaultSavingsByTypology(),
+  budgetConfig:      {
+    items: DEFAULT_BUDGET_CONFIG.items.map(i => ({ ...i, appliesTo: [...i.appliesTo] })),
+    contingencyProject: { ...DEFAULT_BUDGET_CONFIG.contingencyProject },
+  },
 };
 
 // Merge loaded params onto defaults so missing keys always have a value
@@ -82,6 +90,7 @@ function mergeParams(defaults, loaded) {
     unitCosts:          { ...defaults.unitCosts,          ...(loaded.unitCosts          || {}) },
     scoreConfig:        loaded.scoreConfig        || defaults.scoreConfig,
     savingsByTypology:  loaded.savingsByTypology  || defaults.savingsByTypology,
+    budgetConfig:       loaded.budgetConfig       || defaults.budgetConfig,
   };
 }
 
@@ -162,6 +171,40 @@ function reducer(state, action) {
         ...state,
         params: { ...state.params, savingsByTypology: buildDefaultSavingsByTypology() },
       };
+
+    case 'SET_BUDGET_ITEM': {
+      const items = (state.params.budgetConfig?.items ?? []).map((it, i) =>
+        i === action.index ? { ...it, ...action.patch } : it
+      );
+      return {
+        ...state,
+        params: { ...state.params, budgetConfig: { ...state.params.budgetConfig, items } },
+      };
+    }
+
+    case 'ADD_BUDGET_ITEM': {
+      const items = [...(state.params.budgetConfig?.items ?? []), action.item];
+      return {
+        ...state,
+        params: { ...state.params, budgetConfig: { ...state.params.budgetConfig, items } },
+      };
+    }
+
+    case 'DELETE_BUDGET_ITEM': {
+      const items = (state.params.budgetConfig?.items ?? []).filter((_, i) => i !== action.index);
+      return {
+        ...state,
+        params: { ...state.params, budgetConfig: { ...state.params.budgetConfig, items } },
+      };
+    }
+
+    case 'SET_BUDGET_CONTINGENCY': {
+      const cp = { ...(state.params.budgetConfig?.contingencyProject ?? {}), ...action.patch };
+      return {
+        ...state,
+        params: { ...state.params, budgetConfig: { ...state.params.budgetConfig, contingencyProject: cp } },
+      };
+    }
 
     // Building mutations
     case 'UPDATE_BUILDING':
@@ -531,6 +574,10 @@ export function AppProvider({ children }) {
       setSavingsRate:    (typology, measure, value) =>
         dispatch({ type: 'SET_SAVINGS_RATE', typology, measure, value }),
       resetSavingsMatrix: () => dispatch({ type: 'RESET_SAVINGS_MATRIX' }),
+      setBudgetItem:       (index, patch) => dispatch({ type: 'SET_BUDGET_ITEM', index, patch }),
+      addBudgetItem:       (item)         => dispatch({ type: 'ADD_BUDGET_ITEM', item }),
+      deleteBudgetItem:    (index)        => dispatch({ type: 'DELETE_BUDGET_ITEM', index }),
+      setBudgetContingency:(patch)        => dispatch({ type: 'SET_BUDGET_CONTINGENCY', patch }),
       // Building mutations (persisted to Supabase)
       updateBuilding,
       toggleMeasure,

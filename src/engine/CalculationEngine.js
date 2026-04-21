@@ -404,6 +404,71 @@ export const SCORE_INDICATORS = {
   },
 };
 
+// ─── Budget configuration ─────────────────────────────────────────────────────
+// Project budget = sum of works (EE + GR) + user-defined line items (design, contingencies, …).
+// Each item is either an absolute amount or a % of a set of other items.
+// `contingency_project` is reserved and always applies to every preceding item.
+
+export const BUDGET_BASE_ITEMS = [
+  { id: 'ee_works', label: 'Energy-efficiency works' },
+  { id: 'gr_works', label: 'Other refurbishment works' },
+];
+
+export const DEFAULT_BUDGET_CONFIG = {
+  items: [
+    { id: 'design_supervision', label: 'Design and supervision', type: 'percent', value: 10, appliesTo: ['ee_works', 'gr_works'] },
+    { id: 'contingency_works',  label: 'Contingency on works',   type: 'percent', value: 10, appliesTo: ['ee_works', 'gr_works'] },
+  ],
+  contingencyProject: { label: 'Contingency on project', value: 5 },
+};
+
+/**
+ * Compute the ordered budget breakdown for a project.
+ * @param baseAmounts { ee_works, gr_works } — works totals in display currency
+ * @param config { items[], contingencyProject }
+ * @returns { rows: [{ id, label, amount, type?, value?, appliesTo?, locked?, base? }], total }
+ */
+export function computeBudgetBreakdown(baseAmounts, config) {
+  const cfg = config ?? DEFAULT_BUDGET_CONFIG;
+  const rows = BUDGET_BASE_ITEMS.map(b => ({
+    id: b.id, label: b.label, amount: +(baseAmounts?.[b.id] || 0), base: true,
+  }));
+  const map = Object.fromEntries(rows.map(r => [r.id, r.amount]));
+
+  for (const item of (cfg.items ?? [])) {
+    let amount = 0;
+    if (item.type === 'absolute') {
+      amount = +item.value || 0;
+    } else {
+      const base = (item.appliesTo ?? []).reduce((s, id) => s + (map[id] || 0), 0);
+      amount = base * ((+item.value || 0) / 100);
+    }
+    map[item.id] = amount;
+    rows.push({
+      id: item.id, label: item.label, amount,
+      type: item.type ?? 'percent',
+      value: item.value ?? 0,
+      appliesTo: item.appliesTo ?? [],
+    });
+  }
+
+  const cp = cfg.contingencyProject ?? DEFAULT_BUDGET_CONFIG.contingencyProject;
+  const cpBase = rows.reduce((s, r) => s + r.amount, 0);
+  const cpAmount = cpBase * ((+cp.value || 0) / 100);
+  rows.push({
+    id: 'contingency_project',
+    label: cp.label ?? 'Contingency on project',
+    amount: cpAmount,
+    type: 'percent',
+    value: cp.value ?? 0,
+    appliesTo: rows.map(r => r.id),
+    locked: true,
+  });
+
+  const total = rows.reduce((s, r) => s + r.amount, 0);
+  return { rows, total };
+}
+
 /**
  * Default scoring configuration — array of 5 criteria slots.
  * Each slot: { indicator: keyof SCORE_INDICATORS, max: pts, cap: threshold }
