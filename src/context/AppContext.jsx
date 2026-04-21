@@ -151,6 +151,24 @@ function reducer(state, action) {
         },
       };
 
+    case 'ADD_SCORE_CRITERION':
+      return {
+        ...state,
+        params: {
+          ...state.params,
+          scoreConfig: [...state.params.scoreConfig, action.criterion],
+        },
+      };
+
+    case 'DELETE_SCORE_CRITERION':
+      return {
+        ...state,
+        params: {
+          ...state.params,
+          scoreConfig: state.params.scoreConfig.filter((_, i) => i !== action.index),
+        },
+      };
+
     case 'SET_SAVINGS_RATE':
       return {
         ...state,
@@ -570,7 +588,9 @@ export function AppProvider({ children }) {
       // Parameters (persisted via debounced effect)
       setParam:          (key, value) => dispatch({ type: 'SET_PARAM', key, value }),
       setUnitCost:       (measure, val)           => dispatch({ type: 'SET_UNIT_COST', measure, value: val }),
-      setScoreCriterion: (index, patch)           => dispatch({ type: 'SET_SCORE_CRITERION', index, patch }),
+      setScoreCriterion:    (index, patch) => dispatch({ type: 'SET_SCORE_CRITERION', index, patch }),
+      addScoreCriterion:    (criterion)    => dispatch({ type: 'ADD_SCORE_CRITERION', criterion }),
+      deleteScoreCriterion: (index)        => dispatch({ type: 'DELETE_SCORE_CRITERION', index }),
       setSavingsRate:    (typology, measure, value) =>
         dispatch({ type: 'SET_SAVINGS_RATE', typology, measure, value }),
       resetSavingsMatrix: () => dispatch({ type: 'RESET_SAVINGS_MATRIX' }),

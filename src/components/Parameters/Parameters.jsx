@@ -44,8 +44,6 @@ const DEFAULT_FINANCIAL_PARAMS = {
   },
 };
 
-const SLOT_COLORS = ['var(--ai-rouge)', 'var(--ai-violet)', '#22a05a', '#d97706', '#3b82f6'];
-
 const INDICATOR_OPTIONS = Object.entries(SCORE_INDICATORS).map(([key, ind]) => ({
   key, label: ind.label, unit: ind.unit, direction: ind.direction,
 }));
@@ -53,9 +51,8 @@ const INDICATOR_OPTIONS = Object.entries(SCORE_INDICATORS).map(([key, ind]) => (
 // ═════════════════════════════════════════════════════════════════════════════
 //  SCORE SLOT
 // ═════════════════════════════════════════════════════════════════════════════
-function ScoreCriterionRow({ index, criterion, onUpdate, striped }) {
+function ScoreCriterionRow({ index, criterion, onUpdate, onDelete, striped }) {
   const ind = SCORE_INDICATORS[criterion.indicator];
-  const slotColor = SLOT_COLORS[index % SLOT_COLORS.length];
 
   const handleIndicatorChange = (newKey) => {
     const newInd = SCORE_INDICATORS[newKey];
@@ -64,13 +61,8 @@ function ScoreCriterionRow({ index, criterion, onUpdate, striped }) {
 
   return (
     <tr style={{ background: striped ? 'var(--ai-gris-clair)' : 'white' }}>
-      <td className="td" style={{ width: 60 }}>
-        <span
-          className="text-xs font-black px-1.5 py-0.5 rounded"
-          style={{ background: slotColor, color: 'white', display: 'inline-block', minWidth: 32, textAlign: 'center' }}
-        >
-          {index + 1}
-        </span>
+      <td className="td" style={{ width: 50, color: 'var(--ai-noir70)', fontWeight: 600, textAlign: 'center' }}>
+        {index + 1}
       </td>
       <td className="td">
         <select
@@ -133,6 +125,15 @@ function ScoreCriterionRow({ index, criterion, onUpdate, striped }) {
           />
           <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>{ind?.unit ?? ''}</span>
         </div>
+      </td>
+      <td className="td" style={{ width: 40, textAlign: 'center' }}>
+        <button
+          onClick={onDelete}
+          className="p-1 rounded hover:bg-red-50"
+          title="Delete this criterion"
+        >
+          <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--ai-rouge)' }} />
+        </button>
       </td>
     </tr>
   );
@@ -373,6 +374,7 @@ const TABS = [
 export default function Parameters() {
   const {
     params, buildings, setParam, setUnitCost, setScoreCriterion,
+    addScoreCriterion, deleteScoreCriterion,
     setSavingsRate, resetSavingsMatrix, notify,
   } = useApp();
   const [activeTab, setActiveTab] = useState('currency');
@@ -636,11 +638,12 @@ export default function Parameters() {
             <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr style={{ background: 'var(--ai-violet)' }}>
-                  <th className="th" style={{ color: 'white', width: 60 }}>Slot</th>
+                  <th className="th" style={{ color: 'white', width: 50, textAlign: 'center' }}>#</th>
                   <th className="th" style={{ color: 'white' }}>Indicator</th>
                   <th className="th" style={{ color: 'white', width: 110 }}>Direction</th>
                   <th className="th" style={{ color: 'white', width: 110, textAlign: 'right' }}>Max points</th>
                   <th className="th" style={{ color: 'white', width: 170, textAlign: 'right' }}>Threshold</th>
+                  <th className="th" style={{ color: 'white', width: 40 }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -650,12 +653,31 @@ export default function Parameters() {
                     index={i}
                     criterion={criterion}
                     onUpdate={(patch) => setScoreCriterion(i, patch)}
+                    onDelete={() => deleteScoreCriterion(i)}
                     striped={i % 2 === 1}
                   />
                 ))}
+                {!scoreConfig.length && (
+                  <tr>
+                    <td className="td text-center text-xs" colSpan={6} style={{ color: 'var(--ai-noir70)', padding: '14px' }}>
+                      No scoring criteria. Click &ldquo;Add criterion&rdquo; below to create one.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
+
+          <button
+            onClick={() => {
+              const firstKey = INDICATOR_OPTIONS[0]?.key;
+              const defaultCap = SCORE_INDICATORS[firstKey]?.defaultCap ?? 100;
+              addScoreCriterion({ indicator: firstKey, max: 10, cap: defaultCap });
+            }}
+            className="btn-secondary text-xs mt-4"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add criterion
+          </button>
         </div>
       )}
     </div>
