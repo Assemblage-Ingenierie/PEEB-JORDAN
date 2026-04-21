@@ -15,37 +15,35 @@ const TIER_HEX = {
   purple: '#30323E',
 };
 
-// ─── KPI Table: Full Database vs PEEB side-by-side ────────────────────────────
+// ─── KPI Table: PEEB Targeted first, then Full Database ───────────────────────
 function KpiTable({ rows }) {
   return (
-    <div className="card fade-in">
+    <div className="card fade-in" style={{ maxWidth: 720 }}>
       <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
         <BarChart3 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
         Portfolio KPIs
       </h3>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-          <thead>
-            <tr style={{ background: 'var(--ai-violet)' }}>
-              <th className="th" style={{ color: 'white' }}>Indicator</th>
-              <th className="th" style={{ color: 'white', textAlign: 'right' }}>Full Database</th>
-              <th className="th" style={{ color: 'white', textAlign: 'right' }}>PEEB Targeted</th>
+      <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+        <thead>
+          <tr style={{ background: 'var(--ai-violet)' }}>
+            <th className="th" style={{ color: 'white' }}>Indicator</th>
+            <th className="th" style={{ color: 'white', textAlign: 'right', width: 160 }}>PEEB Targeted</th>
+            <th className="th" style={{ color: 'white', textAlign: 'right', width: 160 }}>Full Database</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.label} style={{
+              background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
+              borderBottom: '1px solid var(--ai-gris-clair)',
+            }}>
+              <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{r.label}</td>
+              <td className="td text-right font-bold" style={{ color: 'var(--ai-rouge)' }}>{r.peeb}</td>
+              <td className="td text-right" style={{ color: 'var(--ai-noir70)' }}>{r.full}</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.label} style={{
-                background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
-                borderBottom: '1px solid var(--ai-gris-clair)',
-              }}>
-                <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{r.label}</td>
-                <td className="td text-right" style={{ color: 'var(--ai-noir70)' }}>{r.full}</td>
-                <td className="td text-right font-bold" style={{ color: 'var(--ai-rouge)' }}>{r.peeb}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
