@@ -53,7 +53,7 @@ const INDICATOR_OPTIONS = Object.entries(SCORE_INDICATORS).map(([key, ind]) => (
 // ═════════════════════════════════════════════════════════════════════════════
 //  SCORE SLOT
 // ═════════════════════════════════════════════════════════════════════════════
-function ScoreCriterionRow({ index, criterion, onUpdate }) {
+function ScoreCriterionRow({ index, criterion, onUpdate, striped }) {
   const ind = SCORE_INDICATORS[criterion.indicator];
   const slotColor = SLOT_COLORS[index % SLOT_COLORS.length];
 
@@ -63,84 +63,78 @@ function ScoreCriterionRow({ index, criterion, onUpdate }) {
   };
 
   return (
-    <div className="rounded-lg p-4 mb-3" style={{ background: 'var(--ai-gris)', border: `2px solid ${slotColor}22` }}>
-      <div className="flex items-center gap-2 mb-3">
+    <tr style={{ background: striped ? 'var(--ai-gris-clair)' : 'white' }}>
+      <td className="td" style={{ width: 60 }}>
         <span
-          className="text-xs font-black px-2 py-0.5 rounded"
-          style={{ background: slotColor, color: 'white', minWidth: '60px', textAlign: 'center' }}
+          className="text-xs font-black px-1.5 py-0.5 rounded"
+          style={{ background: slotColor, color: 'white', display: 'inline-block', minWidth: 32, textAlign: 'center' }}
         >
-          Slot {index + 1}
+          {index + 1}
         </span>
+      </td>
+      <td className="td">
+        <select
+          value={criterion.indicator}
+          onChange={e => handleIndicatorChange(e.target.value)}
+          className="input text-xs py-1"
+          style={{ color: 'var(--ai-violet)', fontWeight: 600, width: '100%' }}
+        >
+          {INDICATOR_OPTIONS.map(opt => (
+            <option key={opt.key} value={opt.key}>
+              {opt.label} ({opt.unit})
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className="td" style={{ width: 110 }}>
         {ind && (
           <span
-            className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded"
+            className="inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded"
             style={{
               background: ind.direction === 'higher' ? '#dcfce7' : '#fef3c7',
               color:       ind.direction === 'higher' ? '#16a34a' : '#d97706',
             }}
+            title={ind.direction === 'higher' ? 'Higher = better' : 'Lower = better'}
           >
             {ind.direction === 'higher'
               ? <TrendingUp className="w-3 h-3" />
               : <TrendingDown className="w-3 h-3" />}
-            {ind.direction === 'higher' ? 'Higher = better' : 'Lower = better'}
+            {ind.direction === 'higher' ? 'Higher' : 'Lower'}
           </span>
         )}
-      </div>
-
-      <div className="mb-3">
-        <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--ai-noir70)' }}>Indicator</label>
-        <select
-          value={criterion.indicator}
-          onChange={e => handleIndicatorChange(e.target.value)}
-          className="input w-full text-sm"
-          style={{ color: 'var(--ai-violet)', fontWeight: 600 }}
-        >
-          {INDICATOR_OPTIONS.map(opt => (
-            <option key={opt.key} value={opt.key}>
-              {opt.label} ({opt.unit}) — {opt.direction === 'higher' ? '↑ higher better' : '↓ lower better'}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--ai-noir70)' }}>Max points</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number" min={0} max={100} step={1}
-              value={criterion.max}
-              onChange={e => onUpdate({ max: parseFloat(e.target.value) || 0 })}
-              className="input w-full text-right"
-            />
-            <span className="text-xs flex-shrink-0" style={{ color: 'var(--ai-noir70)' }}>pts</span>
-          </div>
+      </td>
+      <td className="td" style={{ width: 110 }}>
+        <div className="inline-flex items-center gap-1 justify-end">
+          <input
+            type="number" min={0} max={100} step={1}
+            value={criterion.max}
+            onChange={e => onUpdate({ max: parseFloat(e.target.value) || 0 })}
+            className="input text-xs py-1 text-right"
+            style={{ width: 56 }}
+          />
+          <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>pts</span>
         </div>
-        <div className="flex-1">
-          <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--ai-noir70)' }}>
-            {ind?.direction === 'lower' ? 'Zero-score threshold' : 'Full-score threshold'}
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number" min={0} step="any"
-              value={criterion.cap}
-              onChange={e => onUpdate({ cap: parseFloat(e.target.value) || 0 })}
-              className="input w-full text-right"
-            />
-            <span className="text-xs flex-shrink-0" style={{ color: 'var(--ai-noir70)', minWidth: '60px' }}>
-              {ind?.unit ?? ''}
-            </span>
-          </div>
-          {ind && (
-            <p className="text-xs mt-1" style={{ color: 'var(--ai-noir70)' }}>
-              {ind.direction === 'lower'
+      </td>
+      <td className="td" style={{ width: 170 }}>
+        <div className="inline-flex items-center gap-1 justify-end">
+          <input
+            type="number" min={0} step="any"
+            value={criterion.cap}
+            onChange={e => onUpdate({ cap: parseFloat(e.target.value) || 0 })}
+            className="input text-xs py-1 text-right"
+            style={{ width: 72 }}
+            title={
+              ind?.direction === 'lower'
                 ? `Score = 0 when ≥ ${criterion.cap} ${ind.unit}`
-                : `Full score when ≥ ${criterion.cap} ${ind.unit}`}
-            </p>
-          )}
+                : ind
+                  ? `Full score when ≥ ${criterion.cap} ${ind.unit}`
+                  : ''
+            }
+          />
+          <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>{ind?.unit ?? ''}</span>
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
@@ -600,25 +594,41 @@ export default function Parameters() {
             </span>
           </div>
 
-          <p className="text-xs mb-4" style={{ color: 'var(--ai-noir70)' }}>
-            Choose any indicator from the platform for each scoring slot. Max points should sum to 100.
+          <p className="text-xs mb-3" style={{ color: 'var(--ai-noir70)' }}>
+            Choose any indicator for each scoring slot. Max points should sum to 100.
           </p>
 
           {weightsTotal !== 100 && (
-            <div className="ai-box-soft flex items-start gap-2 text-xs mb-4">
+            <div className="ai-box-soft flex items-start gap-2 text-xs mb-3">
               <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
               Max points should sum to 100 for a clean 0–100 score. Current total: {weightsTotal}.
             </div>
           )}
 
-          {scoreConfig.map((criterion, i) => (
-            <ScoreCriterionRow
-              key={i}
-              index={i}
-              criterion={criterion}
-              onUpdate={(patch) => setScoreCriterion(i, patch)}
-            />
-          ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+              <thead>
+                <tr style={{ background: 'var(--ai-violet)' }}>
+                  <th className="th" style={{ color: 'white', width: 60 }}>Slot</th>
+                  <th className="th" style={{ color: 'white' }}>Indicator</th>
+                  <th className="th" style={{ color: 'white', width: 110 }}>Direction</th>
+                  <th className="th" style={{ color: 'white', width: 110, textAlign: 'right' }}>Max points</th>
+                  <th className="th" style={{ color: 'white', width: 170, textAlign: 'right' }}>Threshold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scoreConfig.map((criterion, i) => (
+                  <ScoreCriterionRow
+                    key={i}
+                    index={i}
+                    criterion={criterion}
+                    onUpdate={(patch) => setScoreCriterion(i, patch)}
+                    striped={i % 2 === 1}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

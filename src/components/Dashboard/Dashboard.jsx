@@ -6,7 +6,7 @@ import {
   formatCurrency, getFundingTier, computeBudgetBreakdown, DEFAULT_BUDGET_CONFIG,
 } from '../../engine/CalculationEngine';
 
-// ─── Tier colours (Assemblage palette) ────────────────────────────────────────
+// ─── Tier colours (Assemblage palette) — kept for PEEB Targeted table ─────────
 const TIER_HEX = {
   slate:  '#DFE4E8',
   amber:  '#F9E1E3',
@@ -51,7 +51,7 @@ function KpiTable({ rows }) {
 }
 
 // ─── Funding overview: single-column table ────────────────────────────────────
-function FundingTable({ rows, total }) {
+function FundingTable({ rows, total, currency }) {
   return (
     <div className="card fade-in">
       <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
@@ -75,7 +75,14 @@ function FundingTable({ rows, total }) {
                   background: i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)',
                   borderBottom: '1px solid var(--ai-gris-clair)',
                 }}>
-                  <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{r.label}</td>
+                  <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>
+                    {r.label}
+                    {r.note && (
+                      <span className="ml-1 text-xs italic font-normal" style={{ color: 'var(--ai-rouge)' }}>
+                        ({r.note})
+                      </span>
+                    )}
+                  </td>
                   <td className="td text-right font-bold" style={{ color: 'var(--ai-violet)' }}>{r.amount}</td>
                   <td className="td text-right text-xs" style={{ color: 'var(--ai-noir70)' }}>{pct}%</td>
                 </tr>
@@ -83,7 +90,7 @@ function FundingTable({ rows, total }) {
             })}
             <tr style={{ background: 'var(--ai-violet)' }}>
               <td className="td font-black text-white">Total funding</td>
-              <td className="td text-right font-black text-white">{formatCurrency(total, rows[0]?.currency ?? 'JOD', true)}</td>
+              <td className="td text-right font-black text-white">{formatCurrency(total, currency, true)}</td>
               <td className="td text-right font-black text-white">100%</td>
             </tr>
           </tbody>
@@ -145,52 +152,6 @@ function BudgetTable({ breakdown, currency }) {
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── PEEB Tier Distribution bar ───────────────────────────────────────────────
-function TierBar({ buildings }) {
-  const tiers = buildings
-    .filter(b => !b.eligibility.ineligible)
-    .map(b => getFundingTier(b.calc?.energyGain ?? 0));
-
-  const tierCounts = tiers.reduce((acc, t) => {
-    if (!acc[t.label]) acc[t.label] = { count: 0, color: t.color };
-    acc[t.label].count++;
-    return acc;
-  }, {});
-
-  const total = tiers.length || 1;
-
-  return (
-    <div className="card fade-in">
-      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
-        <BarChart3 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-        PEEB Tier Distribution
-      </h3>
-      <div className="flex h-5 rounded-full overflow-hidden gap-px mb-3">
-        {Object.values(tierCounts).map((t, i) => (
-          <div
-            key={i}
-            className="transition-all"
-            style={{ width: `${(t.count / total) * 100}%`, background: TIER_HEX[t.color] }}
-            title={`${t.count} building(s)`}
-          />
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {Object.entries(tierCounts).map(([label, t]) => (
-          <div key={label} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--ai-noir70)' }}>
-            <span
-              className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-              style={{ background: TIER_HEX[t.color] }}
-            />
-            <span>{label}</span>
-            <span className="font-bold" style={{ color: 'var(--ai-violet)' }}>({t.count})</span>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -409,28 +370,47 @@ export default function Dashboard() {
   const tgtEnergyPct  = tgtBaseline > 0 ? (tgtSaved / tgtBaseline * 100).toFixed(1) : '0.0';
   const tgtCO2        = peebTargeted.reduce((s, b) => s + (b.calc?.co2AvoidedTon || 0), 0);
 
+  // Eligible for PEEB grant: EE capex of PEEB-targeted buildings meeting the
+  // minimum-gain threshold (≥30 % → funding tier 1+).
+  const tgtEligibleAmount = peebTargeted
+    .filter(b => (b.calc?.energyGain ?? 0) >= 30)
+    .reduce((s, b) => s + (b.calc?._jod?.eeCapex || 0), 0);
+
   const kpiRows = [
-    { label: 'Number of buildings',         full: buildings.length,                        peeb: peebTargeted.length },
-    { label: 'Total floor area',            full: fullArea.toLocaleString() + ' m²',       peeb: tgtArea.toLocaleString() + ' m²' },
-    { label: 'Est. total investment',       full: fmt(fullInvestment),                     peeb: fmt(tgtInvestment) },
-    { label: 'CAPEX — Energy efficiency',   full: fmt(fullEeCapex),                        peeb: fmt(tgtEeCapex) },
-    { label: 'CAPEX — Global refurbishment',full: fmt(fullGrCapex),                        peeb: fmt(tgtGrCapex) },
-    { label: 'Est. energy reduction',       full: `${fullEnergyPct}%`,                     peeb: `${tgtEnergyPct}%` },
-    { label: 'Est. GHG reduction',          full: `${fullCO2.toFixed(1)} tCO₂eq/yr`,       peeb: `${tgtCO2.toFixed(1)} tCO₂eq/yr` },
+    { label: 'Number of buildings',              full: buildings.length,                        peeb: peebTargeted.length },
+    { label: 'Total floor area',                 full: fullArea.toLocaleString() + ' m²',       peeb: tgtArea.toLocaleString() + ' m²' },
+    { label: 'Est. total investment',            full: fmt(fullInvestment),                     peeb: fmt(tgtInvestment) },
+    { label: 'CAPEX — Energy efficiency',        full: fmt(fullEeCapex),                        peeb: fmt(tgtEeCapex) },
+    { label: 'CAPEX — Global refurbishment',     full: fmt(fullGrCapex),                        peeb: fmt(tgtGrCapex) },
+    { label: 'Total amount eligible to PEEB grant', full: '—',                                  peeb: fmt(tgtEligibleAmount) },
+    { label: 'Est. energy reduction',            full: `${fullEnergyPct}%`,                     peeb: `${tgtEnergyPct}%` },
+    { label: 'Est. GHG reduction',               full: `${fullCO2.toFixed(1)} tCO₂eq/yr`,       peeb: `${tgtCO2.toFixed(1)} tCO₂eq/yr` },
   ];
 
   // ── Funding overview (PEEB-targeted only) ──────────────────────────────────
+  // The funding total is reconciled to Est. total investment: any gap between
+  // the declared sources (PEEB + AFD + National + Others) and the estimated
+  // investment is pushed into "Others — to be defined".
   const totalPEEB     = peebTargeted.reduce((s, b) => s + (b.calc?._jod?.peebGrant || 0), 0);
   const totalAFD      = peebTargeted.reduce((s, b) => s + (b.afdLoan || 0), 0);
   const totalNational = peebTargeted.reduce((s, b) => s + (b.nationalBudget || 0), 0);
-  const totalOthers   = peebTargeted.reduce((s, b) => s + (b.others || 0), 0);
-  const fundingTotal  = toDisp(totalPEEB + totalAFD + totalNational + totalOthers);
+  const totalOthersRaw = peebTargeted.reduce((s, b) => s + (b.others || 0), 0);
+
+  const declaredSum = totalPEEB + totalAFD + totalNational + totalOthersRaw;
+  const gap         = Math.max(0, tgtInvestment - declaredSum);
+  const totalOthers = totalOthersRaw + gap;
+  const fundingTotal = toDisp(totalPEEB + totalAFD + totalNational + totalOthers);
 
   const fundingRows = [
-    { label: 'PEEB Grant',      raw: toDisp(totalPEEB),     amount: fmt(totalPEEB),     currency },
-    { label: 'AFD Loan',        raw: toDisp(totalAFD),      amount: fmt(totalAFD),      currency },
-    { label: 'National Budget', raw: toDisp(totalNational), amount: fmt(totalNational), currency },
-    { label: 'Others',          raw: toDisp(totalOthers),   amount: fmt(totalOthers),   currency },
+    { label: 'PEEB Grant',      raw: toDisp(totalPEEB),     amount: fmt(totalPEEB) },
+    { label: 'AFD Loan',        raw: toDisp(totalAFD),      amount: fmt(totalAFD) },
+    { label: 'National Budget', raw: toDisp(totalNational), amount: fmt(totalNational) },
+    {
+      label:  'Others',
+      raw:    toDisp(totalOthers),
+      amount: fmt(totalOthers),
+      note:   gap > 0 ? 'to be defined' : null,
+    },
   ];
 
   // ── Budget decomposition (PEEB-targeted works baseline) ────────────────────
@@ -450,21 +430,16 @@ export default function Dashboard() {
 
       {/* ── Funding + Budget side by side on wide screens ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FundingTable rows={fundingRows} total={fundingTotal} />
+        <FundingTable rows={fundingRows} total={fundingTotal} currency={currency} />
         <BudgetTable breakdown={breakdown} currency={currency} />
       </div>
 
-      {/* ── Charts row: Tier bar + Typology ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <TierBar buildings={buildings} />
-        </div>
-        <div className="card fade-in">
-          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ai-violet)' }}>
-            Buildings by Typology
-          </h3>
-          <TypologyChart buildings={buildings} peebTargeted={peebTargeted} />
-        </div>
+      {/* ── Typology chart ── */}
+      <div className="card fade-in">
+        <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--ai-violet)' }}>
+          Buildings by Typology
+        </h3>
+        <TypologyChart buildings={buildings} peebTargeted={peebTargeted} />
       </div>
 
       {/* ── PEEB Targeted Buildings table ── */}
