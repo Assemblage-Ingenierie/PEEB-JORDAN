@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle, CheckCircle, BarChart3, TrendingUp, Calculator, Banknote,
-  Copy, Check,
+  Copy, Check, MapPin,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -60,6 +60,98 @@ function CopyButton({ getRows, title = 'Copy table to clipboard' }) {
       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
       {copied ? 'Copied' : 'Copy'}
     </button>
+  );
+}
+
+// ─── Dashboard mini-map: PEEB-targeted only, zoomed around Amman ──────────────
+const AMMAN_CENTER = [31.95, 35.93];
+
+function PeebMiniMap({ buildings, selectBuilding }) {
+  const mapRef     = useRef(null);
+  const leafletRef = useRef(null);
+  const peeb = buildings.filter(b => b.peebSelected === true && !b.eligibility.ineligible);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('leaflet').then(mod => {
+      if (cancelled) return;
+      const L = mod.default;
+
+      if (leafletRef.current) {
+        leafletRef.current.remove();
+        leafletRef.current = null;
+      }
+
+      const map = L.map(mapRef.current, {
+        center: AMMAN_CENTER,
+        zoom: 9,
+        zoomControl: true,
+        scrollWheelZoom: false,
+        attributionControl: false,
+      });
+      leafletRef.current = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      peeb.forEach(b => {
+        if (!b.coordinates || b.coordinates.length < 2) return;
+        const [lat, lng] = b.coordinates;
+        const marker = L.circleMarker([lat, lng], {
+          radius: 7,
+          fillColor: '#E30513',
+          color: '#fff',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.9,
+        });
+        const popup = document.createElement('div');
+        popup.style.cssText = 'font-family:Inter,sans-serif;min-width:160px;';
+        const name = document.createElement('p');
+        name.style.cssText = 'font-weight:700;color:#30323E;margin:0 0 2px';
+        name.textContent = b.name;
+        popup.appendChild(name);
+        const sub = document.createElement('p');
+        sub.style.cssText = 'color:#64748b;font-size:12px;margin:0 0 6px';
+        sub.textContent = `${b.typology} · ${b.governorate ?? ''}`;
+        popup.appendChild(sub);
+        const btn = document.createElement('button');
+        btn.style.cssText = 'width:100%;padding:4px;background:#E30513;color:white;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;';
+        btn.textContent = 'Open profile →';
+        btn.addEventListener('click', () => selectBuilding(b.id));
+        popup.appendChild(btn);
+        marker.bindPopup(popup, { maxWidth: 220 });
+        marker.addTo(map);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      if (leafletRef.current) {
+        leafletRef.current.remove();
+        leafletRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peeb.length]);
+
+  return (
+    <div className="card fade-in p-0 overflow-hidden flex flex-col">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+        <MapPin className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+        <h3 className="text-sm font-bold" style={{ color: 'var(--ai-violet)' }}>
+          PEEB Targeted — map
+        </h3>
+        <span
+          className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+          style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}
+        >
+          {peeb.length}
+        </span>
+      </div>
+      <div ref={mapRef} style={{ width: '100%', flex: 1, minHeight: 260 }} />
+    </div>
   );
 }
 
@@ -502,8 +594,11 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 fade-in">
 
-      {/* ── KPI table ── */}
-      <KpiTable rows={kpiRows} />
+      {/* ── KPI table + PEEB mini-map side by side on wide screens ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[720px_minmax(0,1fr)] gap-6 items-stretch">
+        <KpiTable rows={kpiRows} />
+        <PeebMiniMap buildings={buildings} selectBuilding={selectBuilding} />
+      </div>
 
       {/* ── Funding + Budget side by side on wide screens ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
