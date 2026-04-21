@@ -58,7 +58,14 @@ export default function MapView() {
         maxZoom: 19,
       }).addTo(map);
 
-      buildings.forEach(b => {
+      // Render non-PEEB first, then PEEB-targeted so the red markers draw on top.
+      const ordered = [...buildings].sort((a, c) => {
+        const aPeeb = a.peebSelected && !a.eligibility.ineligible ? 1 : 0;
+        const cPeeb = c.peebSelected && !c.eligibility.ineligible ? 1 : 0;
+        return aPeeb - cPeeb;
+      });
+
+      ordered.forEach(b => {
         if (!b.coordinates || b.coordinates.length < 2) return;
         const [lat, lng] = b.coordinates;
 
@@ -169,7 +176,7 @@ export default function MapView() {
               className="inline-block rounded-full border-2 border-white shadow-sm"
               style={{ background: COLOR_DB_WORKS, width: 14, height: 14 }}
             />
-            Full DB · works identified
+            Full database · works identified
           </span>
 
           <span className="flex items-center gap-1.5">
@@ -177,7 +184,7 @@ export default function MapView() {
               className="inline-block rounded-full border-2 border-white shadow-sm"
               style={{ background: COLOR_DB_NO_WORKS, width: 8, height: 8 }}
             />
-            Full DB · no works
+            Full database · no works
           </span>
 
           <label

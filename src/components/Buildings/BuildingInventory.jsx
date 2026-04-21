@@ -313,14 +313,24 @@ function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, i
           {col.label}
         </div>
       ) : (
-        <span className="flex items-center gap-1" style={{ justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }}>
-          <GripVertical className="w-3 h-3 opacity-30 flex-shrink-0" />
-          <span>{col.label}</span>
-          {col.sortable && (
-            <Icon className="w-3 h-3 flex-shrink-0"
-              style={{ color: active ? 'var(--ai-rouge)' : 'rgba(255,255,255,.35)' }} />
+        <div className="flex flex-col" style={{ alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }}>
+          <span className="flex items-center gap-1">
+            <GripVertical className="w-3 h-3 opacity-30 flex-shrink-0" />
+            <span>{col.label}</span>
+            {col.sortable && (
+              <Icon className="w-3 h-3 flex-shrink-0"
+                style={{ color: active ? 'var(--ai-rouge)' : 'rgba(255,255,255,.35)' }} />
+            )}
+          </span>
+          {col.twoLineHeader && (
+            <span
+              className="font-normal"
+              style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', textTransform: 'none', letterSpacing: 0 }}
+            >
+              {col.twoLineHeader}
+            </span>
           )}
-        </span>
+        </div>
       )}
     </th>
   );
@@ -546,13 +556,20 @@ export default function BuildingInventory() {
 
         {/* Table footer */}
         <div
-          className="px-4 py-2 text-xs flex items-center gap-4"
+          className="px-4 py-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1.5"
           style={{ borderTop: '1px solid var(--ai-gris)', background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}
         >
           <span>
             <strong>{filtered.length}</strong> / <strong>{buildings.filter(b => !b.isDraft).length}</strong> buildings
             {search && ` · filter: "${search}"`}
           </span>
+
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1" style={{ color: 'var(--ai-noir70)' }}>
+            <span><strong style={{ color: 'var(--ai-violet)' }}>EE</strong> = Energy Efficiency</span>
+            <span><strong style={{ color: 'var(--ai-violet)' }}>GR</strong> = Global Refurbishment</span>
+            <span><strong style={{ color: 'var(--ai-violet)' }}>EUI</strong> = Energy Use Intensity (kWh/m²/yr)</span>
+          </span>
+
           <span className="ml-auto flex items-center gap-3 text-xs">
             <span>Score: </span>
             {[{ label: '≥70', bg: '#22a05a' }, { label: '40–69', bg: '#d97706' }, { label: '<40', bg: 'var(--ai-rouge)' }].map(s => (
