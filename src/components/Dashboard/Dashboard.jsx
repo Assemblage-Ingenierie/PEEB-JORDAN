@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import {
   AlertTriangle, CheckCircle, BarChart3, TrendingUp, Calculator, Banknote,
+  Copy, Check,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -15,14 +17,67 @@ const TIER_HEX = {
   purple: '#30323E',
 };
 
+// ─── Copy-to-clipboard button — writes a 2D array as TSV ──────────────────────
+// Tabs between columns, newlines between rows is the format spreadsheets
+// accept natively on paste.
+function CopyButton({ getRows, title = 'Copy table to clipboard' }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e) => {
+    e.stopPropagation();
+    const rows = getRows();
+    const tsv  = rows
+      .map(r => r.map(cell => String(cell ?? '').replace(/[\t\n\r]/g, ' ')).join('\t'))
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(tsv);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Fallback: create a hidden textarea and use execCommand
+      const ta = document.createElement('textarea');
+      ta.value = tsv;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={title}
+      className="ml-auto inline-flex items-center gap-1 text-xs px-2 py-1 rounded transition-all"
+      style={{
+        background: copied ? 'var(--ai-rouge)' : 'var(--ai-gris-clair)',
+        color:      copied ? 'white' : 'var(--ai-violet)',
+        border:     `1px solid ${copied ? 'var(--ai-rouge)' : 'var(--ai-gris)'}`,
+      }}
+    >
+      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
 // ─── KPI Table: PEEB Targeted first, then Full Database ───────────────────────
 function KpiTable({ rows }) {
+  const getRows = () => [
+    ['Indicator', 'PEEB Targeted', 'Full Database'],
+    ...rows.map(r => [r.label, r.peeb, r.full]),
+  ];
   return (
     <div className="card fade-in" style={{ maxWidth: 720 }}>
-      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
-        <BarChart3 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-        Portfolio KPIs
-      </h3>
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+          <BarChart3 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+          Portfolio KPIs
+        </h3>
+        <CopyButton getRows={getRows} title="Copy Portfolio KPIs as TSV" />
+      </div>
       <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
           <tr style={{ background: 'var(--ai-violet)' }}>
@@ -50,12 +105,24 @@ function KpiTable({ rows }) {
 
 // ─── Funding overview: single-column table ────────────────────────────────────
 function FundingTable({ rows, total, currency }) {
+  const getRows = () => [
+    ['Source', 'Amount', 'Share'],
+    ...rows.map(r => {
+      const pct = total > 0 ? (r.raw / total * 100).toFixed(1) : '0.0';
+      const label = r.note ? `${r.label} (${r.note})` : r.label;
+      return [label, r.amount, `${pct}%`];
+    }),
+    ['Total funding', formatCurrency(total, currency, true), '100%'],
+  ];
   return (
     <div className="card fade-in">
-      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
-        <Banknote className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-        Funding overview (PEEB targeted)
-      </h3>
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+          <Banknote className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+          Funding overview (PEEB targeted)
+        </h3>
+        <CopyButton getRows={getRows} title="Copy Funding overview as TSV" />
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
@@ -101,12 +168,30 @@ function FundingTable({ rows, total, currency }) {
 // ─── Budget decomposition: ordered breakdown ──────────────────────────────────
 function BudgetTable({ breakdown, currency }) {
   const fmt = (v) => formatCurrency(v, currency, true);
+  const basisFor = (r) => r.base
+    ? 'Works (from buildings)'
+    : r.locked
+      ? `${r.value}% × all items above`
+      : r.type === 'absolute'
+        ? 'Fixed amount'
+        : `${r.value}% × ${(r.appliesTo ?? []).length} item(s)`;
+  const getRows = () => [
+    ['Line item', 'Basis', 'Amount', 'Share'],
+    ...breakdown.rows.map(r => {
+      const pct = breakdown.total > 0 ? (r.amount / breakdown.total * 100).toFixed(1) : '0.0';
+      return [r.label, basisFor(r), fmt(r.amount), `${pct}%`];
+    }),
+    ['Total project budget', '', fmt(breakdown.total), '100%'],
+  ];
   return (
     <div className="card fade-in">
-      <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
-        <Calculator className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-        Project budget decomposition
-      </h3>
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+          <Calculator className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+          Project budget decomposition
+        </h3>
+        <CopyButton getRows={getRows} title="Copy Budget decomposition as TSV" />
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
@@ -120,13 +205,7 @@ function BudgetTable({ breakdown, currency }) {
           <tbody>
             {breakdown.rows.map((r, i) => {
               const pct = breakdown.total > 0 ? (r.amount / breakdown.total * 100).toFixed(1) : '0.0';
-              const basis = r.base
-                ? 'Works (from buildings)'
-                : r.locked
-                  ? `${r.value}% × all items above`
-                  : r.type === 'absolute'
-                    ? `Fixed amount`
-                    : `${r.value}% × ${(r.appliesTo ?? []).length} item(s)`;
+              const basis = basisFor(r);
               return (
                 <tr key={r.id} style={{
                   background: r.locked ? 'var(--ai-rouge-clair)' : (i % 2 === 0 ? 'white' : 'var(--ai-gris-clair)'),
@@ -448,11 +527,36 @@ export default function Dashboard() {
             PEEB Targeted Buildings
           </h3>
           <span
-            className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}
           >
             {peebTargeted.length} building{peebTargeted.length !== 1 ? 's' : ''}
           </span>
+          <CopyButton
+            getRows={() => {
+              const sorted = [...peebTargeted].sort((a, b) => (b.calc?.energyGain ?? 0) - (a.calc?.energyGain ?? 0));
+              return [
+                ['Building', 'Type', 'Governorate', 'Energy Gain', 'PEEB Tier', 'Grant'],
+                ...sorted.map(b => {
+                  const tier  = getFundingTier(b.calc?.energyGain ?? 0);
+                  const grant = b.calc?._jod?.peebGrant ?? 0;
+                  const grantDisplay = formatCurrency(
+                    currency === 'EUR' ? +(grant * exchangeRate).toFixed(0) : grant,
+                    currency, true
+                  );
+                  return [
+                    b.name,
+                    b.typology,
+                    b.governorate ?? '',
+                    b.calc?.energyGain != null ? `${b.calc.energyGain.toFixed(1)}%` : '—',
+                    tier.label,
+                    grantDisplay,
+                  ];
+                }),
+              ];
+            }}
+            title="Copy PEEB Targeted Buildings as TSV"
+          />
         </div>
         <PeebTargetedTable buildings={buildings} selectBuilding={selectBuilding} params={params} />
       </div>
