@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
-  Search, ArrowUpDown, ArrowUp, ArrowDown,
-  Upload, AlertTriangle, Ban, ChevronDown, CheckCircle,
+  Search, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight,
+  Upload, AlertTriangle, Ban, ChevronDown,
   Layers, Square, Wind, Lightbulb, Sun, Droplets,
   Building2, ShieldCheck, GripVertical, Check,
   Plus, FileSpreadsheet, Download,
@@ -132,15 +132,27 @@ function FilterDropdown({ value, onChange, options }) {
 // ─── Column definitions ──────────────────────────────────────────────────────
 // Each column: { key, label, width, sortable, type: 'meta'|'measure', measureKey?, render(b, ctx) => ReactNode }
 function buildColumns(params) {
-  const fmtGrant = (grant) => {
-    if (!grant) return '—';
-    const v = params.currency === 'EUR' ? +(grant * params.exchangeRate).toFixed(0) : grant;
-    return formatCurrency(v, params.currency, true);
+  const toDisp = jod => params.currency === 'EUR' ? +(jod * params.exchangeRate).toFixed(0) : jod;
+  const fmtAmount = (jod) => {
+    if (!jod) return '—';
+    return formatCurrency(toDisp(jod), params.currency, true);
   };
 
   const metaCols = [
     { key: 'id',            label: 'ID',           width: 56,  sortable: true,  type: 'meta',
       render: b => <span className="font-mono" style={{ color: 'var(--ai-noir70)' }}>{b.id}</span> },
+    { key: 'peebStatus',    label: 'PEEB',         width: 52,  sortable: true,  type: 'meta', align: 'center',
+      render: b => b.peebSelected && !b.eligibility.ineligible
+        ? (
+          <span
+            className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
+            style={{ background: 'var(--ai-rouge)', fontSize: 9, letterSpacing: '.05em', height: 16, minWidth: 38 }}
+            title="Selected for PEEB programme"
+          >
+            PEEB
+          </span>
+        )
+        : <span style={{ color: 'var(--ai-gris)' }}>—</span> },
     { key: 'name',          label: 'Building',     width: 200, sortable: true,  type: 'meta',
       render: (b) => (
         <span className="font-semibold flex items-center gap-1.5" style={{ color: 'var(--ai-rouge)' }}>
@@ -150,9 +162,6 @@ function buildColumns(params) {
           )}
           {b.gaps.length > 0 && !b.eligibility.ineligible && (
             <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#d97706' }} title="Missing data" />
-          )}
-          {b.peebSelected && !b.eligibility.ineligible && (
-            <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: '#22a05a' }} title="PEEB Selected" />
           )}
           <span className="truncate" title={b.name}>{b.name}</span>
         </span>
@@ -174,11 +183,24 @@ function buildColumns(params) {
       render: b => b.floors ?? '—' },
     { key: 'yearBuilt',     label: 'Year',         width: 55,  sortable: true,  type: 'meta', align: 'right',
       render: b => b.yearBuilt ?? '—' },
-    { key: 'baselineEUI',   label: 'EUI',          width: 70,  sortable: true,  type: 'meta', align: 'right',
-      render: b => b.baselineEUI ? `${b.baselineEUI}` : <span className="data-gap text-xs px-1 rounded">—</span>,
-      title: 'Baseline EUI kWh/m²/yr' },
-    { key: 'operatingHours',label: 'Hours',        width: 130, sortable: false, type: 'meta',
-      render: b => <span className="truncate" title={b.operatingHours} style={{ color: 'var(--ai-noir70)' }}>{b.operatingHours || '—'}</span> },
+    { key: 'baselineEUI',   label: 'EUI',          width: 105, sortable: true,  type: 'meta', align: 'right',
+      twoLineHeader: 'kWh/m²/yr',
+      render: b => {
+        if (!b.baselineEUI) return <span className="data-gap text-xs px-1 rounded">—</span>;
+        const after = b.calc?.energyGain != null
+          ? +(b.baselineEUI * (1 - b.calc.energyGain / 100)).toFixed(0)
+          : null;
+        return (
+          <span className="inline-flex items-center gap-1" style={{ lineHeight: 1.1, justifyContent: 'flex-end' }}>
+            <span style={{ color: 'var(--ai-noir70)' }}>{b.baselineEUI}</span>
+            <ArrowRight className="w-3 h-3" style={{ color: 'var(--ai-gris)' }} />
+            <span className="font-bold" style={{ color: after != null && after < b.baselineEUI ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+              {after != null ? after : b.baselineEUI}
+            </span>
+          </span>
+        );
+      },
+      title: 'Baseline EUI → after works (kWh/m²/yr)' },
     { key: 'fundingSource', label: 'Donor',        width: 75,  sortable: true,  type: 'meta',
       render: b => b.fundingSource
         ? <span className="badge" style={{ background: 'var(--ai-gris)', color: 'var(--ai-violet)', fontSize: 10 }}>{b.fundingSource}</span>
@@ -197,17 +219,24 @@ function buildColumns(params) {
         </span>;
       }
     },
-    { key: 'peebGrant',     label: 'Grant',        width: 85,  sortable: true,  type: 'meta', align: 'right',
-      render: b => <span className="font-semibold" style={{ color: 'var(--ai-violet)' }}>
-        {fmtGrant(b.calc?._jod?.peebGrant ?? 0)}
-      </span>
+    { key: 'capexEE',       label: 'CAPEX EE',     width: 95,  sortable: true,  type: 'meta', align: 'right',
+      render: b => <span style={{ color: 'var(--ai-violet)' }}>{fmtAmount(b.calc?._jod?.eeCapex ?? 0)}</span>,
+      title: 'Energy-efficiency CAPEX' },
+    { key: 'capexGR',       label: 'CAPEX GR',     width: 95,  sortable: true,  type: 'meta', align: 'right',
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{fmtAmount(b.calc?._jod?.grCapex ?? 0)}</span>,
+      title: 'Global-refurbishment CAPEX' },
+    { key: 'peebGrant',     label: 'PEEB Grant',   width: 95,  sortable: true,  type: 'meta', align: 'right',
+      render: b => <span className="font-semibold" style={{ color: 'var(--ai-rouge)' }}>
+        {fmtAmount(b.calc?._jod?.peebGrant ?? 0)}
+      </span>,
+      title: 'Potential PEEB Grant'
     },
     { key: 'score',         label: 'Score',        width: 55,  sortable: true,  type: 'meta', align: 'center',
       render: (b, { scoreCfg }) => <ScoreBadge score={calculateScore(b, b.calc, scoreCfg).total} />
     },
   ];
 
-  // Measure columns — one per measure key. Shown as checkmark (selected = ✓).
+  // Measure columns — one per measure key. Selected → pictogram en rouge.
   const measureCols = [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR].map(key => ({
     key: `m_${key}`,
     label: MEASURE_META[key].short ?? MEASURE_META[key].label,
@@ -220,22 +249,18 @@ function buildColumns(params) {
     render: (b) => {
       const m = b.measures?.[key];
       const selected = !!m?.selected;
-      const locked = MEASURE_META[key].lockSavings;
       const Icon = MEASURE_ICONS[key] || Check;
       return (
         <span
-          className="inline-flex items-center justify-center rounded"
+          className="inline-flex items-center justify-center"
           style={{
             width: 22, height: 22,
-            background: selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-gris-clair)',
-            color: selected ? 'white' : 'var(--ai-noir70)',
-            opacity: selected ? 1 : 0.4,
+            color: selected ? 'var(--ai-rouge)' : 'var(--ai-gris)',
+            opacity: selected ? 1 : 0.55,
           }}
           title={`${MEASURE_META[key].label}${selected ? ' — planned' : ''}${m?.notes ? `\n${m.notes}` : ''}`}
         >
-          {selected
-            ? <Check className="w-3.5 h-3.5" strokeWidth={3} />
-            : <Icon className="w-3 h-3" />}
+          <Icon className="w-4 h-4" strokeWidth={selected ? 2.5 : 1.75} />
         </span>
       );
     }
@@ -390,6 +415,15 @@ export default function BuildingInventory() {
         } else if (sort.col === 'peebGrant') {
           va = a.calc?._jod?.peebGrant ?? 0;
           vb = b.calc?._jod?.peebGrant ?? 0;
+        } else if (sort.col === 'capexEE') {
+          va = a.calc?._jod?.eeCapex ?? 0;
+          vb = b.calc?._jod?.eeCapex ?? 0;
+        } else if (sort.col === 'capexGR') {
+          va = a.calc?._jod?.grCapex ?? 0;
+          vb = b.calc?._jod?.grCapex ?? 0;
+        } else if (sort.col === 'peebStatus') {
+          va = a.peebSelected && !a.eligibility.ineligible ? 1 : 0;
+          vb = b.peebSelected && !b.eligibility.ineligible ? 1 : 0;
         } else {
           va = a[sort.col] ?? '';
           vb = b[sort.col] ?? '';
@@ -527,9 +561,14 @@ export default function BuildingInventory() {
                 {s.label}
               </span>
             ))}
-            <span className="flex items-center gap-1 ml-2" style={{ color: '#22a05a' }}>
-              <CheckCircle className="w-3 h-3" />
-              PEEB Selected
+            <span className="flex items-center gap-1 ml-2">
+              <span
+                className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
+                style={{ background: 'var(--ai-rouge)', fontSize: 8, letterSpacing: '.05em', height: 13, minWidth: 30 }}
+              >
+                PEEB
+              </span>
+              <span>Selected</span>
             </span>
             <span className="ml-2" style={{ fontStyle: 'italic' }}>
               Drag column headers to reorder · click a row to open

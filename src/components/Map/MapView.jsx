@@ -1,24 +1,28 @@
 import { useEffect, useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { getFundingTier } from '../../engine/CalculationEngine';
+import { formatCurrency } from '../../engine/CalculationEngine';
 
-// Tier → colour mapping for Leaflet circle markers
-const TIER_COLOR = {
-  slate:  '#94a3b8',
-  amber:  '#f59e0b',
-  blue:   '#3b82f6',
-  green:  '#22c55e',
-  purple: '#a855f7',
-};
+// Two-tone palette — red for PEEB-targeted, greys for the rest of the database
+const COLOR_PEEB        = '#E30513'; // var(--ai-rouge)
+const COLOR_DB_WORKS    = '#30323E'; // var(--ai-violet) — full DB with works (dark grey)
+const COLOR_DB_NO_WORKS = '#B7C0C8'; // lighter than --ai-gris for DB without works
 
-const INELIGIBLE_COLOR = '#ef4444';
+// Circle radius scaled by EE investment (JOD). No-works buildings get a fixed
+// small dot so they stay visually secondary.
+function radiusFor(eeCapexJod, hasWorks) {
+  if (!hasWorks) return 5;
+  const r = 8 + Math.sqrt(Math.max(0, eeCapexJod) / 10_000);
+  return Math.min(Math.max(r, 8), 22);
+}
 
 export default function MapView() {
-  const { buildings: allBuildings, selectBuilding } = useApp();
+  const { buildings: allBuildings, selectBuilding, params } = useApp();
   const buildings = allBuildings.filter(b => !b.isDraft);
   const mapRef     = useRef(null);
   const leafletRef = useRef(null);
+  const { currency, exchangeRate } = params;
+  const toDisp = jod => currency === 'EUR' ? +(jod * exchangeRate).toFixed(0) : jod;
 
   useEffect(() => {
     // Dynamically import Leaflet to avoid SSR / duplicate-init issues
@@ -39,7 +43,6 @@ export default function MapView() {
         leafletRef.current = null;
       }
 
-      // Create map centred on Jordan
       const map = L.map(mapRef.current, {
         center: [31.5, 36.0],
         zoom:   7,
@@ -52,21 +55,26 @@ export default function MapView() {
         maxZoom: 19,
       }).addTo(map);
 
-      // Add markers
       buildings.forEach(b => {
         if (!b.coordinates || b.coordinates.length < 2) return;
         const [lat, lng] = b.coordinates;
-        const tier   = getFundingTier(b.calc?.energyGain ?? 0);
-        const color  = b.eligibility.ineligible ? INELIGIBLE_COLOR : TIER_COLOR[tier.color];
 
-        const peebSelected = b.peebSelected === true && !b.eligibility.ineligible;
+        const eeCapexJod   = b.calc?._jod?.eeCapex ?? 0;
+        const isPeebTarget = b.peebSelected === true && !b.eligibility.ineligible;
+        const hasWorks     = eeCapexJod > 0;
+
+        const color  = isPeebTarget ? COLOR_PEEB
+          : hasWorks ? COLOR_DB_WORKS
+          : COLOR_DB_NO_WORKS;
+        const radius = radiusFor(eeCapexJod, hasWorks || isPeebTarget);
+
         const circleMarker = L.circleMarker([lat, lng], {
-          radius:      b.area ? Math.min(8 + b.area / 1500, 16) : 9,
+          radius,
           fillColor:   color,
-          color:       peebSelected ? '#22a05a' : '#fff',
-          weight:      peebSelected ? 3 : 2,
+          color:       '#fff',
+          weight:      1.5,
           opacity:     1,
-          fillOpacity: b.eligibility.ineligible ? 0.55 : 0.85,
+          fillOpacity: b.eligibility.ineligible ? 0.5 : 0.85,
         });
 
         // Build popup DOM with textContent — no HTML injection (XSS-safe)
@@ -74,7 +82,7 @@ export default function MapView() {
         popup.style.cssText = 'min-width:200px;font-family:Inter,sans-serif;';
 
         const nameEl = document.createElement('p');
-        nameEl.style.cssText = 'font-weight:700;color:#1e3a5f;margin:0 0 4px';
+        nameEl.style.cssText = 'font-weight:700;color:#30323E;margin:0 0 4px';
         nameEl.textContent = b.name;
         popup.appendChild(nameEl);
 
@@ -83,16 +91,20 @@ export default function MapView() {
         subEl.textContent = `${b.typology} · ${b.governorate}`;
         popup.appendChild(subEl);
 
-        const gainStr = b.calc?.energyGain != null ? `${b.calc.energyGain.toFixed(1)}%` : '—';
-        const tierStr = b.eligibility.ineligible ? 'Ineligible' : tier.label;
-        const selStr  = peebSelected ? 'PEEB Selected' : b.eligibility.ineligible ? '' : 'Not selected';
+        const gainStr  = b.calc?.energyGain != null ? `${b.calc.energyGain.toFixed(1)}%` : '—';
+        const eeCapStr = eeCapexJod > 0 ? formatCurrency(toDisp(eeCapexJod), currency, true) : '—';
+        const statusStr = isPeebTarget
+          ? 'PEEB Targeted'
+          : b.eligibility.ineligible
+            ? 'Ineligible'
+            : hasWorks ? 'Works identified' : 'No works';
 
         const rows = [
+          ['Status',      statusStr],
           ['Area',        b.area ? `${b.area.toLocaleString()} m²` : '—'],
           ['EUI',         b.baselineEUI ? `${b.baselineEUI} kWh/m²/yr` : '—'],
           ['Energy Gain', gainStr],
-          ['Tier',        tierStr],
-          ...(selStr ? [['PEEB', selStr]] : []),
+          ['CAPEX EE',    eeCapStr],
         ];
         const table = document.createElement('table');
         table.style.cssText = 'width:100%;font-size:12px;border-collapse:collapse;';
@@ -111,9 +123,8 @@ export default function MapView() {
         popup.appendChild(table);
 
         const btn = document.createElement('button');
-        btn.style.cssText = 'margin-top:8px;width:100%;padding:6px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;';
+        btn.style.cssText = 'margin-top:8px;width:100%;padding:6px;background:#E30513;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;';
         btn.textContent = 'Open Profile →';
-        // Use native Leaflet event — no global window exposure needed
         btn.addEventListener('click', () => selectBuilding(b.id));
         popup.appendChild(btn);
 
@@ -129,40 +140,44 @@ export default function MapView() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildings]);
+  }, [buildings, currency, exchangeRate]);
 
   return (
     <div className="space-y-4 fade-in">
       {/* Legend */}
       <div className="card py-3 no-print">
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-          <span className="font-semibold text-slate-700 flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-blue-500" /> Map Legend:
+        <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: 'var(--ai-noir70)' }}>
+          <span className="font-semibold flex items-center gap-1" style={{ color: 'var(--ai-violet)' }}>
+            <MapPin className="w-3.5 h-3.5" style={{ color: 'var(--ai-rouge)' }} /> Map legend:
           </span>
-          {[
-            { color: TIER_COLOR.slate,  label: 'Below Threshold' },
-            { color: TIER_COLOR.amber,  label: 'Tier 1 — 50%'   },
-            { color: TIER_COLOR.blue,   label: 'Tier 2 — 60%'   },
-            { color: TIER_COLOR.green,  label: 'Tier 3 — 70%'   },
-            { color: TIER_COLOR.purple, label: 'Tier 4 — 80%'   },
-            { color: INELIGIBLE_COLOR,  label: 'Ineligible'     },
-          ].map(({ color, label }) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <span
-                className="inline-block w-3 h-3 rounded-full border-2 border-white shadow-sm"
-                style={{ background: color }}
-              />
-              {label}
-            </span>
-          ))}
+
           <span className="flex items-center gap-1.5">
             <span
-              className="inline-block w-3 h-3 rounded-full shadow-sm"
-              style={{ background: TIER_COLOR.amber, border: '2px solid #22a05a' }}
+              className="inline-block rounded-full border-2 border-white shadow-sm"
+              style={{ background: COLOR_PEEB, width: 16, height: 16 }}
             />
-            PEEB Selected
+            PEEB Targeted
           </span>
-          <span className="text-slate-400 ml-auto">Circle size ∝ floor area · Click marker to open profile</span>
+
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block rounded-full border-2 border-white shadow-sm"
+              style={{ background: COLOR_DB_WORKS, width: 14, height: 14 }}
+            />
+            Full DB · works identified
+          </span>
+
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block rounded-full border-2 border-white shadow-sm"
+              style={{ background: COLOR_DB_NO_WORKS, width: 8, height: 8 }}
+            />
+            Full DB · no works
+          </span>
+
+          <span className="ml-auto" style={{ color: 'var(--ai-noir70)', fontStyle: 'italic' }}>
+            Circle size ∝ EE investment · Click marker to open profile
+          </span>
         </div>
       </div>
 
