@@ -598,6 +598,33 @@ export default function Parameters() {
             Choose any indicator for each scoring slot. Max points should sum to 100.
           </p>
 
+          <div className="ai-box-info flex items-start gap-2 text-xs mb-3">
+            <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-violet)' }} />
+            <div>
+              <p className="font-semibold mb-0.5" style={{ color: 'var(--ai-violet)' }}>
+                What is the <em>threshold</em>?
+              </p>
+              <p style={{ color: 'var(--ai-noir70)' }}>
+                It is the indicator value at which the slot awards its extreme score.
+                The score is interpolated linearly between zero and this value.
+              </p>
+              <ul className="mt-1 space-y-0.5" style={{ color: 'var(--ai-noir70)' }}>
+                <li>
+                  <span className="font-semibold" style={{ color: '#16a34a' }}>Higher = better</span>
+                  {' '}→ the slot awards <strong>full points</strong> when the indicator
+                  reaches the threshold (and 0 pts at 0).
+                  <em> Example: 50 % energy gain with a threshold of 50 % = full score.</em>
+                </li>
+                <li>
+                  <span className="font-semibold" style={{ color: '#d97706' }}>Lower = better</span>
+                  {' '}→ the slot awards <strong>0 points</strong> when the indicator
+                  reaches the threshold (and full pts at 0).
+                  <em> Example: 20-year payback with a threshold of 20 yrs = 0 pts.</em>
+                </li>
+              </ul>
+            </div>
+          </div>
+
           {weightsTotal !== 100 && (
             <div className="ai-box-soft flex items-start gap-2 text-xs mb-3">
               <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
