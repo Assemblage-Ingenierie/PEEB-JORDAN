@@ -264,24 +264,33 @@ function buildColumns(params) {
       },
     },
     {
-      key: 'baselineEUI', label: 'EUI', width: 105, sortable: true, type: 'meta', align: 'right',
+      key: 'euiBefore', label: 'EUI\nbefore', width: 70, sortable: true, type: 'meta', align: 'right',
       twoLineHeader: 'kWh/m²/yr',
-      title: 'Baseline EUI → after works. Italic = extrapolated from typology defaults.',
+      title: 'Baseline EUI before works',
       render: b => {
         if (!b.baselineEUI) return <span className="data-gap text-xs px-1 rounded">—</span>;
-        const after = b.calc?.energyGain != null
-          ? +(b.baselineEUI * (1 - b.calc.energyGain / 100)).toFixed(0) : null;
         const isExt = b.source === 'Extrapolated';
-        return (
-          <span className="inline-flex items-center gap-1"
-            style={{ lineHeight: 1.1, justifyContent: 'flex-end', fontStyle: isExt ? 'italic' : 'normal' }}>
-            <span style={{ color: 'var(--ai-noir70)', opacity: isExt ? 0.7 : 1 }}>{b.baselineEUI}</span>
-            <ArrowRight className="w-3 h-3" style={{ color: 'var(--ai-gris)' }} />
-            <span className="font-bold" style={{ color: after != null && after < b.baselineEUI ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
-              {after != null ? after : b.baselineEUI}
-            </span>
-          </span>
-        );
+        return <span style={{ color: 'var(--ai-noir70)', fontStyle: isExt ? 'italic' : 'normal', opacity: isExt ? 0.7 : 1 }}>{b.baselineEUI}</span>;
+      },
+    },
+    {
+      key: 'euiAfter', label: 'EUI\nafter', width: 70, sortable: true, type: 'meta', align: 'right',
+      twoLineHeader: 'kWh/m²/yr',
+      title: 'EUI after works',
+      render: b => {
+        if (!b.baselineEUI || b.calc?.energyGain == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        const after = +(b.baselineEUI * (1 - b.calc.energyGain / 100)).toFixed(0);
+        return <span className="font-bold" style={{ color: 'var(--ai-rouge)' }}>{after}</span>;
+      },
+    },
+    {
+      key: 'euiDiff', label: 'EUI\ndiff.', width: 70, sortable: true, type: 'meta', align: 'right',
+      twoLineHeader: 'kWh/m²/yr',
+      title: 'EUI reduction (before − after)',
+      render: b => {
+        if (!b.baselineEUI || b.calc?.energyGain == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        const diff = +(b.baselineEUI * b.calc.energyGain / 100).toFixed(0);
+        return <span className="font-bold" style={{ color: '#16a34a' }}>−{diff}</span>;
       },
     },
     {
@@ -541,6 +550,9 @@ export default function BuildingInventory() {
         switch (sort.col) {
           case 'score':      va = calculateScore(a, a.calc, params.scoreConfig).total; vb = calculateScore(b, b.calc, params.scoreConfig).total; break;
           case 'calc':       va = a.calc?.energyGain ?? 0;  vb = b.calc?.energyGain ?? 0; break;
+          case 'euiBefore':  va = a.baselineEUI ?? 0; vb = b.baselineEUI ?? 0; break;
+          case 'euiAfter':   va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * (1 - a.calc.energyGain / 100) : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * (1 - b.calc.energyGain / 100) : 0; break;
+          case 'euiDiff':    va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * a.calc.energyGain / 100 : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * b.calc.energyGain / 100 : 0; break;
           case 'peebGrant':  va = a.calc?._jod?.peebGrant ?? 0; vb = b.calc?._jod?.peebGrant ?? 0; break;
           case 'capexEE':    va = a.calc?._jod?.eeCapex ?? 0;   vb = b.calc?._jod?.eeCapex ?? 0; break;
           case 'capexGR':    va = a.calc?._jod?.grCapex ?? 0;   vb = b.calc?._jod?.grCapex ?? 0; break;
