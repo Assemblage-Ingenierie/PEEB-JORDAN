@@ -138,8 +138,8 @@ function FilterCell({ col, value, onChange, dynOptions }) {
     borderBottom: '1px solid rgba(255,255,255,.08)',
   };
   const inputStyle = {
-    fontSize: 10, background: 'rgba(255,255,255,.08)', color: 'white',
-    border: '1px solid rgba(255,255,255,.15)', borderRadius: 3,
+    fontSize: 10, background: 'rgba(255,255,255,.88)', color: '#1e2030',
+    border: '1px solid rgba(255,255,255,.3)', borderRadius: 3,
     padding: '1px 4px', width: '100%', outline: 'none', boxSizing: 'border-box',
   };
 
