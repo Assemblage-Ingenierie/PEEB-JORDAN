@@ -201,7 +201,7 @@ function buildColumns(params) {
       filterable: true, filterType: 'select', filterOptions: ['PEEB'],
       render: b => b.peebSelected && !b.eligibility.ineligible
         ? <span className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
-            style={{ background: 'var(--ai-rouge)', fontSize: 9, letterSpacing: '.05em', height: 16, minWidth: 38 }}
+            style={{ background: '#22c9a5', fontSize: 9, letterSpacing: '.05em', height: 16, minWidth: 38 }}
             title="Selected for PEEB programme">PEEB</span>
         : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
