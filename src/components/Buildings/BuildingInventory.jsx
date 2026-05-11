@@ -297,6 +297,11 @@ function buildColumns(params) {
       render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.status}</span>,
     },
     {
+      key: 'priority', label: 'Political Priority', width: 90, sortable: true, type: 'meta',
+      filterable: true, filterType: 'select', filterOptions: ['High', 'Medium', 'Low'],
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.priority || '—'}</span>,
+    },
+    {
       key: 'calc', label: 'Gain %', width: 65, sortable: true, type: 'meta', align: 'center',
       render: b => {
         const gain = b.calc?.energyGain;
@@ -523,6 +528,7 @@ export default function BuildingInventory() {
             case 'source':       if ((b.source || '') !== val) return false; break;
             case 'fundingSource': if (!((b.fundingSource || '').toLowerCase().includes(val.toLowerCase()))) return false; break;
             case 'status':       if (b.status !== val) return false; break;
+            case 'priority':     if ((b.priority || '') !== val) return false; break;
             case 'peebStatus': { const p = b.peebSelected && !b.eligibility.ineligible; if (val === 'PEEB' && !p) return false; break; }
           }
         }
