@@ -404,7 +404,7 @@ function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, i
         borderLeft: isDragTarget ? '2px solid var(--ai-rouge)' : 'none',
         background: isDragTarget ? 'rgba(255,255,255,.12)' : 'transparent',
         verticalAlign: col.vertical ? 'bottom' : 'middle',
-        height: col.vertical ? 110 : 'auto',
+        height: col.vertical ? 80 : 'auto',
       }}
       onClick={() => col.sortable && onSort(col.key)}
       title={col.title ?? col.label}

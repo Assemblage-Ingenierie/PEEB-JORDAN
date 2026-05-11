@@ -25,15 +25,15 @@ export const MEASURE_KEYS = [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR];
 
 export const MEASURE_META = {
   // ── Energy Efficiency ──────────────────────────────────────────────────────
-  insulation:         { label: 'Roof / Wall Insulation',  short: 'Insulation',    unit: 'JOD/m²', icon: 'Layers',      isEE: true,  lockSavings: false },
+  insulation:         { label: 'Roof / Wall Insulation',  short: 'Insulat°',      unit: 'JOD/m²', icon: 'Layers',      isEE: true,  lockSavings: false },
   windows:            { label: 'Window Replacement',      short: 'Windows',       unit: 'JOD/m²', icon: 'Square',      isEE: true,  lockSavings: false },
   hvac:               { label: 'HVAC Upgrade',            short: 'HVAC',          unit: 'JOD/m²', icon: 'Wind',        isEE: true,  lockSavings: false },
   lighting:           { label: 'LED Lighting',            short: 'Lighting',      unit: 'JOD/m²', icon: 'Lightbulb',   isEE: true,  lockSavings: false },
   pv:                 { label: 'PV Solar System',         short: 'PV',            unit: 'JOD/m²', icon: 'Sun',         isEE: true,  lockSavings: false },
-  solarThermal:       { label: 'Solar Thermal (hot water)', short: 'Solar Thermal', unit: 'JOD/m²', icon: 'Droplets',   isEE: true,  lockSavings: false },
+  solarThermal:       { label: 'Solar Thermal (hot water)', short: 'Solar Th°',   unit: 'JOD/m²', icon: 'Droplets',   isEE: true,  lockSavings: false },
   // ── Global Refurbishment (0 % energy savings, locked) ─────────────────────
-  structure:          { label: 'Structure',               short: 'Structure',     unit: 'JOD/m²', icon: 'Building2',   isEE: false, lockSavings: true  },
-  accessibility:      { label: 'Accessibility',           short: 'Accessibility', unit: 'JOD/m²', icon: 'Accessibility', isEE: false, lockSavings: true },
+  structure:          { label: 'Structure',               short: 'Struct°',       unit: 'JOD/m²', icon: 'Building2',   isEE: false, lockSavings: true  },
+  accessibility:      { label: 'Accessibility',           short: 'Access°',       unit: 'JOD/m²', icon: 'Accessibility', isEE: false, lockSavings: true },
   hygieneAndSecurity: { label: 'Hygiene & Security',      short: 'Hygiene',       unit: 'JOD/m²', icon: 'ShieldCheck', isEE: false, lockSavings: true  },
 };
 
