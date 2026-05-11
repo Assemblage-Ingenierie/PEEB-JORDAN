@@ -285,7 +285,7 @@ function buildColumns(params) {
       },
     },
     {
-      key: 'fundingSource', label: 'Existing Funding', width: 110, sortable: true, type: 'meta',
+      key: 'fundingSource', label: 'Existing\nFunding', width: 110, sortable: true, type: 'meta',
       filterable: true, filterType: 'text',
       render: b => b.fundingSource
         ? <span className="badge" style={{ background: 'var(--ai-gris)', color: 'var(--ai-violet)', fontSize: 10 }}>{b.fundingSource}</span>
@@ -297,7 +297,7 @@ function buildColumns(params) {
       render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.status}</span>,
     },
     {
-      key: 'priority', label: 'Political Priority', width: 90, sortable: true, type: 'meta',
+      key: 'priority', label: 'Political\nPriority', width: 90, sortable: true, type: 'meta',
       filterable: true, filterType: 'select', filterOptions: ['High', 'Medium', 'Low'],
       render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.priority || '—'}</span>,
     },
@@ -311,17 +311,17 @@ function buildColumns(params) {
       },
     },
     {
-      key: 'capexEE', label: 'CAPEX EE', width: 95, sortable: true, type: 'meta', align: 'right',
+      key: 'capexEE', label: 'CAPEX\nEE', width: 95, sortable: true, type: 'meta', align: 'right',
       title: 'Energy-efficiency CAPEX',
       render: b => <span style={{ color: 'var(--ai-violet)' }}>{fmtM(b.calc?._jod?.eeCapex ?? 0)}</span>,
     },
     {
-      key: 'capexGR', label: 'CAPEX GR', width: 95, sortable: true, type: 'meta', align: 'right',
+      key: 'capexGR', label: 'CAPEX\nGR', width: 95, sortable: true, type: 'meta', align: 'right',
       title: 'Global-refurbishment CAPEX',
       render: b => <span style={{ color: 'var(--ai-noir70)' }}>{fmtM(b.calc?._jod?.grCapex ?? 0)}</span>,
     },
     {
-      key: 'capexTotal', label: 'Total CAPEX', width: 100, sortable: true, type: 'meta', align: 'right',
+      key: 'capexTotal', label: 'Total\nCAPEX', width: 100, sortable: true, type: 'meta', align: 'right',
       title: 'Total CAPEX (EE + GR)',
       render: b => {
         const total = (b.calc?._jod?.eeCapex ?? 0) + (b.calc?._jod?.grCapex ?? 0);
@@ -329,12 +329,12 @@ function buildColumns(params) {
       },
     },
     {
-      key: 'peebGrant', label: 'Expected PEEB Grant', width: 120, sortable: true, type: 'meta', align: 'right',
+      key: 'peebGrant', label: 'Expected\nPEEB Grant', width: 120, sortable: true, type: 'meta', align: 'right',
       title: 'Expected PEEB Grant',
       render: b => <span className="font-bold" style={{ color: '#1a1a1a' }}>{fmtM(b.calc?._jod?.peebGrant ?? 0)}</span>,
     },
     {
-      key: 'savingsPerYear', label: 'Savings / year', width: 95, sortable: false, type: 'meta', align: 'right',
+      key: 'savingsPerYear', label: 'Savings /\nyear', width: 95, sortable: false, type: 'meta', align: 'right',
       render: () => <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
@@ -397,7 +397,7 @@ function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, i
       style={{
         color: 'white',
         cursor: col.sortable ? 'pointer' : col.type !== 'measure' ? 'grab' : 'default',
-        whiteSpace: 'nowrap',
+        whiteSpace: col.vertical ? 'nowrap' : 'normal',
         width: col.width, minWidth: col.width, maxWidth: col.width,
         padding: col.vertical ? '4px 2px' : '6px 8px',
         textAlign: col.align === 'right' ? 'right' : col.align === 'center' ? 'center' : 'left',
@@ -420,7 +420,7 @@ function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, i
         <div className="flex flex-col" style={{ alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }}>
           <span className="flex items-center gap-1">
             {col.type !== 'measure' && <GripVertical className="w-3 h-3 opacity-30 flex-shrink-0" />}
-            <span>{col.label}</span>
+            <span style={{ whiteSpace: 'pre-line', lineHeight: 1.25 }}>{col.label}</span>
             {col.sortable && (
               <Icon className="w-3 h-3 flex-shrink-0"
                 style={{ color: active ? 'var(--ai-rouge)' : 'rgba(255,255,255,.35)' }} />
