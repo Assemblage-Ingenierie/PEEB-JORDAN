@@ -2,6 +2,28 @@ import { Bell, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
+function CurrencyToggle() {
+  const { params, setParam } = useApp();
+  return (
+    <div className="flex items-center gap-0.5 rounded-md p-0.5" style={{ background: 'var(--ai-gris)' }}>
+      {['JOD', 'EUR'].map(c => (
+        <button
+          key={c}
+          onClick={() => setParam('currency', c)}
+          className="px-3 py-1 rounded text-xs font-bold transition-all"
+          style={
+            params.currency === c
+              ? { background: 'var(--ai-rouge)', color: 'white', boxShadow: '0 1px 3px rgba(0,0,0,.15)' }
+              : { background: 'transparent', color: 'var(--ai-violet)' }
+          }
+        >
+          {c === 'JOD' ? '🇯🇴 JOD' : '🇪🇺 EUR'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const VIEW_TITLES = {
   dashboard:  { title: 'Dashboard',          subtitle: 'Program overview & KPIs'                     },
   inventory:  { title: 'Building Inventory', subtitle: 'Searchable and sortable register'              },
@@ -56,6 +78,7 @@ export default function Header() {
 
         <div className="flex items-center gap-3 flex-shrink-0">
           {notification && <Notification notification={notification} onClose={clearNotification} />}
+          <CurrencyToggle />
           <button className="p-2 rounded-lg transition-colors" style={{ color: 'var(--ai-noir70)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--ai-gris)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
