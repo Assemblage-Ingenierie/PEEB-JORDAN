@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Search, ArrowUpDown, ArrowUp, ArrowDown, ArrowRight,
+  Search, ArrowUpDown, ArrowUp, ArrowDown,
   Upload, AlertTriangle, Ban, ChevronDown,
   Layers, Square, Wind, Lightbulb, Sun, Droplets,
-  Building2, ShieldCheck, GripVertical, Check,
+  Building2, ShieldCheck, Check, SlidersHorizontal,
   Plus, FileSpreadsheet, Download,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -22,8 +22,29 @@ const JORDAN_REGIONS = {
 };
 const getRegion = (gov) => JORDAN_REGIONS[gov] || '—';
 
-const TYPOLOGIES = ['All', 'School', 'Hospital', 'University', 'Administration'];
-const REGIONS    = ['All', 'North', 'Central', 'South'];
+// ─── Column sections ──────────────────────────────────────────────────────────
+const SECTION_DEFS = [
+  {
+    key: 'building',
+    label: 'Building Data',
+    colKeys: ['alerts','id','peebStatus','name','typology','governorate','region','area','floors','yearBuilt'],
+  },
+  {
+    key: 'audit',
+    label: 'Audit Data',
+    colKeys: ['existingAudit','author','euiBefore','euiAfter','euiDiff','fundingSource'],
+  },
+  {
+    key: 'investment',
+    label: 'Investment',
+    colKeys: [
+      'priority','calc','capexEE','capexGR','capexTotal','peebGrant','savingsPerYear','score',
+      ...MEASURE_KEYS_EE.map(k => `m_${k}`),
+      ...MEASURE_KEYS_GR.map(k => `m_${k}`),
+    ],
+  },
+];
+const ALL_COL_KEYS = SECTION_DEFS.flatMap(s => s.colKeys);
 
 // ─── Typology display config ──────────────────────────────────────────────────
 const TYPOLOGY_DISPLAY = {
@@ -109,24 +130,74 @@ function ScoreBadge({ score }) {
   );
 }
 
-// ─── Toolbar filter dropdown ──────────────────────────────────────────────────
-function FilterDropdown({ value, onChange, options }) {
+// ─── Columns visibility dropdown ──────────────────────────────────────────────
+function ColumnsDropdown({ visibleCols, onToggle, sectionsWithCols }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <div className="relative">
-      <select value={value} onChange={e => onChange(e.target.value)}
-        className="input appearance-none pr-7 text-xs" style={{ minWidth: '130px' }}>
-        {options.map(o => (
-          <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-        style={{ color: 'var(--ai-noir70)' }} />
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="btn-secondary text-xs flex items-center gap-1.5"
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5" />
+        Columns
+        <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <div
+          className="absolute top-full left-0 mt-1 rounded-xl shadow-xl z-50 overflow-y-auto"
+          style={{ background: 'white', border: '1px solid var(--ai-gris)', minWidth: 210, maxHeight: 420 }}
+        >
+          {sectionsWithCols.map((section, si) => (
+            <div key={section.key}>
+              {si > 0 && <div style={{ height: 1, background: '#e5e7eb' }} />}
+              <div
+                className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider"
+                style={{ background: '#f5f5f7', color: 'var(--ai-violet)', position: 'sticky', top: 0 }}
+              >
+                {section.label}
+              </div>
+              {section.cols
+                .filter(col => col.key !== 'alerts')
+                .map(col => {
+                  const label = typeof col.label === 'string'
+                    ? col.label.replace(/\n/g, ' ')
+                    : col.label;
+                  return (
+                    <label
+                      key={col.key}
+                      className="flex items-center gap-2 px-3 py-1 text-xs cursor-pointer hover:bg-gray-50"
+                      style={{ color: '#1a1a1a' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleCols.has(col.key)}
+                        onChange={() => onToggle(col.key)}
+                        style={{ accentColor: 'var(--ai-violet)', cursor: 'pointer' }}
+                      />
+                      {label}
+                    </label>
+                  );
+                })}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Column filter cell (header row 3) ───────────────────────────────────────
-function FilterCell({ col, value, onChange, dynOptions }) {
+function FilterCell({ col, value, onChange, dynOptions, isSectionStart }) {
   const cellStyle = {
     background: '#1e2030',
     padding: col.filterable ? '2px 4px' : 0,
@@ -136,6 +207,7 @@ function FilterCell({ col, value, onChange, dynOptions }) {
     maxWidth: col.width,
     verticalAlign: 'middle',
     borderBottom: '1px solid rgba(255,255,255,.08)',
+    borderLeft: isSectionStart ? '2px solid rgba(255,255,255,.3)' : undefined,
   };
   const inputStyle = {
     fontSize: 10, background: 'rgba(255,255,255,.88)', color: '#1e2030',
@@ -173,10 +245,11 @@ function buildColumns(params) {
     if (!jod) return '—';
     const val = params.currency === 'EUR' ? +(jod * params.exchangeRate).toFixed(0) : jod;
     const sym = params.currency === 'EUR' ? 'M€' : 'MJOD';
-    return (val / 1_000_000).toFixed(3) + ' ' + sym;
+    return (val / 1_000_000).toFixed(3) + ' ' + sym;
   };
 
   const metaCols = [
+    // ── Building Data ─────────────────────────────────────────────────────────
     {
       key: 'alerts', label: '', width: 36, sortable: false, type: 'meta', align: 'center',
       render: b => (
@@ -245,23 +318,31 @@ function buildColumns(params) {
       key: 'yearBuilt', label: 'Year', width: 55, sortable: true, type: 'meta', align: 'center',
       render: b => b.yearBuilt ?? '—',
     },
+    // ── Audit Data ────────────────────────────────────────────────────────────
     {
-      key: 'source', label: 'Source', width: 90, sortable: true, type: 'meta', align: 'center',
-      filterable: true, filterType: 'select', filterOptions: ['Audit', 'Extrapolated'],
-      render: b => {
-        if (!b.source) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
-        const isAudit = b.source === 'Audit';
+      key: 'existingAudit', label: 'Existing\nAudit', width: 70, sortable: true, type: 'meta', align: 'center',
+      title: 'Existing energy audit',
+      render: (b, { updateBuilding }) => {
+        const has = !!b.existingAudit;
         return (
-          <span style={{
-            fontSize: 10, padding: '1px 5px', borderRadius: 3,
-            background: isAudit ? '#dcfce7' : '#fef9c3',
-            color: isAudit ? '#166534' : '#854d0e',
-            fontWeight: 500,
-          }}>
-            {b.source}
-          </span>
+          <button
+            onClick={e => { e.stopPropagation(); updateBuilding(b.id, { existingAudit: !has }); }}
+            className="inline-flex items-center justify-center"
+            style={{
+              width: 20, height: 20, borderRadius: 3, cursor: 'pointer', background: 'none',
+              border: has ? 'none' : '1.5px solid #d1d5db',
+            }}
+            title={has ? 'Audit exists — click to unmark' : 'No audit — click to mark'}
+          >
+            {has && <Check className="w-4 h-4" style={{ color: '#9ca3af' }} />}
+          </button>
         );
       },
+    },
+    {
+      key: 'author', label: 'Author', width: 90, sortable: true, type: 'meta',
+      filterable: true, filterType: 'text',
+      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.auditAuthor || '—'}</span>,
     },
     {
       key: 'euiBefore', label: 'EUI\nbefore', width: 70, sortable: true, type: 'meta', align: 'right',
@@ -300,11 +381,7 @@ function buildColumns(params) {
         ? <span className="badge" style={{ background: 'var(--ai-gris)', color: 'var(--ai-violet)', fontSize: 10 }}>{b.fundingSource}</span>
         : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
-    {
-      key: 'status', label: 'Status', width: 95, sortable: true, type: 'meta',
-      filterable: true, filterType: 'select', filterOptions: null,
-      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.status}</span>,
-    },
+    // ── Investment ────────────────────────────────────────────────────────────
     {
       key: 'priority', label: 'Political\nPriority', width: 90, sortable: true, type: 'meta',
       filterable: true, filterType: 'select', filterOptions: ['High', 'Medium', 'Low'],
@@ -393,27 +470,22 @@ function buildColumns(params) {
   return { metaCols, eeMeasureCols, grMeasureCols };
 }
 
-// ─── Sortable, draggable header cell ─────────────────────────────────────────
-function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, isDragTarget }) {
+// ─── Sortable header cell ─────────────────────────────────────────────────────
+function HeaderCell({ col, sortState, onSort, isSectionStart }) {
   const active = sortState.col === col.key;
   const Icon   = active ? (sortState.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
 
   return (
     <th
-      draggable={col.type !== 'measure'}
-      onDragStart={e => onDragStart(e, col.key)}
-      onDragOver={e => { e.preventDefault(); onDragOver(col.key); }}
-      onDrop={e => { e.preventDefault(); onDrop(col.key); }}
       className="th select-none"
       style={{
         color: 'white',
-        cursor: col.sortable ? 'pointer' : col.type !== 'measure' ? 'grab' : 'default',
+        cursor: col.sortable ? 'pointer' : 'default',
         whiteSpace: col.vertical ? 'nowrap' : 'normal',
         width: col.width, minWidth: col.width, maxWidth: col.width,
         padding: col.vertical ? '4px 2px' : '6px 8px',
         textAlign: col.align === 'right' ? 'right' : col.align === 'center' ? 'center' : 'left',
-        borderLeft: isDragTarget ? '2px solid var(--ai-rouge)' : 'none',
-        background: isDragTarget ? 'rgba(255,255,255,.12)' : 'transparent',
+        borderLeft: isSectionStart ? '2px solid rgba(255,255,255,.4)' : undefined,
         verticalAlign: col.vertical ? 'bottom' : 'middle',
         height: col.vertical ? 80 : 'auto',
       }}
@@ -430,7 +502,6 @@ function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, i
       ) : (
         <div className="flex flex-col" style={{ alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }}>
           <span className="flex items-center gap-1">
-            {col.type !== 'measure' && <GripVertical className="w-3 h-3 opacity-30 flex-shrink-0" />}
             <span style={{ whiteSpace: 'pre-line', lineHeight: 1.25 }}>{col.label}</span>
             {col.sortable && (
               <Icon className="w-3 h-3 flex-shrink-0"
@@ -450,58 +521,65 @@ function HeaderCell({ col, sortState, onSort, onDragStart, onDragOver, onDrop, i
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 export default function BuildingInventory() {
-  const { buildings, selectBuilding, addBuildings, navigate, params } = useApp();
+  const { buildings, selectBuilding, addBuildings, navigate, params, updateBuilding } = useApp();
 
-  const [search,         setSearch]         = useState('');
-  const [typologyFilter, setTypologyFilter] = useState('All');
-  const [cityFilter,     setCityFilter]     = useState('All');
-  const [regionFilter,   setRegionFilter]   = useState('All');
-  const [sort,           setSort]           = useState({ col: 'name', dir: 'asc' });
-  const [showImport,     setShowImport]     = useState(false);
-  const [showUpload,     setShowUpload]     = useState(false);
-  const [colFilters,     setColFilters]     = useState({});
+  const [search,      setSearch]      = useState('');
+  const [sort,        setSort]        = useState({ col: 'name', dir: 'asc' });
+  const [showImport,  setShowImport]  = useState(false);
+  const [showUpload,  setShowUpload]  = useState(false);
+  const [colFilters,  setColFilters]  = useState({});
+  const [visibleCols, setVisibleCols] = useState(() => new Set(ALL_COL_KEYS));
 
   const { metaCols, eeMeasureCols, grMeasureCols } = useMemo(() => buildColumns(params), [params]);
 
-  const [columnOrder, setColumnOrder] = useState(() => metaCols.map(c => c.key));
-  const [dragKey,     setDragKey]     = useState(null);
-  const [dragTarget,  setDragTarget]  = useState(null);
+  const allColsMap = useMemo(() => {
+    const map = {};
+    [...metaCols, ...eeMeasureCols, ...grMeasureCols].forEach(c => { map[c.key] = c; });
+    return map;
+  }, [metaCols, eeMeasureCols, grMeasureCols]);
 
-  useEffect(() => {
-    setColumnOrder(prev => {
-      const known   = new Set(prev);
-      const missing = metaCols.filter(c => !known.has(c.key)).map(c => c.key);
-      return missing.length ? [...prev, ...missing] : prev;
+  const allDisplayCols = useMemo(() =>
+    SECTION_DEFS.flatMap(s =>
+      s.colKeys.map(k => allColsMap[k]).filter(col => col && visibleCols.has(col.key))
+    ),
+  [allColsMap, visibleCols]);
+
+  // Keys of the first visible column in each section (except the first) — get a left border
+  const sectionBorderKeys = useMemo(() => {
+    const keys = new Set();
+    for (let i = 1; i < SECTION_DEFS.length; i++) {
+      const first = SECTION_DEFS[i].colKeys.find(k => visibleCols.has(k) && allColsMap[k]);
+      if (first) keys.add(first);
+    }
+    return keys;
+  }, [visibleCols, allColsMap]);
+
+  const visibleSections = useMemo(() =>
+    SECTION_DEFS
+      .map(s => ({ ...s, span: s.colKeys.filter(k => visibleCols.has(k) && allColsMap[k]).length }))
+      .filter(s => s.span > 0),
+  [visibleCols, allColsMap]);
+
+  const sectionsWithCols = useMemo(() =>
+    SECTION_DEFS.map(s => ({ ...s, cols: s.colKeys.map(k => allColsMap[k]).filter(Boolean) })),
+  [allColsMap]);
+
+  const toggleCol = key => {
+    if (key === 'alerts') return;
+    setVisibleCols(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
     });
-  }, [metaCols.length]);
-
-  const orderedMetaCols = columnOrder.map(k => metaCols.find(c => c.key === k)).filter(Boolean);
-  const allDisplayCols  = [...orderedMetaCols, ...eeMeasureCols, ...grMeasureCols];
+  };
 
   const handleSort = col =>
     setSort(prev => ({ col, dir: prev.col === col && prev.dir === 'asc' ? 'desc' : 'asc' }));
 
-  const handleDragStart = (e, key) => { setDragKey(key); e.dataTransfer.effectAllowed = 'move'; };
-  const handleDragOver  = key => { if (key !== dragTarget) setDragTarget(key); };
-  const handleDrop      = targetKey => {
-    if (!dragKey || dragKey === targetKey) { setDragKey(null); setDragTarget(null); return; }
-    setColumnOrder(prev => {
-      const next = prev.filter(k => k !== dragKey);
-      next.splice(next.indexOf(targetKey), 0, dragKey);
-      return next;
-    });
-    setDragKey(null); setDragTarget(null);
-  };
-
   const nonDrafts = useMemo(() => buildings.filter(b => !b.isDraft), [buildings]);
-
-  const cities = useMemo(() => [
-    'All', ...[...new Set(nonDrafts.map(b => b.governorate).filter(Boolean))].sort(),
-  ], [nonDrafts]);
 
   const dynColOptions = useMemo(() => ({
     governorate: [...new Set(nonDrafts.map(b => b.governorate).filter(Boolean))].sort(),
-    status:      [...new Set(nonDrafts.map(b => b.status).filter(Boolean))].sort(),
   }), [nonDrafts]);
 
   const setColFilter = (key, val) => setColFilters(prev => ({ ...prev, [key]: val }));
@@ -517,30 +595,21 @@ export default function BuildingInventory() {
           b.id.toLowerCase().includes(q)
         )) return false;
 
-        if (typologyFilter !== 'All') {
-          if (typologyFilter === 'Administration') {
-            if (b.typology !== 'Municipality' && b.typology !== 'Office') return false;
-          } else if (b.typology !== typologyFilter) return false;
-        }
-        if (cityFilter   !== 'All' && b.governorate !== cityFilter) return false;
-        if (regionFilter !== 'All' && getRegion(b.governorate) !== regionFilter) return false;
-
         for (const [key, val] of Object.entries(colFilters)) {
           if (!val) continue;
           switch (key) {
-            case 'name':         if (!b.name.toLowerCase().includes(val.toLowerCase())) return false; break;
-            case 'id':           if (!b.id.toLowerCase().includes(val.toLowerCase())) return false; break;
+            case 'name':          if (!b.name.toLowerCase().includes(val.toLowerCase())) return false; break;
+            case 'id':            if (!b.id.toLowerCase().includes(val.toLowerCase())) return false; break;
             case 'typology':
               if (val === 'Administration') { if (b.typology !== 'Municipality' && b.typology !== 'Office') return false; }
               else if (b.typology !== val) return false;
               break;
-            case 'governorate':  if (b.governorate !== val) return false; break;
-            case 'region':       if (getRegion(b.governorate) !== val) return false; break;
-            case 'source':       if ((b.source || '') !== val) return false; break;
+            case 'governorate':   if (b.governorate !== val) return false; break;
+            case 'region':        if (getRegion(b.governorate) !== val) return false; break;
+            case 'author':        if (!((b.auditAuthor || '').toLowerCase().includes(val.toLowerCase()))) return false; break;
             case 'fundingSource': if (!((b.fundingSource || '').toLowerCase().includes(val.toLowerCase()))) return false; break;
-            case 'status':       if (b.status !== val) return false; break;
-            case 'priority':     if ((b.priority || '') !== val) return false; break;
-            case 'peebStatus': { const p = b.peebSelected && !b.eligibility.ineligible; if (val === 'PEEB' && !p) return false; break; }
+            case 'priority':      if ((b.priority || '') !== val) return false; break;
+            case 'peebStatus':    { const p = b.peebSelected && !b.eligibility.ineligible; if (val === 'PEEB' && !p) return false; break; }
           }
         }
         return true;
@@ -548,17 +617,19 @@ export default function BuildingInventory() {
       .sort((a, b) => {
         let va, vb;
         switch (sort.col) {
-          case 'score':      va = calculateScore(a, a.calc, params.scoreConfig).total; vb = calculateScore(b, b.calc, params.scoreConfig).total; break;
-          case 'calc':       va = a.calc?.energyGain ?? 0;  vb = b.calc?.energyGain ?? 0; break;
-          case 'euiBefore':  va = a.baselineEUI ?? 0; vb = b.baselineEUI ?? 0; break;
-          case 'euiAfter':   va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * (1 - a.calc.energyGain / 100) : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * (1 - b.calc.energyGain / 100) : 0; break;
-          case 'euiDiff':    va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * a.calc.energyGain / 100 : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * b.calc.energyGain / 100 : 0; break;
-          case 'peebGrant':  va = a.calc?._jod?.peebGrant ?? 0; vb = b.calc?._jod?.peebGrant ?? 0; break;
-          case 'capexEE':    va = a.calc?._jod?.eeCapex ?? 0;   vb = b.calc?._jod?.eeCapex ?? 0; break;
-          case 'capexGR':    va = a.calc?._jod?.grCapex ?? 0;   vb = b.calc?._jod?.grCapex ?? 0; break;
-          case 'capexTotal': va = (a.calc?._jod?.eeCapex ?? 0) + (a.calc?._jod?.grCapex ?? 0); vb = (b.calc?._jod?.eeCapex ?? 0) + (b.calc?._jod?.grCapex ?? 0); break;
-          case 'peebStatus': va = a.peebSelected && !a.eligibility.ineligible ? 1 : 0; vb = b.peebSelected && !b.eligibility.ineligible ? 1 : 0; break;
-          default:           va = a[sort.col] ?? ''; vb = b[sort.col] ?? '';
+          case 'score':         va = calculateScore(a, a.calc, params.scoreConfig).total; vb = calculateScore(b, b.calc, params.scoreConfig).total; break;
+          case 'calc':          va = a.calc?.energyGain ?? 0;   vb = b.calc?.energyGain ?? 0; break;
+          case 'euiBefore':     va = a.baselineEUI ?? 0;        vb = b.baselineEUI ?? 0; break;
+          case 'euiAfter':      va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * (1 - a.calc.energyGain / 100) : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * (1 - b.calc.energyGain / 100) : 0; break;
+          case 'euiDiff':       va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * a.calc.energyGain / 100 : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * b.calc.energyGain / 100 : 0; break;
+          case 'peebGrant':     va = a.calc?._jod?.peebGrant ?? 0; vb = b.calc?._jod?.peebGrant ?? 0; break;
+          case 'capexEE':       va = a.calc?._jod?.eeCapex ?? 0;   vb = b.calc?._jod?.eeCapex ?? 0; break;
+          case 'capexGR':       va = a.calc?._jod?.grCapex ?? 0;   vb = b.calc?._jod?.grCapex ?? 0; break;
+          case 'capexTotal':    va = (a.calc?._jod?.eeCapex ?? 0) + (a.calc?._jod?.grCapex ?? 0); vb = (b.calc?._jod?.eeCapex ?? 0) + (b.calc?._jod?.grCapex ?? 0); break;
+          case 'peebStatus':    va = a.peebSelected && !a.eligibility.ineligible ? 1 : 0; vb = b.peebSelected && !b.eligibility.ineligible ? 1 : 0; break;
+          case 'existingAudit': va = a.existingAudit ? 1 : 0; vb = b.existingAudit ? 1 : 0; break;
+          case 'author':        va = a.auditAuthor ?? ''; vb = b.auditAuthor ?? ''; break;
+          default:              va = a[sort.col] ?? ''; vb = b[sort.col] ?? '';
         }
         if (typeof va === 'string') va = va.toLowerCase();
         if (typeof vb === 'string') vb = vb.toLowerCase();
@@ -566,7 +637,7 @@ export default function BuildingInventory() {
         if (va > vb) return sort.dir === 'asc' ?  1 : -1;
         return 0;
       });
-  }, [nonDrafts, search, typologyFilter, cityFilter, regionFilter, sort, params.scoreConfig, colFilters]);
+  }, [nonDrafts, search, sort, params.scoreConfig, colFilters]);
 
   return (
     <div className="space-y-4 fade-in">
@@ -578,12 +649,11 @@ export default function BuildingInventory() {
           <input className="input pl-9" placeholder="Search by name, type, city…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <FilterDropdown value={typologyFilter} onChange={setTypologyFilter}
-          options={TYPOLOGIES.map(t => ({ value: t, label: t === 'All' ? 'All typologies' : t }))} />
-        <FilterDropdown value={cityFilter} onChange={setCityFilter}
-          options={cities.map(c => ({ value: c, label: c === 'All' ? 'All cities' : c }))} />
-        <FilterDropdown value={regionFilter} onChange={setRegionFilter}
-          options={REGIONS.map(r => ({ value: r, label: r === 'All' ? 'All regions' : r }))} />
+        <ColumnsDropdown
+          visibleCols={visibleCols}
+          onToggle={toggleCol}
+          sectionsWithCols={sectionsWithCols}
+        />
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <button onClick={() => exportBuildings(nonDrafts)} className="btn-secondary text-xs"
@@ -609,45 +679,45 @@ export default function BuildingInventory() {
           <table style={{ borderCollapse: 'separate', borderSpacing: 0, fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
 
-              {/* Row 1: measure group labels */}
+              {/* Row 0: section labels */}
               <tr style={{ background: 'var(--ai-violet)' }}>
-                <th colSpan={orderedMetaCols.length} style={{ padding: 0, height: 6, background: 'var(--ai-violet)' }} />
-                <th colSpan={eeMeasureCols.length} style={{
-                  textAlign: 'center', padding: '3px 4px',
-                  fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
-                  color: 'var(--ai-rouge)',
-                  borderLeft: '1px solid rgba(255,255,255,.2)',
-                  borderBottom: '1px solid rgba(255,255,255,.15)',
-                }}>
-                  EE Measures
-                </th>
-                <th colSpan={grMeasureCols.length} style={{
-                  textAlign: 'center', padding: '3px 4px',
-                  fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,.6)',
-                  borderLeft: '1px solid rgba(255,255,255,.25)',
-                  borderBottom: '1px solid rgba(255,255,255,.15)',
-                }}>
-                  GR Measures
-                </th>
-              </tr>
-
-              {/* Row 2: column headers */}
-              <tr style={{ background: 'var(--ai-violet)', borderBottom: '2px solid var(--ai-rouge)' }}>
-                {allDisplayCols.map(col => (
-                  <HeaderCell key={col.key} col={col} sortState={sort} onSort={handleSort}
-                    onDragStart={handleDragStart} onDragOver={handleDragOver} onDrop={handleDrop}
-                    isDragTarget={dragTarget === col.key && dragKey !== col.key} />
+                {visibleSections.map((s, si) => (
+                  <th
+                    key={s.key}
+                    colSpan={s.span}
+                    style={{
+                      textAlign: 'center',
+                      padding: '4px 8px',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: '.08em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,.7)',
+                      borderLeft: si > 0 ? '2px solid rgba(255,255,255,.35)' : 'none',
+                      borderBottom: '1px solid rgba(255,255,255,.12)',
+                    }}
+                  >
+                    {s.label}
+                  </th>
                 ))}
               </tr>
 
-              {/* Row 3: column filters */}
+              {/* Row 1: column headers */}
+              <tr style={{ background: 'var(--ai-violet)', borderBottom: '2px solid var(--ai-rouge)' }}>
+                {allDisplayCols.map(col => (
+                  <HeaderCell key={col.key} col={col} sortState={sort} onSort={handleSort}
+                    isSectionStart={sectionBorderKeys.has(col.key)} />
+                ))}
+              </tr>
+
+              {/* Row 2: column filters */}
               <tr>
                 {allDisplayCols.map(col => (
                   <FilterCell key={col.key} col={col}
                     value={colFilters[col.key] || ''}
                     onChange={val => setColFilter(col.key, val)}
-                    dynOptions={dynColOptions} />
+                    dynOptions={dynColOptions}
+                    isSectionStart={sectionBorderKeys.has(col.key)} />
                 ))}
               </tr>
 
@@ -668,8 +738,9 @@ export default function BuildingInventory() {
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         background: inelig ? 'var(--ai-gris-clair)' : 'white',
                         borderBottom: '1px solid #e5e7eb',
+                        borderLeft: sectionBorderKeys.has(col.key) ? '2px solid #d1d5db' : undefined,
                       }}>
-                        {col.render(b, { scoreCfg: params.scoreConfig })}
+                        {col.render(b, { scoreCfg: params.scoreConfig, updateBuilding })}
                       </td>
                     ))}
                   </tr>
@@ -707,7 +778,7 @@ export default function BuildingInventory() {
               <span>Selected</span>
             </span>
             <span className="ml-2" style={{ fontStyle: 'italic' }}>
-              Drag headers to reorder · click row to open
+              Click row to open
             </span>
           </span>
         </div>
