@@ -377,7 +377,7 @@ function buildColumns(params) {
       key: 'fundingSource', label: 'Existing\nFunding', width: 110, sortable: true, type: 'meta',
       filterable: true, filterType: 'text',
       render: b => b.fundingSource
-        ? <span className="badge" style={{ background: 'var(--ai-gris)', color: 'var(--ai-violet)', fontSize: 10 }}>{b.fundingSource}</span>
+        ? <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)', fontSize: 10, fontWeight: 700 }}>{b.fundingSource}</span>
         : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     // ── Investment ────────────────────────────────────────────────────────────
