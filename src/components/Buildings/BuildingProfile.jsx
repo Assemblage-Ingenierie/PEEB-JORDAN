@@ -19,7 +19,7 @@ const TIER_STYLE = {
 };
 
 // ─── Column header ────────────────────────────────────────────────────────────
-function ColHeader({ children }) {
+export function ColHeader({ children }) {
   return (
     <div style={{
       fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
@@ -241,7 +241,7 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
 }
 
 // ─── Calculation results ──────────────────────────────────────────────────────
-function ResultsPanel({ calc, params }) {
+export function ResultsPanel({ calc, params }) {
   if (!calc) return (
     <p className="text-sm" style={{ color: 'var(--ai-noir70)' }}>Select at least one EE measure.</p>
   );
@@ -304,7 +304,7 @@ function ResultsPanel({ calc, params }) {
 // ─── Score panel ──────────────────────────────────────────────────────────────
 const SLOT_COLORS = ['var(--ai-rouge)', 'var(--ai-violet)', '#22a05a', '#d97706', '#3b82f6'];
 
-function ScorePanel({ building, calc, scoreConfig }) {
+export function ScorePanel({ building, calc, scoreConfig }) {
   const score = calculateScore(building, calc, scoreConfig);
   const { total, breakdown } = score;
   const totalColor = total >= 70 ? '#22a05a' : total >= 40 ? '#d97706' : 'var(--ai-rouge)';
@@ -363,7 +363,7 @@ function ScorePanel({ building, calc, scoreConfig }) {
 }
 
 // ─── Financing panel ──────────────────────────────────────────────────────────
-function FinancingPanel({ building: b, calc }) {
+export function FinancingPanel({ building: b, calc }) {
   const { updateBuilding, params } = useApp();
   const { currency, exchangeRate } = params;
   const convert = (jod) => currency === 'EUR' ? jod * exchangeRate : jod;
