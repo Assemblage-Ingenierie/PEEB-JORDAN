@@ -10,7 +10,7 @@
     {
       "name": "preview",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "preview", "--port", "4173"],
+      "runtimeArgs": ["vite", "--port", "4173"],
       "port": 4173
     }
   ]
