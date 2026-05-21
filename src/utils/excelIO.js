@@ -51,6 +51,7 @@ export const META_COLUMNS = [
   { key: 'lng',              label: 'Longitude',                  type: 'number', required: false, desc: 'GPS longitude (decimal degrees)' },
   { key: 'existingAudit',    label: 'Existing audit',             type: 'boolean', required: false, desc: 'Yes / No — whether an energy audit has been performed' },
   { key: 'auditAuthor',      label: 'Audit author',               type: 'text',   required: false, desc: 'Name or organisation that conducted the audit' },
+  { key: 'auditDate',        label: 'Audit date',                 type: 'text',   required: false, desc: 'Date of the audit — YYYY-MM-DD format (e.g. 2024-03-15)' },
   { key: 'fundingSource',    label: 'Existing funding source',    type: 'text',   required: false, desc: 'Fills automatically excludes building from PEEB grant (e.g. KfW, JREEEF, AFD…)' },
   { key: 'siteObservations', label: 'Site observations',          type: 'text',   required: false, desc: 'Free notes from site visit' },
 ];
@@ -502,6 +503,7 @@ function materializeBuilding(parsed, existing, { fillDefaults, existingIds }) {
     lng:             parsed.lng             ?? existing?.lng ?? null,
     existingAudit:   parsed.existingAudit   ?? existing?.existingAudit ?? false,
     auditAuthor:     parsed.auditAuthor     ?? existing?.auditAuthor ?? '',
+    auditDate:       parsed.auditDate       ?? existing?.auditDate ?? '',
     fundingSource:   parsed.fundingSource   ?? existing?.fundingSource ?? '',
     status:          parsed.status          ?? existing?.status ?? 'Planning',
     siteObservations:parsed.siteObservations?? existing?.siteObservations ?? '',

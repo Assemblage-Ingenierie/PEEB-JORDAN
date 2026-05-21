@@ -32,7 +32,7 @@ const SECTION_DEFS = [
   {
     key: 'audit',
     label: 'Audit Data',
-    colKeys: ['existingAudit','author','euiBefore','euiAfter','euiDiff','fundingSource'],
+    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','fundingSource'],
   },
   {
     key: 'investment',
@@ -339,6 +339,15 @@ function buildColumns(params) {
       render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.auditAuthor || '—'}</span>,
     },
     {
+      key: 'auditDate', label: 'Audit\nDate', width: 90, sortable: true, type: 'meta', align: 'center',
+      title: 'Date of energy audit — edit in building profile',
+      render: b => {
+        if (!b.auditDate) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        const d = new Date(b.auditDate);
+        return <span style={{ color: 'var(--ai-noir70)', fontSize: 11 }}>{d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>;
+      },
+    },
+    {
       key: 'euiBefore', label: 'EUI\nbefore', width: 70, sortable: true, type: 'meta', align: 'right',
       twoLineHeader: 'kWh/m²/yr',
       title: 'Baseline EUI before works',
@@ -628,6 +637,7 @@ export default function BuildingInventory() {
           case 'peebStatus':    va = a.peebSelected && !a.eligibility.ineligible ? 1 : 0; vb = b.peebSelected && !b.eligibility.ineligible ? 1 : 0; break;
           case 'existingAudit': va = a.existingAudit ? 1 : 0; vb = b.existingAudit ? 1 : 0; break;
           case 'author':        va = a.auditAuthor ?? ''; vb = b.auditAuthor ?? ''; break;
+          case 'auditDate':     va = a.auditDate ?? ''; vb = b.auditDate ?? ''; break;
           default:              va = a[sort.col] ?? ''; vb = b[sort.col] ?? '';
         }
         if (typeof va === 'string') va = va.toLowerCase();

@@ -146,12 +146,20 @@ export default function NewBuilding() {
               </label>
 
               {draft.existingAudit && (
-                <div className="fade-in pl-1">
-                  <label className="label">Author</label>
-                  <input type="text" className="input"
-                    value={draft.auditAuthor || ''}
-                    onChange={e => updateBuilding(draft.id, { auditAuthor: e.target.value })}
-                    placeholder="Name of the audit author or organization" />
+                <div className="fade-in pl-1 space-y-2">
+                  <div>
+                    <label className="label">Author</label>
+                    <input type="text" className="input"
+                      value={draft.auditAuthor || ''}
+                      onChange={e => updateBuilding(draft.id, { auditAuthor: e.target.value })}
+                      placeholder="Name of the audit author or organization" />
+                  </div>
+                  <div>
+                    <label className="label">Audit Date</label>
+                    <input type="date" className="input"
+                      value={draft.auditDate || ''}
+                      onChange={e => updateBuilding(draft.id, { auditDate: e.target.value })} />
+                  </div>
                 </div>
               )}
 

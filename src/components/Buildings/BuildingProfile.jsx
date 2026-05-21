@@ -764,12 +764,20 @@ export default function BuildingProfile() {
               </label>
 
               {b.existingAudit && (
-                <div className="fade-in pl-1">
-                  <label className="label">Author</label>
-                  <input type="text" className="input"
-                    value={b.auditAuthor || ''}
-                    onChange={e => updateBuilding(b.id, { auditAuthor: e.target.value })}
-                    placeholder="Name of the audit author or organization" />
+                <div className="fade-in pl-1 space-y-2">
+                  <div>
+                    <label className="label">Author</label>
+                    <input type="text" className="input"
+                      value={b.auditAuthor || ''}
+                      onChange={e => updateBuilding(b.id, { auditAuthor: e.target.value })}
+                      placeholder="Name of the audit author or organization" />
+                  </div>
+                  <div>
+                    <label className="label">Audit Date</label>
+                    <input type="date" className="input"
+                      value={b.auditDate || ''}
+                      onChange={e => updateBuilding(b.id, { auditDate: e.target.value })} />
+                  </div>
                 </div>
               )}
 
