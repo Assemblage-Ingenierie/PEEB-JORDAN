@@ -321,21 +321,14 @@ function buildColumns(params) {
     // ── Audit Data ────────────────────────────────────────────────────────────
     {
       key: 'existingAudit', label: 'Existing\nAudit', width: 70, sortable: true, type: 'meta', align: 'center',
-      title: 'Existing energy audit',
-      render: (b, { updateBuilding }) => {
+      title: 'Existing energy audit — edit in building profile',
+      render: b => {
         const has = !!b.existingAudit;
         return (
-          <button
-            onClick={e => { e.stopPropagation(); updateBuilding(b.id, { existingAudit: !has }); }}
-            className="inline-flex items-center justify-center"
-            style={{
-              width: 20, height: 20, borderRadius: 3, cursor: 'pointer', background: 'none',
-              border: has ? 'none' : '1.5px solid #d1d5db',
-            }}
-            title={has ? 'Audit exists — click to unmark' : 'No audit — click to mark'}
-          >
+          <span className="inline-flex items-center justify-center"
+            style={{ width: 20, height: 20, borderRadius: 3, border: has ? 'none' : '1.5px solid #d1d5db' }}>
             {has && <Check className="w-4 h-4" style={{ color: '#9ca3af' }} />}
-          </button>
+          </span>
         );
       },
     },

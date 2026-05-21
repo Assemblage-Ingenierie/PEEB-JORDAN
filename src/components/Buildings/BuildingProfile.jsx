@@ -599,6 +599,11 @@ function PrintDatasheet({ building: b, calc, params }) {
 export default function BuildingProfile() {
   const { selectedBuilding, updateBuilding, params, deleteBuilding } = useApp();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [hasFunding, setHasFunding] = useState(() => !!selectedBuilding?.fundingSource);
+
+  useEffect(() => {
+    setHasFunding(!!selectedBuilding?.fundingSource);
+  }, [selectedBuilding?.id]);
 
   if (!selectedBuilding) {
     return (
@@ -716,9 +721,6 @@ export default function BuildingProfile() {
               <EditableInfoRow label="Operating Hrs"  icon={Clock}     value={b.operatingHours}
                 italic={!b.operatingHours}
                 onCommit={v => updateBuilding(b.id, { operatingHours: v })} />
-              <EditableInfoRow label="Existing Funding" icon={Banknote} value={b.fundingSource}
-                italic={!b.fundingSource}
-                onCommit={v => updateBuilding(b.id, { fundingSource: v })} />
             </div>
             <p className="text-xs mt-2" style={{ color: 'var(--ai-noir70)' }}>
               Click any value to edit. Press Enter to save, Esc to cancel.
@@ -735,23 +737,94 @@ export default function BuildingProfile() {
             </div>
           </Section>
 
-          <Section title="Administrative">
+          <Section title="EE Investment Program">
             <div className="space-y-3">
-              <div>
-                <label className="label">Status</label>
-                <select value={b.status} onChange={e => updateBuilding(b.id, { status: e.target.value })} className="input">
-                  {['Assessed', 'Pending Audit', 'Ineligible'].map(s => <option key={s}>{s}</option>)}
-                </select>
-                <p className="text-xs mt-1" style={{ color: 'var(--ai-noir70)' }}>
-                  Assessed = audit done · Pending Audit = data not yet verified · Ineligible = excluded from works (non-PEEB reason)
-                </p>
-              </div>
+
+              {/* Existing Audit */}
+              <label className="flex items-start gap-3 cursor-pointer rounded-lg p-3 transition-colors"
+                style={{
+                  background: b.existingAudit ? '#dcfce7' : 'var(--ai-gris)',
+                  border: `1px solid ${b.existingAudit ? '#22a05a' : 'var(--ai-gris-clair)'}`,
+                }}>
+                <input type="checkbox" checked={!!b.existingAudit}
+                  onChange={e => updateBuilding(b.id, {
+                    existingAudit: e.target.checked,
+                    ...(!e.target.checked && { auditAuthor: '' }),
+                  })}
+                  className="mt-0.5 flex-shrink-0"
+                  style={{ accentColor: '#22a05a', width: 16, height: 16 }} />
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: b.existingAudit ? '#16a34a' : 'var(--ai-violet)' }}>
+                    Existing Audit
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ai-noir70)' }}>
+                    An energy audit has been performed on this building
+                  </p>
+                </div>
+              </label>
+
+              {b.existingAudit && (
+                <div className="fade-in pl-1">
+                  <label className="label">Author</label>
+                  <input type="text" className="input"
+                    value={b.auditAuthor || ''}
+                    onChange={e => updateBuilding(b.id, { auditAuthor: e.target.value })}
+                    placeholder="Name of the audit author or organization" />
+                </div>
+              )}
+
+              {/* Existing Funding */}
+              <label className="flex items-start gap-3 cursor-pointer rounded-lg p-3 transition-colors"
+                style={{
+                  background: hasFunding ? 'var(--ai-rouge-clair)' : 'var(--ai-gris)',
+                  border: `1px solid ${hasFunding ? 'var(--ai-rouge)' : 'var(--ai-gris-clair)'}`,
+                }}>
+                <input type="checkbox" checked={hasFunding}
+                  onChange={e => {
+                    setHasFunding(e.target.checked);
+                    if (!e.target.checked) updateBuilding(b.id, { fundingSource: '' });
+                  }}
+                  className="mt-0.5 flex-shrink-0"
+                  style={{ accentColor: 'var(--ai-rouge)', width: 16, height: 16 }} />
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: hasFunding ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
+                    Existing Funding
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--ai-noir70)' }}>
+                    This building already has an external funding source committed
+                  </p>
+                </div>
+              </label>
+
+              {hasFunding && (
+                <div className="fade-in pl-1 space-y-2">
+                  <div>
+                    <label className="label">Source of Funding</label>
+                    <input type="text" className="input"
+                      value={b.fundingSource || ''}
+                      onChange={e => updateBuilding(b.id, { fundingSource: e.target.value })}
+                      placeholder="e.g. JREEEF, AFD, World Bank…" />
+                  </div>
+                  {b.fundingSource && (
+                    <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2 fade-in"
+                      style={{ background: 'var(--ai-rouge-clair)', border: '1px solid var(--ai-rouge)' }}>
+                      <Ban className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+                      <span style={{ color: 'var(--ai-rouge)' }}>
+                        <strong>Donor funding detected</strong> — this building may be auto-excluded from PEEB grant eligibility.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Political Priority */}
               <div>
                 <label className="label">Political Priority</label>
                 <select value={b.priority} onChange={e => updateBuilding(b.id, { priority: e.target.value })} className="input">
                   {['High', 'Medium', 'Low'].map(p => <option key={p}>{p}</option>)}
                 </select>
               </div>
+
             </div>
           </Section>
 
