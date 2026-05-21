@@ -254,11 +254,7 @@ function buildColumns(params) {
       key: 'alerts', label: '', width: 36, sortable: false, type: 'meta', align: 'center',
       render: b => (
         <span className="inline-flex items-center justify-center gap-0.5">
-          {b.eligibility.ineligible && (
-            <Ban className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }}
-              title={b.eligibility.reason === 'manual' ? 'Manually ineligible' : `Donor: ${b.eligibility.donor}`} />
-          )}
-          {b.gaps.length > 0 && !b.eligibility.ineligible && (
+          {b.gaps.length > 0 && (
             <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#d97706' }} title="Missing data" />
           )}
         </span>
@@ -271,12 +267,17 @@ function buildColumns(params) {
     },
     {
       key: 'peebStatus', label: 'PEEB', width: 52, sortable: true, type: 'meta', align: 'center',
-      filterable: true, filterType: 'select', filterOptions: ['PEEB'],
-      render: b => b.peebSelected && !b.eligibility.ineligible
-        ? <span className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
+      filterable: true, filterType: 'select', filterOptions: ['PEEB', 'Ineligible'],
+      render: b => {
+        if (b.eligibility.ineligible)
+          return <Ban className="w-3.5 h-3.5 mx-auto" style={{ color: 'var(--ai-rouge)' }}
+            title={b.eligibility.reason === 'donor' ? `Donor: ${b.eligibility.donor}` : 'Manually ineligible'} />;
+        if (b.peebSelected)
+          return <span className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
             style={{ background: '#22c9a5', fontSize: 9, letterSpacing: '.05em', height: 16, minWidth: 38 }}
-            title="Selected for PEEB programme">PEEB</span>
-        : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
+            title="Selected for PEEB programme">PEEB</span>;
+        return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+      },
     },
     {
       key: 'name', label: 'Building', width: 200, sortable: true, type: 'meta',

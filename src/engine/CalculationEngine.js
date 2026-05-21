@@ -261,10 +261,9 @@ export function detectDataGaps(building) {
 export function checkEligibility(building) {
   if (building.manuallyIneligible === true)
     return { ineligible: true, donor: null, reason: 'manual' };
-  if (!building.fundingSource)
-    return { ineligible: false, donor: null, reason: null };
-  const found = DONOR_MARKERS.find(d => building.fundingSource.toUpperCase().includes(d.toUpperCase()));
-  return { ineligible: !!found, donor: found || null, reason: found ? 'donor' : null };
+  if (building.fundingSource)
+    return { ineligible: true, donor: building.fundingSource, reason: 'donor' };
+  return { ineligible: false, donor: null, reason: null };
 }
 
 // ─── Scoring indicator catalogue ─────────────────────────────────────────────
