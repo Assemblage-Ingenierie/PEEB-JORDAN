@@ -270,8 +270,13 @@ function buildColumns(params) {
       filterable: true, filterType: 'select', filterOptions: ['PEEB', 'Ineligible'],
       render: b => {
         if (b.eligibility.ineligible)
-          return <Ban className="w-3.5 h-3.5 mx-auto" style={{ color: 'var(--ai-rouge)' }}
-            title={b.eligibility.reason === 'donor' ? `Donor: ${b.eligibility.donor}` : 'Manually ineligible'} />;
+          return (
+            <span className="inline-flex items-center justify-center gap-0.5 text-white font-black rounded-full px-1.5"
+              style={{ background: 'var(--ai-rouge)', fontSize: 9, letterSpacing: '.04em', height: 16, minWidth: 38 }}
+              title={b.eligibility.reason === 'donor' ? `Donor funding: ${b.eligibility.donor}` : 'Manually ineligible'}>
+              <Ban className="w-2.5 h-2.5 flex-shrink-0" /> INELIG
+            </span>
+          );
         if (b.peebSelected)
           return <span className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
             style={{ background: '#22c9a5', fontSize: 9, letterSpacing: '.05em', height: 16, minWidth: 38 }}
