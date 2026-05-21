@@ -393,8 +393,13 @@ function buildColumns(params) {
       render: b => {
         const gain = b.calc?.energyGain;
         if (gain == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
-        const eligible = !b.eligibility.ineligible && gain >= 30;
-        return <span className="font-bold" style={{ color: eligible ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>{gain.toFixed(1)}%</span>;
+        const TIER_GREY = { slate: '#c0c0c0', amber: '#989898', blue: '#606060', green: '#303030', purple: '#101010' };
+        const grey = TIER_GREY[b.calc?.tier?.color ?? 'slate'];
+        return (
+          <span className="font-bold" style={{ color: grey }} title={b.calc?.tier?.label ?? ''}>
+            {gain.toFixed(1)}%
+          </span>
+        );
       },
     },
     {
