@@ -139,23 +139,30 @@ export function getFundingTier(gainPercent) {
 /**
  * CAPEX split: { ee, gr, perM2, total } — all in JOD.
  * PEEB grant is applied to EE capex only.
+ *
+ * Each measure stores `capex` (JOD/m²) and `capexAbsolute` (total JOD).
+ * When the building area > 0 the per-m² value drives the total (capex × area).
+ * When area is unknown the absolute value is used directly.
  */
+function measureTotal(m, area) {
+  if (!m?.selected) return 0;
+  if (area && area > 0 && (m.capex || m.capex === 0)) return (m.capex || 0) * area;
+  return m.capexAbsolute || 0;
+}
+
 export function calculateCapex(measures, area) {
   const { measures: syn } = applyThermalSynergy(measures);
 
-  const eePerM2 = MEASURE_KEYS_EE.reduce((s, k) => {
-    const m = syn[k]; return m?.selected ? s + (m.capex || 0) : s;
-  }, 0);
-  const grPerM2 = MEASURE_KEYS_GR.reduce((s, k) => {
-    const m = measures[k]; return m?.selected ? s + (m.capex || 0) : s;
-  }, 0);
-  const totalPerM2 = eePerM2 + grPerM2;
+  const eeTotal = MEASURE_KEYS_EE.reduce((s, k) => s + measureTotal(syn[k], area), 0);
+  const grTotal = MEASURE_KEYS_GR.reduce((s, k) => s + measureTotal(measures[k], area), 0);
+  const total   = eeTotal + grTotal;
+  const safeArea = area && area > 0 ? area : null;
 
   return {
-    ee:    { perM2: +eePerM2.toFixed(2),    total: +(eePerM2    * area).toFixed(2) },
-    gr:    { perM2: +grPerM2.toFixed(2),    total: +(grPerM2    * area).toFixed(2) },
-    perM2: +totalPerM2.toFixed(2),
-    total: +(totalPerM2 * area).toFixed(2),
+    ee:    { perM2: safeArea ? +(eeTotal / safeArea).toFixed(2) : 0, total: +eeTotal.toFixed(2) },
+    gr:    { perM2: safeArea ? +(grTotal / safeArea).toFixed(2) : 0, total: +grTotal.toFixed(2) },
+    perM2: safeArea ? +(total / safeArea).toFixed(2) : 0,
+    total: +total.toFixed(2),
   };
 }
 

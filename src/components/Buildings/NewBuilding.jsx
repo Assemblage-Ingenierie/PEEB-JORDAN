@@ -242,7 +242,7 @@ export default function NewBuilding() {
             <div className="space-y-2">
               {MEASURE_KEYS_EE.map(key => (
                 <MeasureRow key={key} buildingId={draft.id} measureKey={key}
-                  measure={draft.measures[key]} synApplied={false} />
+                  measure={draft.measures[key]} synApplied={false} area={draft.area} />
               ))}
             </div>
             <TotalEnergySaving building={draft} />
@@ -252,7 +252,7 @@ export default function NewBuilding() {
             <div className="space-y-2">
               {MEASURE_KEYS_GR.map(key => (
                 <MeasureRow key={key} buildingId={draft.id} measureKey={key}
-                  measure={draft.measures[key]} synApplied={false} />
+                  measure={draft.measures[key]} synApplied={false} area={draft.area} />
               ))}
             </div>
             <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>

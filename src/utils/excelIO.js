@@ -75,7 +75,12 @@ export function measureColumns() {
     cols.push({
       key: `${key}_capex`, measure: key, field: 'capex',
       label: `${meta.short} CAPEX (JOD/m²)`, type: 'number', required: false,
-      desc: 'Unit cost in JOD/m². Leave empty to use typology default.',
+      desc: 'Unit cost in JOD/m². Used when the building area is set.',
+    });
+    cols.push({
+      key: `${key}_capex_total`, measure: key, field: 'capexAbsolute',
+      label: `${meta.short} CAPEX total (JOD)`, type: 'number', required: false,
+      desc: 'Absolute CAPEX in JOD. Used when the building area is missing; otherwise derived from JOD/m².',
     });
     if (isEE) {
       cols.push({
@@ -363,9 +368,10 @@ export function exportBuildings(buildings) {
         const m = b.measures?.[col.measure];
         if (!m) raw = '';
         else if (col.field === 'selected')     raw = m.selected ? 'Yes' : 'No';
-        else if (col.field === 'savingsRate')  raw = m.savingsRate ?? '';
-        else if (col.field === 'capex')        raw = m.capex ?? '';
-        else if (col.field === 'notes')        raw = m.notes ?? '';
+        else if (col.field === 'savingsRate')   raw = m.savingsRate ?? '';
+        else if (col.field === 'capex')         raw = m.capex ?? '';
+        else if (col.field === 'capexAbsolute') raw = m.capexAbsolute ?? '';
+        else if (col.field === 'notes')         raw = m.notes ?? '';
       } else {
         raw = b[col.key];
       }
@@ -434,10 +440,11 @@ export async function parseBuildingsFile(file) {
         if (!b.measures[col.measure]) {
           b.measures[col.measure] = { selected: false, capex: null, savingsRate: null, notes: '' };
         }
-        if (col.field === 'selected')         b.measures[col.measure].selected    = toBool(raw);
-        else if (col.field === 'savingsRate') b.measures[col.measure].savingsRate = toNumber(raw);
-        else if (col.field === 'capex')       b.measures[col.measure].capex       = toNumber(raw);
-        else if (col.field === 'notes')       b.measures[col.measure].notes       = raw === '' ? '' : String(raw);
+        if (col.field === 'selected')               b.measures[col.measure].selected      = toBool(raw);
+        else if (col.field === 'savingsRate')       b.measures[col.measure].savingsRate   = toNumber(raw);
+        else if (col.field === 'capex')             b.measures[col.measure].capex         = toNumber(raw);
+        else if (col.field === 'capexAbsolute')     b.measures[col.measure].capexAbsolute = toNumber(raw);
+        else if (col.field === 'notes')             b.measures[col.measure].notes         = raw === '' ? '' : String(raw);
       } else if (col.type === 'number') {
         b[col.key] = toNumber(raw);
       } else if (col.type === 'boolean') {
@@ -485,10 +492,11 @@ function materializeBuilding(parsed, existing, { fillDefaults, existingIds }) {
     const pm  = parsed.measures?.[k] || {};
     const em  = existing?.measures?.[k] || {};
     measures[k] = {
-      selected:    pm.selected ?? em.selected ?? false,
-      capex:       pm.capex       ?? (fillDefaults ? (em.capex       ?? def.capex       ?? null) : (em.capex       ?? null)),
-      savingsRate: pm.savingsRate ?? em.savingsRate ?? null,
-      notes:       pm.notes ?? em.notes ?? '',
+      selected:      pm.selected ?? em.selected ?? false,
+      capex:         pm.capex         ?? (fillDefaults ? (em.capex ?? def.capex ?? null) : (em.capex ?? null)),
+      capexAbsolute: pm.capexAbsolute ?? em.capexAbsolute ?? 0,
+      savingsRate:   pm.savingsRate   ?? em.savingsRate ?? null,
+      notes:         pm.notes ?? em.notes ?? '',
     };
   }
 

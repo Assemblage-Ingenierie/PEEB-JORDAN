@@ -28,7 +28,7 @@ const SECTION_DEFS = [
   {
     key: 'building',
     label: 'Building Data',
-    colKeys: ['alerts','id','peebStatus','name','typology','governorate','region','area','floors','yearBuilt'],
+    colKeys: ['alerts','peebStatus','name','typology','governorate','region','area','floors','yearBuilt'],
   },
   {
     key: 'audit',
@@ -238,29 +238,34 @@ function FilterCell({ col, value, onChange, dynOptions, isSectionStart }) {
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 function buildColumns(params) {
-  const fmtM = (jod) => {
-    if (!jod) return '—';
+  const DASH = <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+  const fmtM = (jod, color) => {
+    if (!jod) return DASH;
     const val = params.currency === 'EUR' ? +(jod * params.exchangeRate).toFixed(0) : jod;
     const sym = params.currency === 'EUR' ? 'M€' : 'MJOD';
-    return (val / 1_000_000).toFixed(3) + ' ' + sym;
+    return <span style={{ color }}>{(val / 1_000_000).toFixed(3) + ' ' + sym}</span>;
   };
 
   const metaCols = [
     // ── Building Data ─────────────────────────────────────────────────────────
     {
       key: 'alerts', label: '', width: 36, sortable: false, type: 'meta', align: 'center',
-      render: b => (
-        <span className="inline-flex items-center justify-center gap-0.5">
-          {b.gaps.length > 0 && (
-            <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#d97706' }} title="Missing data" />
-          )}
-        </span>
-      ),
-    },
-    {
-      key: 'id', label: 'ID', width: 56, sortable: true, type: 'meta',
-      filterable: true, filterType: 'text',
-      render: b => <span className="font-mono" style={{ color: 'var(--ai-noir70)' }}>{b.id}</span>,
+      render: b => {
+        const reasons = [];
+        if (b.gaps.length > 0) reasons.push(`Missing data: ${b.gaps.join(', ')}`);
+        if (b.eligibility.ineligible) {
+          reasons.push(b.eligibility.reason === 'donor'
+            ? `Ineligible — donor funding: ${b.eligibility.donor}`
+            : 'Ineligible — manually marked');
+        }
+        if (!reasons.length) return null;
+        const color = b.gaps.length > 0 ? '#d97706' : 'var(--ai-rouge)';
+        return (
+          <span className="inline-flex items-center justify-center" title={reasons.join('\n')}>
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
+          </span>
+        );
+      },
     },
     {
       key: 'peebStatus', label: 'PEEB', width: 52, sortable: true, type: 'meta', align: 'center',
@@ -297,24 +302,31 @@ function buildColumns(params) {
     {
       key: 'governorate', label: 'Governorate', width: 100, sortable: true, type: 'meta',
       filterable: true, filterType: 'select', filterOptions: null,
-      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.governorate || '—'}</span>,
+      render: b => b.governorate
+        ? <span style={{ color: 'var(--ai-noir70)' }}>{b.governorate}</span>
+        : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
       key: 'region', label: 'Region', width: 75, sortable: false, type: 'meta',
       filterable: true, filterType: 'select', filterOptions: ['North', 'Central', 'South'],
-      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{getRegion(b.governorate)}</span>,
+      render: b => {
+        const r = getRegion(b.governorate);
+        return r === '—'
+          ? <span style={{ color: 'var(--ai-gris)' }}>—</span>
+          : <span style={{ color: 'var(--ai-noir70)' }}>{r}</span>;
+      },
     },
     {
       key: 'area', label: 'Area m²', width: 80, sortable: true, type: 'meta', align: 'right',
-      render: b => b.area ? b.area.toLocaleString() : <span className="data-gap text-xs px-1 rounded">—</span>,
+      render: b => b.area ? b.area.toLocaleString() : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
       key: 'floors', label: 'Floors', width: 50, sortable: true, type: 'meta', align: 'center',
-      render: b => b.floors ?? '—',
+      render: b => b.floors ?? <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
       key: 'yearBuilt', label: 'Year', width: 55, sortable: true, type: 'meta', align: 'center',
-      render: b => b.yearBuilt ?? '—',
+      render: b => b.yearBuilt ?? <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     // ── Audit Data ────────────────────────────────────────────────────────────
     {
@@ -327,7 +339,9 @@ function buildColumns(params) {
     {
       key: 'author', label: 'Author', width: 90, sortable: true, type: 'meta',
       filterable: true, filterType: 'text',
-      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{b.auditAuthor || '—'}</span>,
+      render: b => b.auditAuthor
+        ? <span style={{ color: 'var(--ai-noir70)' }}>{b.auditAuthor}</span>
+        : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
       key: 'auditDate', label: 'Audit\nDate', width: 90, sortable: true, type: 'meta', align: 'center',
@@ -343,7 +357,7 @@ function buildColumns(params) {
       twoLineHeader: 'kWh/m²/yr',
       title: 'Baseline EUI before works',
       render: b => {
-        if (!b.baselineEUI) return <span className="data-gap text-xs px-1 rounded">—</span>;
+        if (!b.baselineEUI) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
         const isExt = b.source === 'Extrapolated';
         return <span style={{ color: 'var(--ai-noir70)', fontStyle: isExt ? 'italic' : 'normal', opacity: isExt ? 0.7 : 1 }}>{b.baselineEUI}</span>;
       },
@@ -405,7 +419,9 @@ function buildColumns(params) {
       filterable: true, filterType: 'select', filterOptions: ['High', 'Medium', 'Low'],
       render: b => b.priority === 'High'
         ? <span className="badge" style={{ background: 'var(--ai-rouge)', color: 'white', fontSize: 10 }}>High</span>
-        : <span style={{ color: 'var(--ai-noir70)' }}>{b.priority || '—'}</span>,
+        : b.priority
+          ? <span style={{ color: 'var(--ai-noir70)' }}>{b.priority}</span>
+          : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
       key: 'calc', label: 'Gain %', width: 65, sortable: true, type: 'meta', align: 'center',
@@ -424,25 +440,25 @@ function buildColumns(params) {
     {
       key: 'capexEE', label: 'CAPEX\nEE', width: 95, sortable: true, type: 'meta', align: 'right',
       title: 'Energy-efficiency CAPEX',
-      render: b => <span style={{ color: 'var(--ai-violet)' }}>{fmtM(b.calc?._jod?.eeCapex ?? 0)}</span>,
+      render: b => fmtM(b.calc?._jod?.eeCapex ?? 0, 'var(--ai-violet)'),
     },
     {
       key: 'capexGR', label: 'CAPEX\nGR', width: 95, sortable: true, type: 'meta', align: 'right',
       title: 'Global-refurbishment CAPEX',
-      render: b => <span style={{ color: 'var(--ai-noir70)' }}>{fmtM(b.calc?._jod?.grCapex ?? 0)}</span>,
+      render: b => fmtM(b.calc?._jod?.grCapex ?? 0, 'var(--ai-noir70)'),
     },
     {
       key: 'capexTotal', label: 'Total\nCAPEX', width: 100, sortable: true, type: 'meta', align: 'right',
       title: 'Total CAPEX (EE + GR)',
       render: b => {
         const total = (b.calc?._jod?.eeCapex ?? 0) + (b.calc?._jod?.grCapex ?? 0);
-        return <span className="font-bold" style={{ color: 'var(--ai-rouge)' }}>{fmtM(total)}</span>;
+        return <span className="font-bold">{fmtM(total, 'var(--ai-rouge)')}</span>;
       },
     },
     {
       key: 'peebGrant', label: 'Expected\nPEEB Grant', width: 120, sortable: true, type: 'meta', align: 'right',
       title: 'Expected PEEB Grant',
-      render: b => <span className="font-bold" style={{ color: '#1a1a1a' }}>{fmtM(b.calc?._jod?.peebGrant ?? 0)}</span>,
+      render: b => <span className="font-bold">{fmtM(b.calc?._jod?.peebGrant ?? 0, '#1a1a1a')}</span>,
     },
     {
       key: 'savingsPerYear', label: 'Savings /\nyear', width: 95, sortable: false, type: 'meta', align: 'right',
@@ -647,8 +663,7 @@ export default function BuildingInventory() {
         if (q && !(
           b.name.toLowerCase().includes(q) ||
           (b.governorate || '').toLowerCase().includes(q) ||
-          b.typology.toLowerCase().includes(q) ||
-          b.id.toLowerCase().includes(q)
+          b.typology.toLowerCase().includes(q)
         )) return false;
 
         for (const [key, raw] of Object.entries(colFilters)) {
@@ -657,7 +672,6 @@ export default function BuildingInventory() {
           const matchOne = (target) => arr ? arr.includes(target) : null;
           switch (key) {
             case 'name':          if (!arr && !b.name.toLowerCase().includes(raw.toLowerCase())) return false; break;
-            case 'id':            if (!arr && !b.id.toLowerCase().includes(raw.toLowerCase())) return false; break;
             case 'typology':
               if (arr) { if (!arr.includes(b.typology)) return false; }
               else if (b.typology !== raw) return false;
@@ -835,37 +849,76 @@ export default function BuildingInventory() {
           </table>
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1.5"
+        {/* Footer / Legend */}
+        <div className="px-4 py-3 text-xs"
           style={{ borderTop: '1px solid var(--ai-gris)', background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}>
-          <span>
-            <strong>{filtered.length}</strong> / <strong>{nonDrafts.length}</strong> buildings
-            {search && ` · "${search}"`}
-          </span>
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span><strong style={{ color: 'var(--ai-violet)' }}>EE</strong> = Energy Efficiency</span>
-            <span><strong style={{ color: 'var(--ai-violet)' }}>GR</strong> = Global Refurbishment</span>
-            <span><strong style={{ color: 'var(--ai-violet)' }}>EUI</strong> = kWh/m²/yr</span>
-            <span><em>Italic EUI</em> = extrapolated</span>
-          </span>
-          <span className="ml-auto flex items-center gap-3 text-xs">
-            <span>Score:</span>
-            {[{ label: '≥70', bg: '#22a05a' }, { label: '40–69', bg: '#d97706' }, { label: '<40', bg: 'var(--ai-rouge)' }].map(s => (
-              <span key={s.label} className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.bg }} />{s.label}
-              </span>
-            ))}
-            <span className="flex items-center gap-1 ml-2">
-              <span className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
-                style={{ background: 'var(--ai-rouge)', fontSize: 8, letterSpacing: '.05em', height: 13, minWidth: 30 }}>
-                PEEB
-              </span>
-              <span>Selected</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-2">
+            <span>
+              <strong>{filtered.length}</strong> / <strong>{nonDrafts.length}</strong> buildings
+              {search && ` · "${search}"`}
             </span>
-            <span className="ml-2" style={{ fontStyle: 'italic' }}>
-              Click row to open
-            </span>
-          </span>
+            <span className="ml-auto italic">Click row to open · Ctrl/middle-click for new tab · Drag the table to scroll</span>
+          </div>
+          <div className="grid gap-x-6 gap-y-1" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {/* Alerts */}
+            <div className="flex flex-col gap-1">
+              <span className="font-bold uppercase tracking-wide" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>Alerts</span>
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#d97706' }} /> Missing data
+              </span>
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} /> Ineligible (donor / manual)
+              </span>
+            </div>
+            {/* PEEB status */}
+            <div className="flex flex-col gap-1">
+              <span className="font-bold uppercase tracking-wide" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>PEEB</span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center text-white font-black rounded-full px-1.5"
+                  style={{ background: '#22c9a5', fontSize: 8, letterSpacing: '.05em', height: 13, minWidth: 30 }}>PEEB</span>
+                Selected in programme
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Ban className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} /> Ineligible
+              </span>
+            </div>
+            {/* Progress */}
+            <div className="flex flex-col gap-1">
+              <span className="font-bold uppercase tracking-wide" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>Progress</span>
+              <span className="flex items-center gap-1.5">
+                <span style={{ background: '#fef9c3', color: '#854d0e', fontWeight: 700, fontSize: 9, padding: '1px 6px', borderRadius: 999 }}>Ongoing</span>
+                Design / works in progress
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span style={{ background: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: 9, padding: '1px 6px', borderRadius: 999 }}>Completed</span>
+                Design / works finished
+              </span>
+            </div>
+            {/* Score */}
+            <div className="flex flex-col gap-1">
+              <span className="font-bold uppercase tracking-wide" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>PEEB priority score</span>
+              {[{ label: '≥70 — High', bg: '#22a05a' }, { label: '40–69 — Medium', bg: '#d97706' }, { label: '<40 — Low', bg: 'var(--ai-rouge)' }].map(s => (
+                <span key={s.label} className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.bg }} />{s.label}
+                </span>
+              ))}
+            </div>
+            {/* Acronyms */}
+            <div className="flex flex-col gap-1">
+              <span className="font-bold uppercase tracking-wide" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>Acronyms</span>
+              <span><strong style={{ color: 'var(--ai-violet)' }}>EE</strong> = Energy Efficiency</span>
+              <span><strong style={{ color: 'var(--ai-violet)' }}>GR</strong> = Global Refurbishment</span>
+              <span><strong style={{ color: 'var(--ai-violet)' }}>EUI</strong> = kWh/m²/yr · <strong>CAPEX</strong> = capital expenditure</span>
+            </div>
+            {/* Missing / empty */}
+            <div className="flex flex-col gap-1">
+              <span className="font-bold uppercase tracking-wide" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>Empty cells</span>
+              <span className="flex items-center gap-1.5">
+                <span style={{ color: 'var(--ai-gris)' }}>—</span>
+                No data
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

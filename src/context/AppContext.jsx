@@ -18,10 +18,11 @@ function makeDraft(id) {
   for (const k of MEASURE_KEYS) {
     const d = defaults[k] || {};
     measures[k] = {
-      selected:    false,
-      capex:       d.capex ?? 0,
-      savingsRate: 0,
-      notes:       '',
+      selected:       false,
+      capex:          d.capex ?? 0,
+      capexAbsolute:  0,
+      savingsRate:    0,
+      notes:          '',
     };
   }
   return {

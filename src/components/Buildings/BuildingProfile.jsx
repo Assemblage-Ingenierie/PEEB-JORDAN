@@ -164,12 +164,27 @@ function BuildingMiniMap({ building }) {
 const ICON_MAP = { Layers, Square, Wind, Lightbulb, Sun, Droplets, Building2, Accessibility: MapPin, ShieldCheck };
 
 // ─── Measure row ──────────────────────────────────────────────────────────────
-export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
+export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }) {
   const { toggleMeasure, setMeasureValue } = useApp();
   const meta    = MEASURE_META[measureKey];
   const Icon    = ICON_MAP[meta.icon] || Layers;
   const synergy = synApplied && measureKey === 'hvac';
   const locked  = meta.lockSavings;
+  const hasArea = typeof area === 'number' && area > 0;
+
+  // Derived total: capex × area, OR the stored absolute when area is missing
+  const totalVal = hasArea
+    ? +((measure.capex || 0) * area).toFixed(0)
+    : (measure.capexAbsolute ?? 0);
+
+  const onPerM2 = (val) => {
+    setMeasureValue(buildingId, measureKey, 'capex', val);
+    if (hasArea) setMeasureValue(buildingId, measureKey, 'capexAbsolute', +(val * area).toFixed(0));
+  };
+  const onTotal = (val) => {
+    setMeasureValue(buildingId, measureKey, 'capexAbsolute', val);
+    if (hasArea) setMeasureValue(buildingId, measureKey, 'capex', +(val / area).toFixed(2));
+  };
 
   return (
     <div className="rounded-xl transition-all"
@@ -177,7 +192,7 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
         border:     `1px solid ${measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-gris)'}`,
         background: measure.selected ? (locked ? 'rgba(48,50,62,.06)' : 'var(--ai-rouge-clair)') : 'white',
       }}>
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-2 p-3">
         <button onClick={() => toggleMeasure(buildingId, measureKey)}
           className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
           style={{
@@ -191,30 +206,35 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
           style={{ color: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-noir70)' }} />
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: 'var(--ai-violet)' }}>
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--ai-violet)' }}>
             {meta.label}
             {synergy && (
               <span className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded"
                 style={{ background: 'var(--ai-rouge)', color: 'white' }}>✦ Synergy −20%</span>
             )}
-            {locked && (
-              <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded"
-                style={{ background: 'rgba(48,50,62,.1)', color: 'var(--ai-violet)' }}>Global Refurb</span>
-            )}
           </p>
         </div>
 
-        <input type="number" min="0" step="1" value={measure.capex}
-          onChange={e => setMeasureValue(buildingId, measureKey, 'capex', parseFloat(e.target.value) || 0)}
-          className="w-20 input text-xs text-right py-1" title="Capex JOD/m²" />
-        <span className="text-xs w-14" style={{ color: 'var(--ai-noir70)' }}>JOD/m²</span>
+        <input type="number" min="0" step="1" value={measure.capex ?? 0}
+          disabled={!hasArea}
+          onChange={e => onPerM2(parseFloat(e.target.value) || 0)}
+          className="w-16 input text-xs text-right py-1"
+          style={{ opacity: hasArea ? 1 : 0.4 }}
+          title={hasArea ? 'Unit cost JOD/m²' : 'Set the building area first to edit unit cost'} />
+        <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>/m²</span>
+
+        <input type="number" min="0" step="1" value={totalVal}
+          onChange={e => onTotal(parseFloat(e.target.value) || 0)}
+          className="w-20 input text-xs text-right py-1"
+          title="Total CAPEX (JOD)" />
+        <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>JOD</span>
 
         {!locked && (
           <>
             <input type="number" min="0" max="99" step="1"
               value={+(measure.savingsRate * 100).toFixed(1)}
               onChange={e => setMeasureValue(buildingId, measureKey, 'savingsRate', (parseFloat(e.target.value) || 0) / 100)}
-              className="w-14 input text-xs text-right py-1" />
+              className="w-12 input text-xs text-right py-1" />
             <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
           </>
         )}
@@ -931,7 +951,6 @@ export default function BuildingProfile() {
 
           <Section title="Building Information">
             <div className="space-y-1">
-              <InfoRow label="ID" value={b.id} icon={Building2} />
               <EditableInfoRow label="Name"           icon={Building2} value={b.name}
                 onCommit={v => updateBuilding(b.id, { name: v })} />
               <EditableInfoRow label="Typology"       icon={Building2} value={b.typology}
@@ -1091,7 +1110,7 @@ export default function BuildingProfile() {
             <div className="space-y-2">
               {MEASURE_KEYS_EE.map(key => (
                 <MeasureRow key={key} buildingId={b.id} measureKey={key}
-                  measure={b.measures[key]} synApplied={false} />
+                  measure={b.measures[key]} synApplied={false} area={b.area} />
               ))}
             </div>
             <TotalEnergySaving building={b} />
@@ -1101,7 +1120,7 @@ export default function BuildingProfile() {
             <div className="space-y-2">
               {MEASURE_KEYS_GR.map(key => (
                 <MeasureRow key={key} buildingId={b.id} measureKey={key}
-                  measure={b.measures[key]} synApplied={false} />
+                  measure={b.measures[key]} synApplied={false} area={b.area} />
               ))}
             </div>
             <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>

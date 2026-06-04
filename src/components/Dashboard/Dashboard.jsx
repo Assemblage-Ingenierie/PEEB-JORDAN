@@ -656,25 +656,6 @@ export default function Dashboard() {
         <PeebTargetedTable buildings={buildings} selectBuilding={selectBuilding} params={params} />
       </div>
 
-      {/* ── Compact alerts — constrained width, same row height as Buildings ── */}
-      <div className="card fade-in" style={{ maxWidth: '900px' }}>
-        <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle
-            className="w-4 h-4 flex-shrink-0"
-            style={{ color: alertCount > 0 ? 'var(--ai-rouge)' : '#22a05a' }}
-          />
-          <h3 className="text-sm font-bold" style={{ color: 'var(--ai-violet)' }}>Alerts</h3>
-          {alertCount > 0 && (
-            <span
-              className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}
-            >
-              {alertCount}
-            </span>
-          )}
-        </div>
-        <AlertsSection buildings={buildings} />
-      </div>
 
     </div>
   );
