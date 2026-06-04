@@ -252,7 +252,8 @@ export function TotalEnergySaving({ building }) {
   return (
     <div className="rounded-xl mt-3 p-3 fade-in"
       style={{ border: '1px solid var(--ai-violet)', background: 'rgba(48,50,62,.04)' }}>
-      <p className="font-semibold mb-2" style={{ color: 'var(--ai-violet)', fontSize: 12 }}>
+      <p className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+        <Zap className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
         Total Energy Saving
       </p>
 
