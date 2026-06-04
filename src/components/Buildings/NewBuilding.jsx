@@ -4,7 +4,7 @@ import {
   Save, X, Ban, Info,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_KEYS_EE } from '../../engine/CalculationEngine';
+import { MEASURE_KEYS_EE, MEASURE_KEYS_GR } from '../../engine/CalculationEngine';
 import {
   ColHeader, Section, EditableInfoRow, MeasureRow, ImageGallery,
   ResultsPanel, ScorePanel, FinancingPanel, TotalEnergySaving,
@@ -243,31 +243,25 @@ export default function NewBuilding() {
           </Section>
 
           <Section title="Measures — Energy Efficiency">
-            <div className="flex items-start gap-3 rounded-lg p-3 mb-3 text-xs"
-              style={{
-                background: calc?.synergyApplied ? 'var(--ai-rouge-clair)' : 'var(--ai-gris)',
-                border: `1px solid ${calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-gris-clair)'}`,
-              }}>
-              <Info className="w-4 h-4 flex-shrink-0 mt-0.5"
-                style={{ color: calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-noir70)' }} />
-              <div>
-                <p className="font-bold mb-0.5"
-                  style={{ color: calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
-                  Thermal Synergy {calc?.synergyApplied ? '— Active ✦' : ''}
-                </p>
-                <p style={{ color: 'var(--ai-noir70)', lineHeight: 1.5 }}>
-                  When insulation or window replacement is selected, HVAC capex is reduced by 20%
-                  and HVAC efficiency improves by 15%.
-                </p>
-              </div>
-            </div>
             <div className="space-y-2">
               {MEASURE_KEYS_EE.map(key => (
                 <MeasureRow key={key} buildingId={draft.id} measureKey={key}
-                  measure={draft.measures[key]} synApplied={calc?.synergyApplied} />
+                  measure={draft.measures[key]} synApplied={false} />
               ))}
             </div>
             <TotalEnergySaving building={draft} />
+          </Section>
+
+          <Section title="Measures — Global Refurbishment">
+            <div className="space-y-2">
+              {MEASURE_KEYS_GR.map(key => (
+                <MeasureRow key={key} buildingId={draft.id} measureKey={key}
+                  measure={draft.measures[key]} synApplied={false} />
+              ))}
+            </div>
+            <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>
+              These measures add to total capex but do not improve energy gain. Eligible for AFD Loan.
+            </p>
           </Section>
 
         </div>

@@ -118,22 +118,11 @@ export const DONOR_MARKERS = ['GIZ', 'KfW', 'USAID', 'EU', 'World Bank', 'EBRD',
 // ─── Core Calculation Functions ───────────────────────────────────────────────
 
 /**
- * Thermal Synergy: insulation OR windows selected → HVAC capex −20%, savings +15%
+ * Thermal Synergy is disabled — savings are user-driven now.
+ * Kept as a passthrough so the rest of the engine doesn't need restructuring.
  */
 export function applyThermalSynergy(measures) {
-  const hasThermal = measures.insulation?.selected || measures.windows?.selected;
-  if (!hasThermal || !measures.hvac) return { measures, synergyApplied: false };
-  return {
-    synergyApplied: true,
-    measures: {
-      ...measures,
-      hvac: {
-        ...measures.hvac,
-        capex:       +(measures.hvac.capex * 0.80).toFixed(2),
-        savingsRate: +Math.min(measures.hvac.savingsRate * 1.15, 0.95).toFixed(4),
-      },
-    },
-  };
+  return { measures, synergyApplied: false };
 }
 
 /**

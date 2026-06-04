@@ -7,7 +7,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_META, MEASURE_KEYS_EE, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
+import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
 
 // ─── Tier palette ─────────────────────────────────────────────────────────────
 const TIER_STYLE = {
@@ -209,15 +209,7 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
           className="w-20 input text-xs text-right py-1" title="Capex JOD/m²" />
         <span className="text-xs w-14" style={{ color: 'var(--ai-noir70)' }}>JOD/m²</span>
 
-        {locked ? (
-          <div className="flex items-center gap-1">
-            <span className="w-14 input text-xs text-right py-1 select-none"
-              style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)', border: '1px solid var(--ai-gris)', borderRadius: 6, padding: '4px 8px', display: 'inline-flex', justifyContent: 'flex-end' }}>
-              0
-            </span>
-            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
-          </div>
-        ) : (
+        {!locked && (
           <>
             <input type="number" min="0" max="99" step="1"
               value={+(measure.savingsRate * 100).toFixed(1)}
@@ -255,40 +247,44 @@ export function TotalEnergySaving({ building }) {
   const num = (v) => v === '' ? null : Number(v);
   const fmt = (v, unit) => v == null ? '—' : `${v.toLocaleString()} ${unit}`;
 
+  const numCellStyle = { fontSize: 11, color: 'var(--ai-noir70)', textAlign: 'right' };
+
   return (
     <div className="rounded-xl mt-3 p-3 fade-in"
       style={{ border: '1px solid var(--ai-violet)', background: 'rgba(48,50,62,.04)' }}>
-      <p className="text-xs font-bold mb-2" style={{ color: 'var(--ai-violet)' }}>
+      <p className="font-semibold mb-2" style={{ color: 'var(--ai-violet)', fontSize: 12 }}>
         Total Energy Saving
       </p>
 
-      <div className="grid grid-cols-4 gap-2 text-xs" style={{ alignItems: 'center' }}>
-        <div className="font-semibold" style={{ color: 'var(--ai-noir70)' }}></div>
-        <div className="font-semibold text-center" style={{ color: 'var(--ai-noir70)' }}>Baseline</div>
-        <div className="font-semibold text-center" style={{ color: 'var(--ai-noir70)' }}>Project</div>
-        <div className="font-semibold text-center" style={{ color: 'var(--ai-noir70)' }}>Difference</div>
+      <div className="grid gap-2" style={{ gridTemplateColumns: '110px 1fr 1fr 1fr', alignItems: 'center' }}>
+        <div></div>
+        <div className="text-center font-semibold" style={{ color: 'var(--ai-noir70)', fontSize: 10 }}>Baseline</div>
+        <div className="text-center font-semibold" style={{ color: 'var(--ai-noir70)', fontSize: 10 }}>Project</div>
+        <div className="text-center font-semibold" style={{ color: 'var(--ai-noir70)', fontSize: 10 }}>Difference</div>
 
-        <div className="font-semibold" style={{ color: 'var(--ai-violet)' }}>kWh / yr</div>
+        <div className="font-semibold" style={{ color: 'var(--ai-violet)', fontSize: 11 }}>kWh / yr</div>
         <input type="number" min="0" step="1" className="input text-right py-1"
+          style={{ fontSize: 11 }}
           value={baseline ?? ''}
           onChange={e => updateBuilding(building.id, { totalBaselineKwh: num(e.target.value) })} />
         <input type="number" min="0" step="1" className="input text-right py-1"
+          style={{ fontSize: 11 }}
           value={project ?? ''}
           onChange={e => updateBuilding(building.id, { totalProjectKwh: num(e.target.value) })} />
-        <div className="text-right font-bold" style={{ color: 'var(--ai-rouge)' }}>
+        <div className="font-bold" style={{ ...numCellStyle, color: 'var(--ai-rouge)', fontSize: 11 }}>
           {diff == null ? '—' : `${diff.toLocaleString()} kWh`}
         </div>
 
-        <div className="font-semibold" style={{ color: 'var(--ai-violet)' }}>EUI (kWh/m²)</div>
-        <div className="text-right" style={{ color: 'var(--ai-noir70)' }}>{fmt(eui(baseline), 'kWh/m²')}</div>
-        <div className="text-right" style={{ color: 'var(--ai-noir70)' }}>{fmt(eui(project), 'kWh/m²')}</div>
-        <div className="text-right" style={{ color: 'var(--ai-noir70)' }}>
+        <div className="font-semibold" style={{ color: 'var(--ai-violet)', fontSize: 11 }}>EUI (kWh/m²)</div>
+        <div style={numCellStyle}>{fmt(eui(baseline), 'kWh/m²')}</div>
+        <div style={numCellStyle}>{fmt(eui(project), 'kWh/m²')}</div>
+        <div style={numCellStyle}>
           {eui(baseline) != null && eui(project) != null ? `${(eui(baseline) - eui(project)).toFixed(1)} kWh/m²` : '—'}
         </div>
       </div>
 
-      <div className="mt-3 pt-3 flex items-center gap-3" style={{ borderTop: '1px dashed var(--ai-gris)' }}>
-        <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+      <div className="mt-3 pt-2 flex items-center gap-2" style={{ borderTop: '1px dashed var(--ai-gris)' }}>
+        <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: 11 }}>
           <input type="checkbox" checked={overrideOn}
             onChange={e => updateBuilding(building.id, {
               gainOverride: e.target.checked ? (autoGain ?? 0) : null,
@@ -297,17 +293,17 @@ export function TotalEnergySaving({ building }) {
           <span style={{ color: 'var(--ai-violet)' }}>Force value</span>
         </label>
         <div className="flex items-center gap-1.5 ml-auto">
-          <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>Energy savings</span>
+          <span style={{ color: 'var(--ai-noir70)', fontSize: 11 }}>Energy savings</span>
           {overrideOn ? (
             <>
               <input type="number" min="0" max="100" step="0.1"
                 value={building.gainOverride}
                 onChange={e => updateBuilding(building.id, { gainOverride: num(e.target.value) ?? 0 })}
-                className="input w-20 text-right text-sm py-1" />
-              <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
+                className="input w-16 text-right py-1" style={{ fontSize: 11 }} />
+              <span style={{ color: 'var(--ai-noir70)', fontSize: 11 }}>%</span>
             </>
           ) : (
-            <span className="font-bold text-sm" style={{ color: 'var(--ai-rouge)' }}>
+            <span className="font-bold" style={{ color: 'var(--ai-rouge)', fontSize: 12 }}>
               {autoGain == null ? '—' : `${autoGain.toFixed(1)} %`}
             </span>
           )}
@@ -934,31 +930,25 @@ export default function BuildingProfile() {
           </Section>
 
           <Section title="Measures — Energy Efficiency">
-            <div className="flex items-start gap-3 rounded-lg p-3 mb-3 text-xs"
-              style={{
-                background: calc?.synergyApplied ? 'var(--ai-rouge-clair)' : 'var(--ai-gris)',
-                border: `1px solid ${calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-gris-clair)'}`,
-              }}>
-              <Info className="w-4 h-4 flex-shrink-0 mt-0.5"
-                style={{ color: calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-noir70)' }} />
-              <div>
-                <p className="font-bold mb-0.5"
-                  style={{ color: calc?.synergyApplied ? 'var(--ai-rouge)' : 'var(--ai-violet)' }}>
-                  Thermal Synergy {calc?.synergyApplied ? '— Active ✦' : ''}
-                </p>
-                <p style={{ color: 'var(--ai-noir70)', lineHeight: 1.5 }}>
-                  When insulation or window replacement is selected, HVAC capex is reduced by 20%
-                  and HVAC efficiency improves by 15%.
-                </p>
-              </div>
-            </div>
             <div className="space-y-2">
               {MEASURE_KEYS_EE.map(key => (
                 <MeasureRow key={key} buildingId={b.id} measureKey={key}
-                  measure={b.measures[key]} synApplied={calc?.synergyApplied} />
+                  measure={b.measures[key]} synApplied={false} />
               ))}
             </div>
             <TotalEnergySaving building={b} />
+          </Section>
+
+          <Section title="Measures — Global Refurbishment">
+            <div className="space-y-2">
+              {MEASURE_KEYS_GR.map(key => (
+                <MeasureRow key={key} buildingId={b.id} measureKey={key}
+                  measure={b.measures[key]} synApplied={false} />
+              ))}
+            </div>
+            <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>
+              These measures add to total capex but do not improve energy gain. Eligible for AFD Loan.
+            </p>
           </Section>
 
         </div>

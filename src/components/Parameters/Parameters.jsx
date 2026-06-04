@@ -366,7 +366,6 @@ function BudgetSection({ params, buildings }) {
 const TABS = [
   { id: 'currency', label: 'Currency & Financial', icon: SlidersHorizontal },
   { id: 'costs',    label: 'Cost estimations',     icon: Banknote },
-  { id: 'energy',   label: 'Energy efficiency',    icon: Zap },
   { id: 'budget',   label: 'Budget',               icon: Calculator },
   { id: 'score',    label: 'Score configuration',  icon: Target },
 ];
@@ -504,73 +503,6 @@ export default function Parameters() {
               />
             );
           })}
-        </div>
-      )}
-
-      {/* ─── Energy efficiency — savings by typology ───────────────────── */}
-      {activeTab === 'energy' && (
-        <div className="card">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
-              <Building2 className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
-              Savings Rate by Building Typology
-            </h3>
-            <button onClick={resetSavingsMatrix} className="btn-secondary text-xs">
-              <RefreshCw className="w-3.5 h-3.5" /> Reset matrix
-            </button>
-          </div>
-          <p className="text-xs mb-4" style={{ color: 'var(--ai-noir70)' }}>
-            Expected energy-saving rate (%) for each EE measure depending on the building typology.
-            Example: solar thermal hot water has a larger impact on hospitals than on schools.
-          </p>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-              <thead>
-                <tr style={{ background: 'var(--ai-violet)' }}>
-                  <th className="th" style={{ color: 'white', position: 'sticky', left: 0, background: 'var(--ai-violet)', minWidth: 120 }}>
-                    Typology
-                  </th>
-                  {MEASURE_KEYS_EE.map(k => (
-                    <th key={k} className="th"
-                      style={{ color: 'white', textAlign: 'center', minWidth: 90, whiteSpace: 'nowrap' }}
-                      title={MEASURE_META[k].label}>
-                      {MEASURE_META[k].short ?? MEASURE_META[k].label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Object.keys(TYPOLOGY_DEFAULTS).map((typ, rowIdx) => (
-                  <tr key={typ} style={{ background: rowIdx % 2 === 0 ? 'white' : 'var(--ai-gris-clair)' }}>
-                    <td className="td font-semibold"
-                      style={{ color: 'var(--ai-violet)', position: 'sticky', left: 0, background: rowIdx % 2 === 0 ? 'white' : 'var(--ai-gris-clair)' }}>
-                      {typ}
-                    </td>
-                    {MEASURE_KEYS_EE.map(k => {
-                      const r = savingsMatrix?.[typ]?.[k] ?? 0;
-                      return (
-                        <td key={k} className="td" style={{ textAlign: 'center', padding: '4px 6px' }}>
-                          <div className="inline-flex items-center gap-1">
-                            <input
-                              type="number" min={0} max={95} step={1}
-                              value={+(r * 100).toFixed(1)}
-                              onChange={e =>
-                                setSavingsRate(typ, k, (parseFloat(e.target.value) || 0) / 100)
-                              }
-                              className="input text-xs text-right py-1"
-                              style={{ width: 56 }}
-                            />
-                            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>%</span>
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
