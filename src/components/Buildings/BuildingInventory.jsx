@@ -331,6 +331,7 @@ function buildColumns(params) {
     // ── Audit Data ────────────────────────────────────────────────────────────
     {
       key: 'existingAudit', label: 'Existing\nAudit', width: 70, sortable: true, type: 'meta', align: 'center',
+      filterable: true, filterType: 'select', filterOptions: ['Yes', 'No'],
       title: 'Existing energy audit — edit in building profile',
       render: b => b.existingAudit
         ? <Check className="w-4 h-4 mx-auto" style={{ color: '#9ca3af' }} />
@@ -689,6 +690,12 @@ export default function BuildingInventory() {
                 const p = b.peebSelected && !b.eligibility.ineligible;
                 const status = b.eligibility.ineligible ? 'Ineligible' : p ? 'PEEB' : null;
                 if (!status || !arr.includes(status)) return false;
+              }
+              break;
+            case 'existingAudit':
+              if (arr) {
+                const label = b.existingAudit ? 'Yes' : 'No';
+                if (!arr.includes(label)) return false;
               }
               break;
             case 'designProgress':
