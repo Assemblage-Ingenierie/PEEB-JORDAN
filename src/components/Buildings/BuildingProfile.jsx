@@ -375,7 +375,7 @@ export function ResultsPanel({ calc, params }) {
 }
 
 // ─── Score panel ──────────────────────────────────────────────────────────────
-const SLOT_COLORS = ['var(--ai-rouge)', 'var(--ai-violet)', '#22a05a', '#d97706', '#3b82f6'];
+const BAR_COLOR = 'var(--ai-noir70)';
 
 export function ScorePanel({ building, calc, scoreConfig }) {
   const score = calculateScore(building, calc, scoreConfig);
@@ -383,54 +383,50 @@ export function ScorePanel({ building, calc, scoreConfig }) {
   const totalColor = total >= 70 ? '#22a05a' : total >= 40 ? '#d97706' : 'var(--ai-rouge)';
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="flex-shrink-0 text-center" style={{ minWidth: 64 }}>
-          <p className="font-black leading-none" style={{ fontSize: '2.6rem', color: totalColor }}>{total}</p>
-          <p className="text-xs font-semibold" style={{ color: 'var(--ai-noir70)' }}>/ 100</p>
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 text-center" style={{ minWidth: 48 }}>
+          <p className="font-black leading-none" style={{ fontSize: '1.6rem', color: totalColor }}>{total}</p>
+          <p style={{ color: 'var(--ai-noir70)', fontSize: 10 }}>/ 100</p>
         </div>
         <div className="flex-1">
-          <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)' }}>
-            <div className="h-3 rounded-full transition-all duration-500"
-              style={{ width: `${total}%`, background: totalColor }} />
+          <div className="rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)', height: 6 }}>
+            <div className="rounded-full transition-all duration-500"
+              style={{ width: `${total}%`, background: totalColor, height: 6 }} />
           </div>
-          <p className="text-xs mt-1" style={{ color: 'var(--ai-noir70)' }}>
+          <p style={{ color: 'var(--ai-noir70)', fontSize: 10, marginTop: 2 }}>
             {total >= 70 ? 'High priority' : total >= 40 ? 'Medium priority' : 'Low priority'}
           </p>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {breakdown.map(({ pts, max, label, detail, direction }, i) => {
-          const color = SLOT_COLORS[i % SLOT_COLORS.length];
-          const pct   = max > 0 ? (pts / max) * 100 : 0;
+          const pct = max > 0 ? (pts / max) * 100 : 0;
           return (
             <div key={i}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold flex items-center gap-1" style={{ color: 'var(--ai-violet)' }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 2 }}>
+                <span className="font-semibold flex items-center gap-1" style={{ color: 'var(--ai-violet)', fontSize: 10 }}>
                   {label}
                   {direction === 'lower' && (
-                    <span className="text-xs" style={{ color: 'var(--ai-noir70)' }} title="Lower is better">↓</span>
+                    <span style={{ color: 'var(--ai-noir70)', fontSize: 10 }} title="Lower is better">↓</span>
                   )}
                 </span>
-                <span className="flex items-center gap-2 text-xs">
+                <span className="flex items-center gap-1.5" style={{ fontSize: 10 }}>
                   <span style={{ color: 'var(--ai-noir70)' }}>{detail}</span>
-                  <span className="font-black" style={{ color, minWidth: 36, textAlign: 'right' }}>
-                    {pts} <span className="font-normal" style={{ color: 'var(--ai-noir70)' }}>/ {max}</span>
+                  <span className="font-bold" style={{ color: BAR_COLOR, minWidth: 32, textAlign: 'right' }}>
+                    {pts}<span className="font-normal" style={{ color: 'var(--ai-noir70)' }}> / {max}</span>
                   </span>
                 </span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)' }}>
-                <div className="h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${pct}%`, background: color }} />
+              <div className="rounded-full overflow-hidden" style={{ background: 'var(--ai-gris-clair)', height: 4 }}>
+                <div className="rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, background: BAR_COLOR, height: 4 }} />
               </div>
             </div>
           );
         })}
       </div>
-      <p className="text-xs" style={{ color: 'var(--ai-noir70)', borderTop: '1px dashed var(--ai-gris)', paddingTop: 8 }}>
-        Score updates live as EE measures are selected. Criteria configurable in Parameters.
-      </p>
     </div>
   );
 }
@@ -814,10 +810,6 @@ export default function BuildingProfile() {
             <ImageGallery building={b} />
           </Section>
 
-          <Section title="PEEB Priority Score">
-            <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
-          </Section>
-
           <Section title="Site Observations">
             <textarea rows={5} value={b.siteObservations}
               onChange={e => updateBuilding(b.id, { siteObservations: e.target.value })}
@@ -955,10 +947,14 @@ export default function BuildingProfile() {
 
         {/* ══ Col 3 — Financing ══ */}
         <div className="xl:col-span-1 space-y-4">
-          <ColHeader>Financing</ColHeader>
+          <ColHeader>Investment</ColHeader>
 
           <Section title="Calculation Results">
             <ResultsPanel calc={calc} params={params} />
+          </Section>
+
+          <Section title="PEEB Priority Score">
+            <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
           </Section>
 
           <Section title="PEEB Eligibility">

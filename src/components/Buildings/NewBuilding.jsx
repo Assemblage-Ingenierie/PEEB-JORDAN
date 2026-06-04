@@ -122,10 +122,6 @@ export default function NewBuilding() {
             <ImageGallery building={draft} />
           </Section>
 
-          <Section title="PEEB Priority Score">
-            <ScorePanel building={draft} calc={calc} scoreConfig={params.scoreConfig} />
-          </Section>
-
           <Section title="Site Observations">
             <textarea rows={5}
               value={draft.siteObservations || ''}
@@ -268,10 +264,14 @@ export default function NewBuilding() {
 
         {/* ══ Col 3 — Financing ══ */}
         <div className="xl:col-span-1 space-y-4">
-          <ColHeader>Financing</ColHeader>
+          <ColHeader>Investment</ColHeader>
 
           <Section title="Calculation Results">
             <ResultsPanel calc={calc} params={params} />
+          </Section>
+
+          <Section title="PEEB Priority Score">
+            <ScorePanel building={draft} calc={calc} scoreConfig={params.scoreConfig} />
           </Section>
 
           <Section title="PEEB Eligibility">
