@@ -38,7 +38,7 @@ const BORDER = {
 // required: shown as red badge on row 3; desc: shown on row 4.
 export const META_COLUMNS = [
   { key: 'name',             label: 'Building name',              type: 'text',   required: true,  desc: 'Text — unique name for the building' },
-  { key: 'typology',         label: 'Building typology',          type: 'text',   required: true,  desc: 'School / Hospital / Office / Municipality / University' },
+  { key: 'typology',         label: 'Building typology',          type: 'text',   required: true,  desc: 'School / Hospital / Administration / University' },
   { key: 'governorate',      label: 'Governorate',                type: 'text',   required: true,  desc: 'Jordanian governorate (Amman, Zarqa, Irbid, etc.)' },
   { key: 'region',           label: 'Region',                     type: 'text',   required: false, desc: 'North / Central / South — inferred from governorate if empty' },
   { key: 'address',          label: 'Address',                    type: 'text',   required: false, desc: 'Full street address' },

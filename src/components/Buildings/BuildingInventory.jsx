@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
-  parseEdgeExport, calculateScore,
+  calculateScore,
   MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR,
 } from '../../engine/CalculationEngine';
 import UploadBuildingsDialog from './UploadBuildingsDialog';
@@ -54,11 +54,10 @@ const ALL_COL_KEYS = SECTION_DEFS.flatMap(s => s.colKeys);
 
 // ─── Typology display config ──────────────────────────────────────────────────
 const TYPOLOGY_DISPLAY = {
-  Hospital:     { label: 'Hospital',       bg: '#fee2e2', color: '#b91c1c' },
-  School:       { label: 'School',         bg: '#dbeafe', color: '#1d4ed8' },
-  University:   { label: 'University',     bg: '#ede9fe', color: '#7c3aed' },
-  Municipality: { label: 'Administration', bg: '#fef9c3', color: '#854d0e' },
-  Office:       { label: 'Administration', bg: '#fef9c3', color: '#854d0e' },
+  Hospital:       { label: 'Hospital',       bg: '#fee2e2', color: '#b91c1c' },
+  School:         { label: 'School',         bg: '#dbeafe', color: '#1d4ed8' },
+  University:     { label: 'University',     bg: '#ede9fe', color: '#7c3aed' },
+  Administration: { label: 'Administration', bg: '#fef9c3', color: '#854d0e' },
 };
 
 // ─── Icon map for measure columns ─────────────────────────────────────────────
@@ -67,63 +66,6 @@ const MEASURE_ICONS = {
   pv: Sun, solarThermal: Droplets,
   structure: Building2, accessibility: Building2, hygieneAndSecurity: ShieldCheck,
 };
-
-// ─── EDGE Import Modal ────────────────────────────────────────────────────────
-function EdgeImportModal({ onClose, onImport }) {
-  const [dragging, setDragging] = useState(false);
-  const [error, setError]       = useState('');
-
-  const handleFile = async (file) => {
-    if (!file) return;
-    const ext  = file.name.split('.').pop().toLowerCase();
-    const type = ext === 'json' ? 'json' : ext === 'csv' ? 'csv' : null;
-    if (!type) { setError('Only .json or .csv files are accepted.'); return; }
-    const text   = await file.text();
-    const parsed = parseEdgeExport(text, type);
-    if (!parsed) { setError('Unable to read the file. Check the format.'); return; }
-    onImport(parsed);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(48,50,62,.45)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 fade-in">
-        <h2 className="font-bold mb-1" style={{ color: 'var(--ai-violet)', fontSize: '15px' }}>
-          Import EDGE Export
-        </h2>
-        <p className="text-xs mb-4" style={{ color: 'var(--ai-noir70)' }}>
-          Drag and drop or select a .json or .csv file exported from EDGE.
-        </p>
-        <div
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
-          className="rounded-xl p-8 text-center transition-colors"
-          style={{
-            border: `2px dashed ${dragging ? 'var(--ai-rouge)' : 'var(--ai-gris)'}`,
-            background: dragging ? 'var(--ai-rouge-clair)' : 'var(--ai-gris-clair)',
-          }}
-        >
-          <Upload className="w-8 h-8 mx-auto mb-3"
-            style={{ color: dragging ? 'var(--ai-rouge)' : 'var(--ai-noir70)' }} />
-          <p className="text-sm mb-2" style={{ color: 'var(--ai-violet)' }}>
-            Drag &amp; drop or click to browse
-          </p>
-          <input type="file" accept=".json,.csv" className="hidden" id="edge-file"
-            onChange={e => handleFile(e.target.files[0])} />
-          <label htmlFor="edge-file" className="btn-primary cursor-pointer text-xs">
-            Choose file
-          </label>
-        </div>
-        {error && <p className="text-xs mt-2" style={{ color: 'var(--ai-rouge)' }}>{error}</p>}
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="btn-secondary text-xs">Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Score badge ──────────────────────────────────────────────────────────────
 function ScoreBadge({ score }) {
@@ -202,6 +144,58 @@ function ColumnsDropdown({ visibleCols, onToggle, sectionsWithCols }) {
   );
 }
 
+// ─── Multi-select dropdown for filter cells ──────────────────────────────────
+function MultiSelectFilter({ options, selected, onChange, inputStyle }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+
+  const toggle = (val) => {
+    const set = new Set(selected);
+    if (set.has(val)) set.delete(val); else set.add(val);
+    onChange([...set]);
+  };
+
+  const label = selected.length === 0 ? '—' : selected.length === 1 ? selected[0] : `${selected.length} selected`;
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ ...inputStyle, cursor: 'pointer', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {label}
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, marginTop: 2, minWidth: 160, maxHeight: 240,
+          overflowY: 'auto', background: 'white', border: '1px solid #d1d5db', borderRadius: 4,
+          boxShadow: '0 8px 24px rgba(0,0,0,.2)', zIndex: 30, padding: 4,
+        }}>
+          {selected.length > 0 && (
+            <button type="button" onClick={() => onChange([])}
+              style={{ display: 'block', width: '100%', textAlign: 'left', fontSize: 10,
+                padding: '3px 6px', color: '#b91c1c', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              Clear selection
+            </button>
+          )}
+          {options.map(o => (
+            <label key={o} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
+              padding: '3px 6px', cursor: 'pointer', color: '#1a1a1a' }}>
+              <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)}
+                style={{ accentColor: 'var(--ai-violet)' }} />
+              {o}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Column filter cell (header row 3) ───────────────────────────────────────
 function FilterCell({ col, value, onChange, dynOptions, isSectionStart }) {
   const cellStyle = {
@@ -226,20 +220,17 @@ function FilterCell({ col, value, onChange, dynOptions, isSectionStart }) {
   const opts = col.filterOptions ?? dynOptions?.[col.key] ?? [];
 
   if (col.filterType === 'select') {
+    const sel = Array.isArray(value) ? value : (value ? [value] : []);
     return (
       <th style={cellStyle}>
-        <select value={value} onChange={e => onChange(e.target.value)}
-          style={{ ...inputStyle, cursor: 'pointer' }} onClick={e => e.stopPropagation()}>
-          <option value="">—</option>
-          {opts.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <MultiSelectFilter options={opts} selected={sel} onChange={onChange} inputStyle={inputStyle} />
       </th>
     );
   }
 
   return (
     <th style={cellStyle}>
-      <input type="text" value={value} onChange={e => onChange(e.target.value)}
+      <input type="text" value={value || ''} onChange={e => onChange(e.target.value)}
         placeholder="…" style={inputStyle} onClick={e => e.stopPropagation()} />
     </th>
   );
@@ -297,7 +288,7 @@ function buildColumns(params) {
     {
       key: 'typology', label: 'Type', width: 110, sortable: true, type: 'meta', align: 'center',
       filterable: true, filterType: 'select',
-      filterOptions: ['School', 'Hospital', 'University', 'Administration'],
+      filterOptions: ['School', 'Hospital', 'Administration', 'University'],
       render: b => {
         const d = TYPOLOGY_DISPLAY[b.typology] || { label: b.typology, bg: 'var(--ai-gris-clair)', color: 'var(--ai-violet)' };
         return <span className="badge" style={{ background: d.bg, color: d.color, fontSize: 10 }}>{d.label}</span>;
@@ -329,15 +320,9 @@ function buildColumns(params) {
     {
       key: 'existingAudit', label: 'Existing\nAudit', width: 70, sortable: true, type: 'meta', align: 'center',
       title: 'Existing energy audit — edit in building profile',
-      render: b => {
-        const has = !!b.existingAudit;
-        return (
-          <span className="inline-flex items-center justify-center"
-            style={{ width: 20, height: 20, borderRadius: 3, border: has ? 'none' : '1.5px solid #d1d5db' }}>
-            {has && <Check className="w-4 h-4" style={{ color: '#9ca3af' }} />}
-          </span>
-        );
-      },
+      render: b => b.existingAudit
+        ? <Check className="w-4 h-4 mx-auto" style={{ color: '#9ca3af' }} />
+        : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
       key: 'author', label: 'Author', width: 90, sortable: true, type: 'meta',
@@ -390,30 +375,27 @@ function buildColumns(params) {
         ? <span className="badge" style={{ background: 'var(--ai-rouge)', color: 'white', fontSize: 10, fontWeight: 700 }}>{b.fundingSource}</span>
         : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
-    // ── Progress ──────────────────────────────────────────────────────────────
+    // ── Progress (read-only display; edit from building profile) ──────────────
     ...['designProgress', 'worksProgress'].map(key => ({
       key, label: key === 'designProgress' ? 'Design' : 'Works', width: 100,
       sortable: true, type: 'meta', align: 'center',
       filterable: true, filterType: 'select', filterOptions: ['Ongoing', 'Completed'],
-      title: 'Click to cycle: — → Ongoing → Completed',
-      render: (b, { updateBuilding }) => {
+      title: 'Read-only — edit from building profile',
+      render: (b) => {
         const v = b[key];
-        const next = v === 'ongoing' ? 'completed' : v === 'completed' ? null : 'ongoing';
         const styles = v === 'ongoing'
           ? { bg: '#fef9c3', fg: '#854d0e', label: 'Ongoing' }
           : v === 'completed'
             ? { bg: '#dcfce7', fg: '#166534', label: 'Completed' }
             : null;
+        if (!styles) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
         return (
-          <button onClick={e => { e.stopPropagation(); updateBuilding(b.id, { [key]: next }); }}
-            style={{
-              padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700,
-              border: 'none', cursor: 'pointer',
-              background: styles?.bg ?? 'transparent', color: styles?.fg ?? 'var(--ai-gris)',
-            }}
-            title="Click to cycle status">
-            {styles?.label ?? '—'}
-          </button>
+          <span style={{
+            padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+            background: styles.bg, color: styles.fg,
+          }}>
+            {styles.label}
+          </span>
         );
       },
     })),
@@ -562,11 +544,44 @@ function HeaderCell({ col, sortState, onSort, isSectionStart }) {
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 export default function BuildingInventory() {
-  const { buildings, selectBuilding, addBuildings, navigate, params, updateBuilding } = useApp();
+  const { buildings, selectBuilding, navigate, params, updateBuilding } = useApp();
+
+  // Drag-to-scroll for the table container
+  const tableScrollRef = useRef(null);
+  const wasDraggedRef  = useRef(false);
+  const handleDragStart = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('input,select,button,a,label,th')) return;
+    const el = tableScrollRef.current;
+    if (!el) return;
+    const startX = e.pageX;
+    const startY = e.pageY;
+    const startLeft = el.scrollLeft;
+    const startTop = el.scrollTop;
+    let dragged = false;
+    el.style.cursor = 'grabbing';
+    const move = (ev) => {
+      const dx = ev.pageX - startX;
+      const dy = ev.pageY - startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragged = true;
+      el.scrollLeft = startLeft - dx;
+      el.scrollTop = startTop - dy;
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      el.style.cursor = 'grab';
+      if (dragged) {
+        wasDraggedRef.current = true;
+        setTimeout(() => { wasDraggedRef.current = false; }, 50);
+      }
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
 
   const [search,      setSearch]      = useState('');
   const [sort,        setSort]        = useState({ col: 'name', dir: 'asc' });
-  const [showImport,  setShowImport]  = useState(false);
   const [showUpload,  setShowUpload]  = useState(false);
   const [colFilters,  setColFilters]  = useState({});
   const [visibleCols, setVisibleCols] = useState(() => new Set(ALL_COL_KEYS));
@@ -636,27 +651,43 @@ export default function BuildingInventory() {
           b.id.toLowerCase().includes(q)
         )) return false;
 
-        for (const [key, val] of Object.entries(colFilters)) {
-          if (!val) continue;
+        for (const [key, raw] of Object.entries(colFilters)) {
+          if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) continue;
+          const arr = Array.isArray(raw) ? raw : null;
+          const matchOne = (target) => arr ? arr.includes(target) : null;
           switch (key) {
-            case 'name':          if (!b.name.toLowerCase().includes(val.toLowerCase())) return false; break;
-            case 'id':            if (!b.id.toLowerCase().includes(val.toLowerCase())) return false; break;
+            case 'name':          if (!arr && !b.name.toLowerCase().includes(raw.toLowerCase())) return false; break;
+            case 'id':            if (!arr && !b.id.toLowerCase().includes(raw.toLowerCase())) return false; break;
             case 'typology':
-              if (val === 'Administration') { if (b.typology !== 'Municipality' && b.typology !== 'Office') return false; }
-              else if (b.typology !== val) return false;
+              if (arr) { if (!arr.includes(b.typology)) return false; }
+              else if (b.typology !== raw) return false;
               break;
-            case 'governorate':   if (b.governorate !== val) return false; break;
-            case 'region':        if (getRegion(b.governorate) !== val) return false; break;
-            case 'author':        if (!((b.auditAuthor || '').toLowerCase().includes(val.toLowerCase()))) return false; break;
-            case 'fundingSource': if (!((b.fundingSource || '').toLowerCase().includes(val.toLowerCase()))) return false; break;
-            case 'priority':      if ((b.priority || '') !== val) return false; break;
-            case 'peebStatus':    { const p = b.peebSelected && !b.eligibility.ineligible; if (val === 'PEEB' && !p) return false; break; }
+            case 'governorate':   if (arr) { if (!arr.includes(b.governorate)) return false; } else if (b.governorate !== raw) return false; break;
+            case 'region':        if (arr) { if (!arr.includes(getRegion(b.governorate))) return false; } else if (getRegion(b.governorate) !== raw) return false; break;
+            case 'author':        if (!arr && !((b.auditAuthor || '').toLowerCase().includes(raw.toLowerCase()))) return false; break;
+            case 'fundingSource': if (!arr && !((b.fundingSource || '').toLowerCase().includes(raw.toLowerCase()))) return false; break;
+            case 'priority':
+              if (arr) { if (!arr.includes(b.priority || '')) return false; }
+              else if ((b.priority || '') !== raw) return false;
+              break;
+            case 'peebStatus':
+              if (arr) {
+                const p = b.peebSelected && !b.eligibility.ineligible;
+                const status = b.eligibility.ineligible ? 'Ineligible' : p ? 'PEEB' : null;
+                if (!status || !arr.includes(status)) return false;
+              }
+              break;
             case 'designProgress':
             case 'worksProgress': {
-              const want = val.toLowerCase();
-              if ((b[key] || '') !== want) return false;
+              if (arr) {
+                const v = b[key];
+                const label = v === 'ongoing' ? 'Ongoing' : v === 'completed' ? 'Completed' : null;
+                if (!label || !arr.includes(label)) return false;
+              }
               break;
             }
+            default:
+              if (arr && !arr.includes(b[key])) return false;
           }
         }
         return true;
@@ -708,10 +739,6 @@ export default function BuildingInventory() {
             title="Download the full buildings database as Excel">
             <Download className="w-3.5 h-3.5" /> Download Excel
           </button>
-          <button onClick={() => setShowImport(true)} className="btn-secondary text-xs"
-            title="Import from an EDGE export (.json / .csv)">
-            <Upload className="w-3.5 h-3.5" /> EDGE
-          </button>
           <button onClick={() => setShowUpload(true)} className="btn-secondary text-xs">
             <FileSpreadsheet className="w-3.5 h-3.5" /> Upload new buildings
           </button>
@@ -723,7 +750,10 @@ export default function BuildingInventory() {
 
       {/* ── Table ── */}
       <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+        <div ref={tableScrollRef}
+          className="inventory-scroll overflow-x-auto"
+          onMouseDown={handleDragStart}
+          style={{ maxHeight: 'calc(100vh - 220px)', cursor: 'grab' }}>
           <table style={{ borderCollapse: 'separate', borderSpacing: 0, fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
 
@@ -777,6 +807,7 @@ export default function BuildingInventory() {
                 return (
                   <tr key={b.id} className="tr-hover" style={{ cursor: 'pointer' }}
                     onClick={e => {
+                      if (wasDraggedRef.current) return;
                       if (isModifiedClick(e)) { window.open(pathFromState('profile', b.id), '_blank'); return; }
                       selectBuilding(b.id);
                     }}
@@ -838,7 +869,6 @@ export default function BuildingInventory() {
         </div>
       </div>
 
-      {showImport && <EdgeImportModal onClose={() => setShowImport(false)} onImport={addBuildings} />}
       <UploadBuildingsDialog open={showUpload} onClose={() => setShowUpload(false)} />
     </div>
   );

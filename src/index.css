@@ -180,12 +180,33 @@
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ─── Sigle .A watermark ─────────────────────────────────────────────────────── */
+/* Inventory table: visible, draggable scrollbars */
+.inventory-scroll {
+  scrollbar-color: var(--ai-noir70) var(--ai-gris-clair);
+  scrollbar-width: auto;
+}
+.inventory-scroll::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+.inventory-scroll::-webkit-scrollbar-track {
+  background: var(--ai-gris-clair);
+}
+.inventory-scroll::-webkit-scrollbar-thumb {
+  background: var(--ai-noir70);
+  border: 3px solid var(--ai-gris-clair);
+  border-radius: 8px;
+}
+.inventory-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ai-violet);
+}
+
 .ai-watermark {
   position: fixed;
   bottom: 16px;
   right: 16px;
-  width: 48px;
-  height: 48px;
+  width: 34px;
+  height: 34px;
   opacity: 0.18;
   pointer-events: none;
   z-index: 9999;

@@ -232,6 +232,47 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied }) {
   );
 }
 
+// ─── Progress (Design / Works) ────────────────────────────────────────────────
+export function ProgressBlock({ building }) {
+  const { updateBuilding } = useApp();
+  const cycle = (key) => {
+    const v = building[key];
+    const next = v === 'ongoing' ? 'completed' : v === 'completed' ? null : 'ongoing';
+    updateBuilding(building.id, { [key]: next });
+  };
+  const pastille = (v) => {
+    if (v === 'ongoing')   return { bg: '#fef9c3', fg: '#854d0e', label: 'Ongoing' };
+    if (v === 'completed') return { bg: '#dcfce7', fg: '#166534', label: 'Completed' };
+    return { bg: 'transparent', fg: 'var(--ai-noir70)', label: 'Not started' };
+  };
+  const row = (key, label) => {
+    const s = pastille(building[key]);
+    return (
+      <div className="flex items-center justify-between gap-3" style={{ padding: '6px 0' }}>
+        <span className="font-semibold" style={{ color: 'var(--ai-violet)', fontSize: 12 }}>{label}</span>
+        <button onClick={() => cycle(key)} type="button"
+          style={{
+            padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+            border: building[key] ? 'none' : '1px solid var(--ai-gris)', cursor: 'pointer',
+            background: s.bg, color: s.fg,
+          }}
+          title="Click to cycle: Not started → Ongoing → Completed">
+          {s.label}
+        </button>
+      </div>
+    );
+  };
+  return (
+    <Section title="Progress">
+      <p className="text-xs mb-2" style={{ color: 'var(--ai-noir70)' }}>
+        Click the pastille to cycle status. These values appear read-only in the database view.
+      </p>
+      {row('designProgress', 'Design')}
+      {row('worksProgress',  'Works')}
+    </Section>
+  );
+}
+
 // ─── Total energy saving block (Baseline / Project kWh + override) ───────────
 export function TotalEnergySaving({ building }) {
   const { updateBuilding } = useApp();
@@ -730,6 +771,8 @@ export default function BuildingProfile() {
   const handleDiscardChanges = () => {
     if (originalRef.current && selectedBuilding) {
       updateBuilding(selectedBuilding.id, originalRef.current);
+      // Resync local UI-only flags that aren't recomputed from props on the fly
+      setHasFunding(!!originalRef.current.fundingSource);
     }
     setIsDirty(false);
   };
@@ -892,7 +935,7 @@ export default function BuildingProfile() {
               <EditableInfoRow label="Name"           icon={Building2} value={b.name}
                 onCommit={v => updateBuilding(b.id, { name: v })} />
               <EditableInfoRow label="Typology"       icon={Building2} value={b.typology}
-                options={['School','Hospital','Office','Municipality','University']}
+                options={['School','Hospital','Administration','University']}
                 onCommit={v => updateBuilding(b.id, { typology: v })} />
               <EditableInfoRow label="Year Built"     icon={Calendar}  value={b.yearBuilt} type="number"
                 italic={!b.yearBuilt}
@@ -1065,6 +1108,8 @@ export default function BuildingProfile() {
               These measures add to total capex but do not improve energy gain. Eligible for AFD Loan.
             </p>
           </Section>
+
+          <ProgressBlock building={b} />
 
         </div>
 

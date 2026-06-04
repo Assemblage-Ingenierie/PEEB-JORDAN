@@ -10,6 +10,7 @@ export function pathFromState(view, id) {
     case 'map':          return '/map';
     case 'parameters':   return '/parameters';
     case 'calculator':   return '/calculator';
+    case 'admin':        return '/admin';
     default:             return '/';
   }
 }
@@ -23,6 +24,7 @@ export function stateFromPath(pathname) {
   if (p === '/map')                    return { view: 'map',          id: null };
   if (p === '/parameters')             return { view: 'parameters',   id: null };
   if (p === '/calculator')             return { view: 'calculator',   id: null };
+  if (p === '/admin')                  return { view: 'admin',        id: null };
   return { view: 'dashboard', id: null };
 }
 

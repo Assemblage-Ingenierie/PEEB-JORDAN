@@ -4,7 +4,20 @@
       "Bash(for d:*)",
       "Bash(do echo:*)",
       "Read(//c/Users/gesti/peeb-med-jordan/src/components/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "mcp__Claude_Preview__preview_start",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "mcp__a52a2e67-b950-40b8-83bf-fee05d995b6c__deploy_to_vercel",
+      "mcp__a52a2e67-b950-40b8-83bf-fee05d995b6c__list_teams",
+      "mcp__a52a2e67-b950-40b8-83bf-fee05d995b6c__list_projects",
+      "Bash(git pull *)",
+      "mcp__997f795e-0e86-4e54-b200-a87d86c5e84d__list_projects",
+      "mcp__997f795e-0e86-4e54-b200-a87d86c5e84d__get_project_url",
+      "mcp__997f795e-0e86-4e54-b200-a87d86c5e84d__get_publishable_keys",
+      "mcp__997f795e-0e86-4e54-b200-a87d86c5e84d__execute_sql",
+      "mcp__997f795e-0e86-4e54-b200-a87d86c5e84d__list_tables"
     ]
   }
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
-  SlidersHorizontal, PlusCircle, ChevronRight,
+  SlidersHorizontal, PlusCircle, ChevronRight, Shield,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { pathFromState, isModifiedClick } from '../../lib/router';
@@ -12,6 +12,7 @@ const NAV = [
   { id: 'map',          label: 'Map View',      Icon: Map               },
   { id: 'new-building', label: 'New Building',  Icon: PlusCircle        },
   { id: 'parameters',   label: 'Parameters',    Icon: SlidersHorizontal },
+  { id: 'admin',        label: 'Admin',         Icon: Shield            },
 ];
 
 export default function Sidebar() {

@@ -1,4 +1,4 @@
-import { Bell, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
@@ -32,6 +32,7 @@ const VIEW_TITLES = {
   parameters: { title: 'Parameters',         subtitle: 'Currency, unit costs & exchange rate'          },
   calculator:     { title: 'EE Calculator',  subtitle: 'Renovation scenario modelling'                 },
   'new-building': { title: 'New Building',   subtitle: 'Create a new building from scratch'            },
+  admin:          { title: 'Admin',           subtitle: 'User account management'                       },
 };
 
 const notifStyle = {
@@ -79,11 +80,6 @@ export default function Header() {
         <div className="flex items-center gap-3 flex-shrink-0">
           {notification && <Notification notification={notification} onClose={clearNotification} />}
           <CurrencyToggle />
-          <button className="p-2 rounded-lg transition-colors" style={{ color: 'var(--ai-noir70)' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--ai-gris)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <Bell className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </header>

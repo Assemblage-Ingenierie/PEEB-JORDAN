@@ -8,6 +8,7 @@ import NewBuilding       from './components/Buildings/NewBuilding';
 import MapView           from './components/Map/MapView';
 import Parameters        from './components/Parameters/Parameters';
 import FundingCalculator from './components/Calculator/FundingCalculator';
+import Admin             from './components/Admin/Admin';
 import ErrorBoundary     from './components/ErrorBoundary';
 
 function ActiveView() {
@@ -20,6 +21,7 @@ function ActiveView() {
     case 'parameters':   return <Parameters />;
     case 'new-building': return <NewBuilding />;
     case 'calculator':   return <FundingCalculator />;
+    case 'admin':        return <Admin />;
     default:             return <Dashboard />;
   }
 }

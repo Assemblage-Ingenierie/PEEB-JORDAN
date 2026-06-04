@@ -10,6 +10,7 @@
  */
 
 import { supabase } from './supabase';
+import { normalizeTypology } from '../engine/CalculationEngine';
 
 // ── DB row → JS object ────────────────────────────────────────────────────────
 
@@ -17,7 +18,7 @@ function dbToJs(row) {
   return {
     id:                 row.id,
     name:               row.name,
-    typology:           row.typology,
+    typology:           normalizeTypology(row.typology),
     governorate:        row.governorate  ?? '',
     region:             row.region       ?? '',
     address:            row.address      ?? '',

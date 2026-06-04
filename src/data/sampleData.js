@@ -57,7 +57,7 @@ export const INITIAL_BUILDINGS = [
   {
     id: 'B003',
     name: 'Greater Amman Municipality HQ',
-    typology: 'Municipality',
+    typology: 'Administration',
     governorate: 'Amman',
     address: 'Al-Amir Shaker Ben Zaid St., Amman',
     coordinates: [31.9554, 35.9342],
@@ -76,7 +76,7 @@ export const INITIAL_BUILDINGS = [
   {
     id: 'B004',
     name: 'Ministry of Education HQ',
-    typology: 'Office',
+    typology: 'Administration',
     governorate: 'Amman',
     address: '5th Circle, Amman',
     coordinates: [31.9637, 35.9306],
@@ -114,7 +114,7 @@ export const INITIAL_BUILDINGS = [
   {
     id: 'B006',
     name: 'Aqaba Municipality Building',
-    typology: 'Municipality',
+    typology: 'Administration',
     governorate: 'Aqaba',
     address: 'King Hussein Street, Aqaba',
     coordinates: [29.5321, 35.0063],
@@ -133,7 +133,7 @@ export const INITIAL_BUILDINGS = [
   {
     id: 'B007',
     name: 'Madaba Governorate HQ',
-    typology: 'Office',
+    typology: 'Administration',
     governorate: 'Madaba',
     address: 'Madaba Town Centre',
     coordinates: [31.7169, 35.7933],
@@ -190,7 +190,7 @@ export const INITIAL_BUILDINGS = [
   {
     id: 'B010',
     name: 'King Hussein Youth City — Sports Hall',
-    typology: 'Municipality',
+    typology: 'Administration',
     governorate: 'Amman',
     address: 'Sports City, Amman',
     coordinates: [31.9826, 35.8795],

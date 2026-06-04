@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { MEASURE_KEYS_EE, MEASURE_KEYS_GR } from '../../engine/CalculationEngine';
 import {
   ColHeader, Section, EditableInfoRow, MeasureRow, ImageGallery,
-  ResultsPanel, ScorePanel, FinancingPanel, TotalEnergySaving,
+  ResultsPanel, ScorePanel, FinancingPanel, TotalEnergySaving, ProgressBlock,
 } from './BuildingProfile';
 
 export default function NewBuilding() {
@@ -83,7 +83,7 @@ export default function NewBuilding() {
               <EditableInfoRow label="Name"         icon={Building2} value={draft.name}
                 onCommit={v => updateBuilding(draft.id, { name: v })} />
               <EditableInfoRow label="Typology"     icon={Building2} value={draft.typology}
-                options={['School','Hospital','Office','Municipality','University']}
+                options={['School','Hospital','Administration','University']}
                 onCommit={v => updateBuilding(draft.id, { typology: v })} />
               <EditableInfoRow label="Year Built"   icon={Calendar}  value={draft.yearBuilt} type="number"
                 italic={!draft.yearBuilt}
@@ -259,6 +259,8 @@ export default function NewBuilding() {
               These measures add to total capex but do not improve energy gain. Eligible for AFD Loan.
             </p>
           </Section>
+
+          <ProgressBlock building={draft} />
 
         </div>
 

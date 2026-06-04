@@ -328,7 +328,7 @@ function BudgetTable({ breakdown, currency }) {
 
 // ─── Buildings by Typology ────────────────────────────────────────────────────
 function TypologyChart({ buildings, peebTargeted }) {
-  const types = ['School', 'Hospital', 'Office', 'Municipality', 'University'];
+  const types = ['School', 'Hospital', 'Administration', 'University'];
   const rows = types
     .map(t => ({
       t,

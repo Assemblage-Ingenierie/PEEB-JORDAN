@@ -63,29 +63,17 @@ export const TYPOLOGY_DEFAULTS = {
     accessibility:      { capex: 100, savingsRate: 0 },
     hygieneAndSecurity: { capex: 120, savingsRate: 0 },
   },
-  Office: {
-    baselineEUI: 130,
-    insulation:         { capex: 28,  savingsRate: 0.14 },
-    windows:            { capex: 85,  savingsRate: 0.13 },
-    hvac:               { capex: 140, savingsRate: 0.28 },
+  Administration: {
+    baselineEUI: 120,
+    insulation:         { capex: 27,  savingsRate: 0.13 },
+    windows:            { capex: 84,  savingsRate: 0.12 },
+    hvac:               { capex: 135, savingsRate: 0.27 },
     lighting:           { capex: 22,  savingsRate: 0.32 },
-    pv:                 { capex: 150, savingsRate: 0.22 },
-    solarThermal:       { capex: 120, savingsRate: 0.04 },
-    structure:          { capex: 140, savingsRate: 0 },
-    accessibility:      { capex: 75,  savingsRate: 0 },
-    hygieneAndSecurity: { capex: 65,  savingsRate: 0 },
-  },
-  Municipality: {
-    baselineEUI: 105,
-    insulation:         { capex: 26,  savingsRate: 0.13 },
-    windows:            { capex: 82,  savingsRate: 0.12 },
-    hvac:               { capex: 130, savingsRate: 0.26 },
-    lighting:           { capex: 21,  savingsRate: 0.31 },
-    pv:                 { capex: 145, savingsRate: 0.21 },
-    solarThermal:       { capex: 115, savingsRate: 0.05 },
-    structure:          { capex: 130, savingsRate: 0 },
-    accessibility:      { capex: 70,  savingsRate: 0 },
-    hygieneAndSecurity: { capex: 60,  savingsRate: 0 },
+    pv:                 { capex: 148, savingsRate: 0.21 },
+    solarThermal:       { capex: 118, savingsRate: 0.05 },
+    structure:          { capex: 135, savingsRate: 0 },
+    accessibility:      { capex: 72,  savingsRate: 0 },
+    hygieneAndSecurity: { capex: 62,  savingsRate: 0 },
   },
   University: {
     baselineEUI: 150,
@@ -100,6 +88,12 @@ export const TYPOLOGY_DEFAULTS = {
     hygieneAndSecurity: { capex: 70,  savingsRate: 0 },
   },
 };
+
+/** Normalize legacy typology values to the harmonized set. */
+export function normalizeTypology(t) {
+  if (t === 'Office' || t === 'Municipality') return 'Administration';
+  return t;
+}
 
 /** Build a savings-rate matrix { [typology]: { [measure]: rate } } from TYPOLOGY_DEFAULTS */
 export function buildDefaultSavingsByTypology() {
