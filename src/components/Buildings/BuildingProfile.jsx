@@ -916,11 +916,6 @@ export default function BuildingProfile() {
           <Section title="PEEB Priority Score">
             <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
           </Section>
-        </div>
-
-        {/* ══ Col 2 — Refurbishment program ══ */}
-        <div className="xl:col-span-1 space-y-4">
-          <ColHeader>Refurbishment program</ColHeader>
 
           <Section title="Site Observations">
             <textarea rows={5} value={b.siteObservations}
@@ -928,6 +923,11 @@ export default function BuildingProfile() {
               className="input resize-none text-sm leading-relaxed"
               placeholder="Site conditions, observations, constraints…" />
           </Section>
+        </div>
+
+        {/* ══ Col 2 — Refurbishment program ══ */}
+        <div className="xl:col-span-1 space-y-4">
+          <ColHeader>Refurbishment program</ColHeader>
 
           <Section title="Measures — Energy Efficiency">
             <div className="space-y-2">
