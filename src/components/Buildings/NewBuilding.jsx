@@ -4,10 +4,10 @@ import {
   Save, X, Ban, Info,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_KEYS_EE, MEASURE_KEYS_GR } from '../../engine/CalculationEngine';
+import { MEASURE_KEYS_EE } from '../../engine/CalculationEngine';
 import {
   ColHeader, Section, EditableInfoRow, MeasureRow, ImageGallery,
-  ResultsPanel, ScorePanel, FinancingPanel,
+  ResultsPanel, ScorePanel, FinancingPanel, TotalEnergySaving,
 } from './BuildingProfile';
 
 export default function NewBuilding() {
@@ -267,19 +267,9 @@ export default function NewBuilding() {
                   measure={draft.measures[key]} synApplied={calc?.synergyApplied} />
               ))}
             </div>
+            <TotalEnergySaving building={draft} />
           </Section>
 
-          <Section title="Measures — Global Refurbishment">
-            <div className="space-y-2">
-              {MEASURE_KEYS_GR.map(key => (
-                <MeasureRow key={key} buildingId={draft.id} measureKey={key}
-                  measure={draft.measures[key]} synApplied={false} />
-              ))}
-            </div>
-            <p className="text-xs mt-3" style={{ color: 'var(--ai-noir70)' }}>
-              These measures add to total capex but do not improve energy gain. Eligible for AFD Loan.
-            </p>
-          </Section>
         </div>
 
         {/* ══ Col 3 — Financing ══ */}

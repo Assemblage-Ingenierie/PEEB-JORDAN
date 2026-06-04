@@ -54,6 +54,11 @@ export const META_COLUMNS = [
   { key: 'auditDate',        label: 'Audit date',                 type: 'text',   required: false, desc: 'Date of the audit — YYYY-MM-DD format (e.g. 2024-03-15)' },
   { key: 'fundingSource',    label: 'Existing funding source',    type: 'text',   required: false, desc: 'Fills automatically excludes building from PEEB grant (e.g. KfW, JREEEF, AFD…)' },
   { key: 'siteObservations', label: 'Site observations',          type: 'text',   required: false, desc: 'Free notes from site visit' },
+  { key: 'totalBaselineKwh', label: 'Total baseline (kWh/yr)',    type: 'number', required: false, desc: 'Total baseline energy consumption (kWh/yr)' },
+  { key: 'totalProjectKwh',  label: 'Total project (kWh/yr)',     type: 'number', required: false, desc: 'Total post-works energy consumption (kWh/yr)' },
+  { key: 'gainOverride',     label: 'Energy gain override (%)',   type: 'number', required: false, desc: 'Manual override for energy savings % (leave empty for auto)' },
+  { key: 'designProgress',   label: 'Design progress',            type: 'text',   required: false, desc: 'ongoing / completed (empty = not started)' },
+  { key: 'worksProgress',    label: 'Works progress',             type: 'text',   required: false, desc: 'ongoing / completed (empty = not started)' },
 ];
 
 // Per-measure columns — EE measures get capex + savings, all get selected + notes.
@@ -482,7 +487,7 @@ function materializeBuilding(parsed, existing, { fillDefaults, existingIds }) {
     measures[k] = {
       selected:    pm.selected ?? em.selected ?? false,
       capex:       pm.capex       ?? (fillDefaults ? (em.capex       ?? def.capex       ?? null) : (em.capex       ?? null)),
-      savingsRate: pm.savingsRate ?? (fillDefaults ? (em.savingsRate ?? def.savingsRate ?? null) : (em.savingsRate ?? null)),
+      savingsRate: pm.savingsRate ?? em.savingsRate ?? null,
       notes:       pm.notes ?? em.notes ?? '',
     };
   }
@@ -509,6 +514,11 @@ function materializeBuilding(parsed, existing, { fillDefaults, existingIds }) {
     siteObservations:parsed.siteObservations?? existing?.siteObservations ?? '',
     priority:        existing?.priority ?? null,
     images:          existing?.images ?? [],
+    totalBaselineKwh: parsed.totalBaselineKwh ?? existing?.totalBaselineKwh ?? null,
+    totalProjectKwh:  parsed.totalProjectKwh  ?? existing?.totalProjectKwh  ?? null,
+    gainOverride:     parsed.gainOverride     ?? existing?.gainOverride     ?? null,
+    designProgress:   parsed.designProgress   ?? existing?.designProgress   ?? null,
+    worksProgress:    parsed.worksProgress    ?? existing?.worksProgress    ?? null,
     measures,
   };
 }

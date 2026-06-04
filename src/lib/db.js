@@ -41,6 +41,11 @@ function dbToJs(row) {
     nationalBudget:     row.national_budget  ?? 0,
     others:             row.others           ?? 0,
     isDraft:            row.is_draft         ?? false,
+    totalBaselineKwh:   row.total_baseline_kwh ?? null,
+    totalProjectKwh:    row.total_project_kwh  ?? null,
+    gainOverride:       row.gain_override      ?? null,
+    designProgress:     row.design_progress    ?? null,
+    worksProgress:      row.works_progress     ?? null,
     measures:           row.measures         ?? {},
   };
 }
@@ -73,6 +78,11 @@ function jsToDB(b) {
     national_budget:     b.nationalBudget     ?? 0,
     others:              b.others             ?? 0,
     is_draft:            b.isDraft            ?? false,
+    total_baseline_kwh:  b.totalBaselineKwh   ?? null,
+    total_project_kwh:   b.totalProjectKwh    ?? null,
+    gain_override:       b.gainOverride       ?? null,
+    design_progress:     b.designProgress     ?? null,
+    works_progress:      b.worksProgress      ?? null,
     measures:            b.measures           ?? {},
   };
 }

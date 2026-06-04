@@ -13,6 +13,7 @@ import {
 } from '../../engine/CalculationEngine';
 import UploadBuildingsDialog from './UploadBuildingsDialog';
 import { exportBuildings } from '../../utils/excelIO';
+import { pathFromState, isModifiedClick } from '../../lib/router';
 
 // ─── Jordan region mapping ────────────────────────────────────────────────────
 const JORDAN_REGIONS = {
@@ -32,13 +33,18 @@ const SECTION_DEFS = [
   {
     key: 'audit',
     label: 'Audit Data',
-    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','fundingSource'],
+    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','calc'],
+  },
+  {
+    key: 'progress',
+    label: 'Progress',
+    colKeys: ['designProgress','worksProgress'],
   },
   {
     key: 'investment',
     label: 'Investment',
     colKeys: [
-      'priority','calc','capexEE','capexGR','capexTotal','peebGrant','savingsPerYear','score',
+      'fundingSource','priority','capexEE','capexGR','capexTotal','peebGrant','savingsPerYear','score',
       ...MEASURE_KEYS_EE.map(k => `m_${k}`),
       ...MEASURE_KEYS_GR.map(k => `m_${k}`),
     ],
@@ -384,6 +390,33 @@ function buildColumns(params) {
         ? <span className="badge" style={{ background: 'var(--ai-rouge)', color: 'white', fontSize: 10, fontWeight: 700 }}>{b.fundingSource}</span>
         : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
+    // ── Progress ──────────────────────────────────────────────────────────────
+    ...['designProgress', 'worksProgress'].map(key => ({
+      key, label: key === 'designProgress' ? 'Design' : 'Works', width: 100,
+      sortable: true, type: 'meta', align: 'center',
+      filterable: true, filterType: 'select', filterOptions: ['Ongoing', 'Completed'],
+      title: 'Click to cycle: — → Ongoing → Completed',
+      render: (b, { updateBuilding }) => {
+        const v = b[key];
+        const next = v === 'ongoing' ? 'completed' : v === 'completed' ? null : 'ongoing';
+        const styles = v === 'ongoing'
+          ? { bg: '#fef9c3', fg: '#854d0e', label: 'Ongoing' }
+          : v === 'completed'
+            ? { bg: '#dcfce7', fg: '#166534', label: 'Completed' }
+            : null;
+        return (
+          <button onClick={e => { e.stopPropagation(); updateBuilding(b.id, { [key]: next }); }}
+            style={{
+              padding: '2px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+              border: 'none', cursor: 'pointer',
+              background: styles?.bg ?? 'transparent', color: styles?.fg ?? 'var(--ai-gris)',
+            }}
+            title="Click to cycle status">
+            {styles?.label ?? '—'}
+          </button>
+        );
+      },
+    })),
     // ── Investment ────────────────────────────────────────────────────────────
     {
       key: 'priority', label: 'Political\nPriority', width: 90, sortable: true, type: 'meta',
@@ -618,6 +651,12 @@ export default function BuildingInventory() {
             case 'fundingSource': if (!((b.fundingSource || '').toLowerCase().includes(val.toLowerCase()))) return false; break;
             case 'priority':      if ((b.priority || '') !== val) return false; break;
             case 'peebStatus':    { const p = b.peebSelected && !b.eligibility.ineligible; if (val === 'PEEB' && !p) return false; break; }
+            case 'designProgress':
+            case 'worksProgress': {
+              const want = val.toLowerCase();
+              if ((b[key] || '') !== want) return false;
+              break;
+            }
           }
         }
         return true;
@@ -737,7 +776,13 @@ export default function BuildingInventory() {
                 const inelig = b.eligibility.ineligible;
                 return (
                   <tr key={b.id} className="tr-hover" style={{ cursor: 'pointer' }}
-                    onClick={() => selectBuilding(b.id)}>
+                    onClick={e => {
+                      if (isModifiedClick(e)) { window.open(pathFromState('profile', b.id), '_blank'); return; }
+                      selectBuilding(b.id);
+                    }}
+                    onAuxClick={e => {
+                      if (e.button === 1) { e.preventDefault(); window.open(pathFromState('profile', b.id), '_blank'); }
+                    }}>
                     {allDisplayCols.map(col => (
                       <td key={col.key} style={{
                         padding: '3px 6px',

@@ -188,20 +188,27 @@ export function calculateBuilding({ building, measures, params }) {
   const nationalBudget = building.nationalBudget ?? 0;
   const others       = building.others       ?? 0;
 
-  // Apply typology-specific savings rates (override per-measure rate if a typology matrix is configured)
-  const typRates = savingsByTypology?.[typology];
-  const measuresWithTyp = typRates
-    ? Object.fromEntries(
-        Object.entries(measures).map(([k, m]) =>
-          typRates[k] != null && !MEASURE_META[k]?.lockSavings
-            ? [k, { ...m, savingsRate: typRates[k] }]
-            : [k, m]
-        )
-      )
-    : measures;
+  // No automatic typology-based savings override — savings rates are now user-driven only.
+  void savingsByTypology;
+  const measuresWithTyp = measures;
 
   const { measures: synMeasures, synergyApplied } = applyThermalSynergy(measuresWithTyp);
-  const energyGain = calculateEnergyGain(measuresWithTyp);
+
+  // Energy gain resolution order:
+  //   1. Manual override on the building (gainOverride)
+  //   2. Derived from total kWh fields (Baseline − Project) / Baseline
+  //   3. Compound EE measures model
+  let energyGain;
+  if (typeof building.gainOverride === 'number' && !Number.isNaN(building.gainOverride)) {
+    energyGain = +building.gainOverride.toFixed(2);
+  } else if (
+    typeof building.totalBaselineKwh === 'number' && building.totalBaselineKwh > 0 &&
+    typeof building.totalProjectKwh === 'number'
+  ) {
+    energyGain = +((1 - building.totalProjectKwh / building.totalBaselineKwh) * 100).toFixed(2);
+  } else {
+    energyGain = calculateEnergyGain(measuresWithTyp);
+  }
   const tier       = getFundingTier(energyGain);
   const capexJOD   = calculateCapex(measuresWithTyp, area);
 

@@ -8,6 +8,7 @@ import {
   MEASURE_KEYS, TYPOLOGY_DEFAULTS,
 } from '../engine/CalculationEngine';
 import * as db from '../lib/db';
+import { pathFromState, stateFromPath } from '../lib/router';
 
 // ─── Draft builder ─────────────────────────────────────────────────────────────
 function makeDraft(id) {
@@ -19,7 +20,7 @@ function makeDraft(id) {
     measures[k] = {
       selected:    false,
       capex:       d.capex ?? 0,
-      savingsRate: d.savingsRate ?? 0,
+      savingsRate: 0,
       notes:       '',
     };
   }
@@ -49,6 +50,11 @@ function makeDraft(id) {
     afdLoan:        0,
     nationalBudget: 0,
     others:         0,
+    totalBaselineKwh: null,
+    totalProjectKwh:  null,
+    gainOverride:     null,
+    designProgress:   null,
+    worksProgress:    null,
     measures,
   };
 }
@@ -95,11 +101,14 @@ function mergeParams(defaults, loaded) {
 }
 
 // ─── Initial state ─────────────────────────────────────────────────────────────
+const initialUrl = typeof window !== 'undefined'
+  ? stateFromPath(window.location.pathname)
+  : { view: 'dashboard', id: null };
 const initialState = {
   params:       DEFAULT_PARAMS,
   buildings:    [],           // populated from Supabase on mount
-  selectedId:   null,
-  view:         'dashboard',
+  selectedId:   initialUrl.id,
+  view:         initialUrl.view,
   notification: null,
   loading:      true,         // true while initial Supabase fetch is in flight
 };
@@ -455,6 +464,23 @@ export function AppProvider({ children }) {
       }
     });
   }, [state.buildings]);
+
+  // ── URL ↔ view sync ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = () => {
+      const { view, id } = stateFromPath(window.location.pathname);
+      dispatch({ type: 'SET_VIEW', view, id });
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
+
+  useEffect(() => {
+    const desired = pathFromState(state.view, state.selectedId);
+    if (window.location.pathname !== desired) {
+      window.history.pushState({}, '', desired);
+    }
+  }, [state.view, state.selectedId]);
 
   // ── Debounced params persistence ────────────────────────────────────────────
   useEffect(() => {
