@@ -92,16 +92,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* ── Séparateur ── */}
-      <div style={{ borderTop: '1px dashed rgba(227,5,19,.35)', margin: '0 16px 12px' }} />
-
-      {/* ── Pied légal ── */}
-      <div className="px-4 pb-5 space-y-0.5" style={{ fontSize: '10px', color: 'rgba(255,255,255,.35)' }}>
-        <p className="font-semibold" style={{ color: 'rgba(255,255,255,.55)' }}>Assemblage ingénierie S.A.S.U.</p>
-        <p>79 rue Victor Hugo, 94200 Ivry-sur-Seine</p>
-        <p>contact@assemblage.net</p>
-        <p style={{ color: 'rgba(255,255,255,.2)', marginTop: '4px' }}>v2.0 — PEEB Med Jordan 2025</p>
-      </div>
     </aside>
   );
 }
