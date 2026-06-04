@@ -665,11 +665,84 @@ function PrintDatasheet({ building: b, calc, params }) {
   );
 }
 
+// Snapshot the raw building data for diffing — strip enriched fields injected by the context.
+function stripEnriched(b) {
+  if (!b) return null;
+  const { calc, gaps, eligibility, ...rest } = b;
+  return rest;
+}
+
 // ─── Building profile ─────────────────────────────────────────────────────────
 export default function BuildingProfile() {
-  const { selectedBuilding, updateBuilding, params, deleteBuilding } = useApp();
+  const { selectedBuilding, updateBuilding, params, deleteBuilding, setNavigationGuard, navigate, selectBuilding } = useApp();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasFunding, setHasFunding] = useState(() => !!selectedBuilding?.fundingSource);
+
+  // ── Dirty-tracking + leave-confirmation ──────────────────────────────────
+  const originalRef = useRef(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [pendingNav, setPendingNav] = useState(null);
+  const [savedToast, setSavedToast] = useState(false);
+
+  // Snapshot when we open a new building
+  useEffect(() => {
+    if (selectedBuilding && !selectedBuilding.isDraft) {
+      originalRef.current = JSON.parse(JSON.stringify(stripEnriched(selectedBuilding)));
+      setIsDirty(false);
+    }
+  }, [selectedBuilding?.id]);
+
+  // Detect divergence on every change
+  useEffect(() => {
+    if (!originalRef.current || !selectedBuilding) return;
+    const current = JSON.stringify(stripEnriched(selectedBuilding));
+    const original = JSON.stringify(originalRef.current);
+    setIsDirty(current !== original);
+  }, [selectedBuilding]);
+
+  // Register navigation guard
+  useEffect(() => {
+    setNavigationGuard(({ view, id }) => {
+      if (!isDirty) return true;
+      setPendingNav({ view, id });
+      return false;
+    });
+    return () => setNavigationGuard(null);
+  }, [isDirty, setNavigationGuard]);
+
+  // Warn on tab close / reload
+  useEffect(() => {
+    const handler = (e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const handleSaveChanges = () => {
+    // Changes auto-persist on every edit, so "Save" simply snapshots the new baseline.
+    if (selectedBuilding) {
+      originalRef.current = JSON.parse(JSON.stringify(stripEnriched(selectedBuilding)));
+    }
+    setIsDirty(false);
+    setSavedToast(true);
+    setTimeout(() => setSavedToast(false), 1500);
+  };
+
+  const handleDiscardChanges = () => {
+    if (originalRef.current && selectedBuilding) {
+      updateBuilding(selectedBuilding.id, originalRef.current);
+    }
+    setIsDirty(false);
+  };
+
+  const proceedAfterDecision = () => {
+    const target = pendingNav;
+    setPendingNav(null);
+    if (!target) return;
+    // Disarm the guard so the immediate navigation isn't intercepted by a stale isDirty
+    setNavigationGuard(null);
+    if (target.view === 'profile') selectBuilding(target.id);
+    else navigate(target.view, target.id);
+  };
 
   useEffect(() => {
     setHasFunding(!!selectedBuilding?.fundingSource);
@@ -721,6 +794,22 @@ export default function BuildingProfile() {
           <span className="badge" style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}>{b.governorate}</span>
         </div>
         <div className="flex items-center gap-2 no-print">
+          {isDirty && (
+            <span className="text-xs italic" style={{ color: '#d97706' }}>● unsaved changes</span>
+          )}
+          {savedToast && (
+            <span className="text-xs italic" style={{ color: '#16a34a' }}>✓ saved</span>
+          )}
+          <button onClick={handleDiscardChanges} className="btn-secondary"
+            disabled={!isDirty}
+            style={{ opacity: isDirty ? 1 : 0.4, cursor: isDirty ? 'pointer' : 'not-allowed' }}>
+            <X className="w-4 h-4" /> Discard
+          </button>
+          <button onClick={handleSaveChanges} className="btn-primary"
+            disabled={!isDirty}
+            style={{ opacity: isDirty ? 1 : 0.4, cursor: isDirty ? 'pointer' : 'not-allowed' }}>
+            <CheckCircle2 className="w-4 h-4" /> Save changes
+          </button>
           <button onClick={() => window.print()} className="btn-secondary">
             <Printer className="w-4 h-4" /> Export PDF
           </button>
@@ -730,6 +819,39 @@ export default function BuildingProfile() {
           </button>
         </div>
       </div>
+
+      {/* Leave-confirmation modal */}
+      {pendingNav && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 fade-in no-print"
+          onClick={() => setPendingNav(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--ai-rouge-clair)' }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: '#d97706' }} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Unsaved changes</h3>
+            </div>
+            <div className="px-6 py-5 text-sm text-slate-700 space-y-2">
+              <p>You have unsaved changes on <strong style={{ color: 'var(--ai-violet)' }}>{b.name}</strong>.</p>
+              <p className="text-xs text-slate-500">What would you like to do before leaving?</p>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50 rounded-b-2xl flex-wrap">
+              <button onClick={() => setPendingNav(null)} className="btn-secondary text-sm">
+                Stay on page
+              </button>
+              <button onClick={() => { handleDiscardChanges(); proceedAfterDecision(); }}
+                className="btn-secondary text-sm"
+                style={{ color: 'var(--ai-rouge)', borderColor: 'var(--ai-rouge)' }}>
+                Discard changes
+              </button>
+              <button onClick={() => { handleSaveChanges(); proceedAfterDecision(); }}
+                className="btn-primary text-sm">
+                Save &amp; leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation */}
       {confirmDelete && (

@@ -413,6 +413,10 @@ export function AppProvider({ children }) {
   // Debounce timer for params persistence
   const paramsSaveTimerRef = useRef(null);
 
+  // Optional navigation guard (used by BuildingProfile to confirm unsaved changes)
+  const navigationGuardRef = useRef(null);
+  const setNavigationGuard = useCallback((fn) => { navigationGuardRef.current = fn || null; }, []);
+
   // ── Initial load from Supabase ──────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -469,6 +473,16 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const handler = () => {
       const { view, id } = stateFromPath(window.location.pathname);
+      const guard = navigationGuardRef.current;
+      if (guard) {
+        const allowed = guard({ view, id });
+        if (!allowed) {
+          // Restore the URL to match current in-app state
+          const currentPath = pathFromState(stateRef.current.view, stateRef.current.selectedId);
+          window.history.pushState({}, '', currentPath);
+          return;
+        }
+      }
       dispatch({ type: 'SET_VIEW', view, id });
     };
     window.addEventListener('popstate', handler);
@@ -609,8 +623,17 @@ export function AppProvider({ children }) {
       notification:      state.notification,
       getCalcResult,
       // Navigation
-      navigate:          (view, id)   => dispatch({ type: 'SET_VIEW', view, id }),
-      selectBuilding:    (id)         => dispatch({ type: 'SELECT_BUILDING', id }),
+      navigate:          (view, id)   => {
+        const guard = navigationGuardRef.current;
+        if (guard && !guard({ view, id })) return;
+        dispatch({ type: 'SET_VIEW', view, id });
+      },
+      selectBuilding:    (id)         => {
+        const guard = navigationGuardRef.current;
+        if (guard && !guard({ view: 'profile', id })) return;
+        dispatch({ type: 'SELECT_BUILDING', id });
+      },
+      setNavigationGuard,
       // Parameters (persisted via debounced effect)
       setParam:          (key, value) => dispatch({ type: 'SET_PARAM', key, value }),
       setUnitCost:       (measure, val)           => dispatch({ type: 'SET_UNIT_COST', measure, value: val }),
