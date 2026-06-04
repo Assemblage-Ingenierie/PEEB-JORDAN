@@ -118,6 +118,27 @@ export default function NewBuilding() {
             </div>
           </Section>
 
+          <Section title="Photo Gallery">
+            <ImageGallery building={draft} />
+          </Section>
+
+          <Section title="PEEB Priority Score">
+            <ScorePanel building={draft} calc={calc} scoreConfig={params.scoreConfig} />
+          </Section>
+
+          <Section title="Site Observations">
+            <textarea rows={5}
+              value={draft.siteObservations || ''}
+              onChange={e => updateBuilding(draft.id, { siteObservations: e.target.value })}
+              className="input resize-none text-sm leading-relaxed"
+              placeholder="Site conditions, observations, constraints…" />
+          </Section>
+        </div>
+
+        {/* ══ Col 2 — Refurbishment program ══ */}
+        <div className="xl:col-span-1 space-y-4">
+          <ColHeader>Refurbishment program</ColHeader>
+
           <Section title="EE Investment Program">
             <div className="space-y-3">
 
@@ -220,27 +241,6 @@ export default function NewBuilding() {
 
             </div>
           </Section>
-
-          <Section title="Photo Gallery">
-            <ImageGallery building={draft} />
-          </Section>
-
-          <Section title="PEEB Priority Score">
-            <ScorePanel building={draft} calc={calc} scoreConfig={params.scoreConfig} />
-          </Section>
-
-          <Section title="Site Observations">
-            <textarea rows={5}
-              value={draft.siteObservations || ''}
-              onChange={e => updateBuilding(draft.id, { siteObservations: e.target.value })}
-              className="input resize-none text-sm leading-relaxed"
-              placeholder="Site conditions, observations, constraints…" />
-          </Section>
-        </div>
-
-        {/* ══ Col 2 — Refurbishment program ══ */}
-        <div className="xl:col-span-1 space-y-4">
-          <ColHeader>Refurbishment program</ColHeader>
 
           <Section title="Measures — Energy Efficiency">
             <div className="space-y-2">

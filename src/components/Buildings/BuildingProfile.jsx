@@ -810,6 +810,26 @@ export default function BuildingProfile() {
             </div>
           </Section>
 
+          <Section title="Photo Gallery">
+            <ImageGallery building={b} />
+          </Section>
+
+          <Section title="PEEB Priority Score">
+            <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
+          </Section>
+
+          <Section title="Site Observations">
+            <textarea rows={5} value={b.siteObservations}
+              onChange={e => updateBuilding(b.id, { siteObservations: e.target.value })}
+              className="input resize-none text-sm leading-relaxed"
+              placeholder="Site conditions, observations, constraints…" />
+          </Section>
+        </div>
+
+        {/* ══ Col 2 — Refurbishment program ══ */}
+        <div className="xl:col-span-1 space-y-4">
+          <ColHeader>Refurbishment program</ColHeader>
+
           <Section title="EE Investment Program">
             <div className="space-y-3">
 
@@ -908,26 +928,6 @@ export default function BuildingProfile() {
 
             </div>
           </Section>
-
-          <Section title="Photo Gallery">
-            <ImageGallery building={b} />
-          </Section>
-
-          <Section title="PEEB Priority Score">
-            <ScorePanel building={b} calc={calc} scoreConfig={params.scoreConfig} />
-          </Section>
-
-          <Section title="Site Observations">
-            <textarea rows={5} value={b.siteObservations}
-              onChange={e => updateBuilding(b.id, { siteObservations: e.target.value })}
-              className="input resize-none text-sm leading-relaxed"
-              placeholder="Site conditions, observations, constraints…" />
-          </Section>
-        </div>
-
-        {/* ══ Col 2 — Refurbishment program ══ */}
-        <div className="xl:col-span-1 space-y-4">
-          <ColHeader>Refurbishment program</ColHeader>
 
           <Section title="Measures — Energy Efficiency">
             <div className="space-y-2">
