@@ -70,7 +70,7 @@ function Shell() {
       </div>
 
       {/* ── Sigle .A (filigrane Assemblage ingénierie) ── */}
-      <div className="ai-watermark no-print" aria-hidden="true">.A</div>
+      <img src="/logo-A.png" alt="" className="ai-watermark no-print" aria-hidden="true" />
 
     </div>
   );
