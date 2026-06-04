@@ -132,6 +132,27 @@ export function calculateEnergyGain(measures) {
   return +((1 - residual) * 100).toFixed(2);
 }
 
+/**
+ * Split the EE compound gain between PV and the rest of the EE measures.
+ * Returns { ee, pv } in % — both based on the compound model, regardless of any
+ * override on the building's total energy gain (those are kept for display only).
+ */
+export function calculateGainSplit(measures) {
+  const { measures: syn } = applyThermalSynergy(measures);
+  let residualEE = 1.0;
+  let pvGain = 0;
+  MEASURE_KEYS_EE.forEach(key => {
+    const m = syn[key];
+    if (!m?.selected || !(m.savingsRate > 0)) return;
+    if (key === 'pv') pvGain = m.savingsRate;
+    else residualEE *= (1 - m.savingsRate);
+  });
+  return {
+    ee: +((1 - residualEE) * 100).toFixed(2),
+    pv: +(pvGain * 100).toFixed(2),
+  };
+}
+
 export function getFundingTier(gainPercent) {
   return FUNDING_TIERS.find(t => gainPercent >= t.minGain && gainPercent < t.maxGain) || FUNDING_TIERS[0];
 }
@@ -217,8 +238,12 @@ export function calculateBuilding({ building, measures, params }) {
   const toDisplay = (jod) =>
     currency === 'EUR' ? +(jod * exchangeRate).toFixed(2) : jod;
 
+  const gainSplit = calculateGainSplit(measuresWithTyp);
+
   return {
     energyGain,
+    gainEE: gainSplit.ee,
+    gainPV: gainSplit.pv,
     tier,
     synergyApplied,
     synMeasures,

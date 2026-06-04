@@ -33,7 +33,7 @@ const SECTION_DEFS = [
   {
     key: 'audit',
     label: 'Audit Data',
-    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','calc'],
+    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','gainEE','gainPV','calc'],
   },
   {
     key: 'progress',
@@ -425,7 +425,26 @@ function buildColumns(params) {
           : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
-      key: 'calc', label: 'Gain %', width: 65, sortable: true, type: 'meta', align: 'center',
+      key: 'gainEE', label: 'EE\nGain %', width: 65, sortable: true, type: 'meta', align: 'center',
+      title: 'Energy efficiency gain (excluding PV) — compound from selected EE measures',
+      render: b => {
+        const v = b.calc?.gainEE;
+        if (v == null || !(v > 0)) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        return <span style={{ color: 'var(--ai-noir70)' }}>{v.toFixed(1)}%</span>;
+      },
+    },
+    {
+      key: 'gainPV', label: 'PV\nGain %', width: 65, sortable: true, type: 'meta', align: 'center',
+      title: 'Gain from PV solar measure only',
+      render: b => {
+        const v = b.calc?.gainPV;
+        if (v == null || !(v > 0)) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        return <span style={{ color: 'var(--ai-noir70)' }}>{v.toFixed(1)}%</span>;
+      },
+    },
+    {
+      key: 'calc', label: 'Total\nGain %', width: 70, sortable: true, type: 'meta', align: 'center',
+      title: 'Total energy gain (override / Baseline−Project / compound EE)',
       render: b => {
         const gain = b.calc?.energyGain;
         if (gain == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
@@ -718,6 +737,8 @@ export default function BuildingInventory() {
         switch (sort.col) {
           case 'score':         va = calculateScore(a, a.calc, params.scoreConfig).total; vb = calculateScore(b, b.calc, params.scoreConfig).total; break;
           case 'calc':          va = a.calc?.energyGain ?? 0;   vb = b.calc?.energyGain ?? 0; break;
+          case 'gainEE':        va = a.calc?.gainEE ?? 0;       vb = b.calc?.gainEE ?? 0; break;
+          case 'gainPV':        va = a.calc?.gainPV ?? 0;       vb = b.calc?.gainPV ?? 0; break;
           case 'euiBefore':     va = a.baselineEUI ?? 0;        vb = b.baselineEUI ?? 0; break;
           case 'euiAfter':      va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * (1 - a.calc.energyGain / 100) : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * (1 - b.calc.energyGain / 100) : 0; break;
           case 'euiDiff':       va = a.baselineEUI && a.calc?.energyGain != null ? a.baselineEUI * a.calc.energyGain / 100 : 0; vb = b.baselineEUI && b.calc?.energyGain != null ? b.baselineEUI * b.calc.energyGain / 100 : 0; break;
