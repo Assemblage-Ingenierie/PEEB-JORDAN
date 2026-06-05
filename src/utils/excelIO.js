@@ -325,39 +325,67 @@ function buildInstructionsSheet() {
     ['PEEB Med Jordan — Buildings export'],
     [''],
     ['Sheet layout'],
-    ['The Buildings sheet has 4 header rows:'],
-    ['• Row 1 — section banner (General Information / Refurbishment Program / Investment)'],
-    ['• Row 2 — technical column keys (do not edit; they drive the import)'],
-    ['• Row 3 — human-readable labels'],
-    ['• Row 4 — short description'],
-    ['Building rows start at row 5.'],
+    ['The Buildings sheet is split in three vertical sections, mirroring the building profile:'],
+    ['  • General Information     (identity, location, audit, funding, observations)'],
+    ['  • Refurbishment Program   (Total Energy Saving totals + per-measure CAPEX / share / notes)'],
+    ['  • Investment              (priority, PEEB selection, AFD / national / others funding)'],
+    ['Header rows:'],
+    ['  • Row 1 — section banner (do not edit)'],
+    ['  • Row 2 — technical column keys (do not edit; they drive the import)'],
+    ['  • Row 3 — human-readable labels'],
+    ['  • Row 4 — short description'],
+    ['Building rows start at row 5 (one row per building).'],
     [''],
-    ['Per-measure columns'],
-    ['• <measure>_selected — Yes / No / 1 / 0 / true / false'],
-    ['• <measure>_capex — unit cost in JOD/m²'],
-    ['• <measure>_capex_total — absolute CAPEX in JOD'],
-    ['• <measure>_savings — value 0 to 1'],
-    ['     For EE core measures (insulation, windows, hvac, lighting): share of the total energy savings.'],
-    ['     For renewable measures (PV, solar thermal): production as a share of the project consumption.'],
-    ['• <measure>_notes — free text'],
+    ['Read-only / derived columns'],
+    ['Some columns are greyed and marked "DO NOT FILL" — the app derives them automatically:'],
+    ['  • <measure>_capex (JOD/m²) — derived from <measure>_capex_total ÷ floor area'],
+    ['  • gainOverride — derived from (Total baseline − Total project) / Total baseline'],
+    ['Leave them empty; values pasted there are ignored on import.'],
     [''],
-    ['Notes'],
-    ['• Empty cells are left blank — no automatic defaults are applied.'],
-    ['• existingAudit "Yes" enables auditAuthor, auditDate and auditFileUrl.'],
-    ['• fundingSource set to a non-empty value automatically excludes the building from PEEB grant.'],
+    ['CAPEX columns'],
+    ['  • <measure>_capex_total — absolute CAPEX in JOD. This is the value to fill.'],
+    ['  • eeCapexOverride — optional manual EE CAPEX total. Leave empty to use the sum of per-measure CAPEX.'],
+    [''],
+    ['Per-measure <measure>_savings — value between 0 and 1'],
+    ['The interpretation depends on the family of the measure:'],
+    [''],
+    ['  ▸ Energy Efficiency (insulation, windows, HVAC, lighting)'],
+    ['     Share of the building\'s total energy savings attributable to this measure.'],
+    ['     For each building, shares across the SELECTED EE measures should add up to 1 (= 100%).'],
+    ['     Example: HVAC = 0.45 and lighting = 0.55 → 45% + 55% = 100% of total EE savings.'],
+    ['     These values are display-only allocations; the headline EE Gain comes from the'],
+    ['     Total Energy Saving block (Baseline − Project, or Force-value override).'],
+    [''],
+    ['  ▸ Renewable Energies (PV, Solar Thermal)'],
+    ['     Renewable production expressed as a share of the project (post-EE) consumption.'],
+    ['     Range 0–1. The value is capped at 1.0 — any production beyond the post-EE demand'],
+    ['     is grid-exported and does not lower the building\'s net consumption further.'],
+    ['     The app displays the corresponding "complementary" gain in the inventory:'],
+    ['         Compl. PV Gain (%) = q × (1 − EE Gain / 100) × 100'],
+    ['     so that Total Gain = EE Gain + Compl. PV Gain (capped at 100%).'],
+    ['     Example: EE Gain = 55%, q (PV) = 1.0 → Compl. PV Gain = 45% → Total Gain = 100%.'],
+    [''],
+    ['Other columns'],
+    ['  • existingAudit "Yes" enables auditAuthor, auditDate and auditFileUrl.'],
+    ['  • fundingSource set to a non-empty value automatically excludes the building from PEEB grant.'],
+    ['  • designProgress / worksProgress — ongoing / completed / empty.'],
+    ['  • peebSelected / manuallyIneligible — Yes / No.'],
+    ['  • <measure>_selected — Yes / No / 1 / 0 / true / false.'],
+    ['  • <measure>_notes — free text (scope, brands, constraints).'],
+    [''],
+    ['Empty cells are left blank — no automatic defaults are applied.'],
   ];
   const ws = X.utils.aoa_to_sheet(lines);
   ws['!cols'] = [{ wch: 110 }];
 
   ws['A1'].s = STYLE_SHEET_TITLE;
-  const sectionRows = [2, 10, 19];
-  for (const r of sectionRows) {
-    const ref = cellRef(r, 0);
-    if (ws[ref]) ws[ref].s = STYLE_SHEET_SUBTITLE;
-  }
+  const subtitleMatches = ['Sheet layout', 'Read-only / derived columns', 'CAPEX columns', 'Per-measure', 'Other columns'];
   for (let r = 0; r < lines.length; r++) {
+    const text = String(lines[r][0] || '');
     const ref = cellRef(r, 0);
-    if (ws[ref] && !ws[ref].s) ws[ref].s = STYLE_SHEET_BODY;
+    if (!ws[ref]) continue;
+    if (subtitleMatches.some(s => text.startsWith(s))) ws[ref].s = STYLE_SHEET_SUBTITLE;
+    else if (!ws[ref].s) ws[ref].s = STYLE_SHEET_BODY;
   }
   return ws;
 }
