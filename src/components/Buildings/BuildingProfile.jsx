@@ -30,9 +30,9 @@ const TIER_STYLE = {
 export function ColHeader({ children }) {
   return (
     <div style={{
-      fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
-      color: 'var(--ai-violet)', opacity: 0.55,
-      paddingBottom: 6, borderBottom: '2px solid var(--ai-gris)',
+      fontSize: 14, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
+      color: 'var(--ai-violet)', opacity: 0.7,
+      paddingBottom: 8, borderBottom: '2px solid var(--ai-gris)',
     }}>
       {children}
     </div>
