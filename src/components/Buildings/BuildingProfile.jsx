@@ -7,7 +7,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
+import { MEASURE_META, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
 
 // ─── Typology palette (kept in sync with BuildingInventory.TYPOLOGY_DISPLAY) ──
 export const TYPOLOGY_BADGE = {
@@ -390,21 +390,22 @@ export function TotalEnergySaving({ building }) {
         </div>
       </div>
 
-      {/* EE CAPEX line — auto sum of selected EE measures, with manual override */}
+      {/* EE CAPEX line — value mirrors Calculation Results › EE CAPEX in the Investment column */}
       {(() => {
-        const eeAuto = MEASURE_KEYS_EE.reduce((s, k) => {
-          const m = building.measures?.[k];
-          if (!m?.selected) return s;
-          if (area > 0 && (m.capex || m.capex === 0)) return s + (m.capex || 0) * area;
-          return s + (m.capexAbsolute || 0);
-        }, 0);
-        const eeOverrideOn = typeof building.eeCapexOverride === 'number';
+        // `building.calc.capex.ee.total` is in display currency (EUR / JOD) and already
+        // honors the eeCapexOverride — so we read it straight from the engine output
+        // to stay perfectly in sync with the Investment › Calculation Results card.
+        const calc          = building.calc;
+        const displayValue  = calc?.capex?.ee?.total ?? 0;
+        const displayJodSum = calc?._jod?.eeCapex ?? 0;
+        const currency      = calc?.currency ?? 'JOD';
+        const eeOverrideOn  = typeof building.eeCapexOverride === 'number';
         return (
           <div className="mt-2 pt-2 flex items-center gap-2" style={{ borderTop: '1px dashed var(--ai-gris)' }}>
             <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: 11 }}>
               <input type="checkbox" checked={eeOverrideOn}
                 onChange={e => updateBuilding(building.id, {
-                  eeCapexOverride: e.target.checked ? Math.round(eeAuto) : null,
+                  eeCapexOverride: e.target.checked ? Math.round(displayJodSum) : null,
                 })}
                 style={{ accentColor: 'var(--ai-rouge)' }} />
               <span style={{ color: 'var(--ai-violet)' }}>Force value</span>
@@ -421,7 +422,7 @@ export function TotalEnergySaving({ building }) {
                 </>
               ) : (
                 <span className="font-bold" style={{ color: 'var(--ai-rouge)', fontSize: 12 }}>
-                  {eeAuto > 0 ? `${Math.round(eeAuto).toLocaleString()} JOD` : '—'}
+                  {displayValue > 0 ? formatCurrency(displayValue, currency) : '—'}
                 </span>
               )}
             </div>
