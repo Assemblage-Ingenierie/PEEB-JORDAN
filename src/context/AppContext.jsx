@@ -2,8 +2,7 @@ import { createContext, useContext, useReducer, useCallback, useMemo, useEffect,
 import { INITIAL_BUILDINGS } from '../data/sampleData';
 import {
   calculateBuilding, checkEligibility, detectDataGaps,
-  DEFAULT_SCORE_CONFIG, SCORE_INDICATORS,
-  buildDefaultSavingsByTypology,
+  DEFAULT_SCORE_CONFIG,
   DEFAULT_BUDGET_CONFIG,
   MEASURE_KEYS, TYPOLOGY_DEFAULTS,
 } from '../engine/CalculationEngine';
@@ -82,7 +81,6 @@ const DEFAULT_PARAMS = {
     hygieneAndSecurity: 60,
   },
   scoreConfig:       DEFAULT_SCORE_CONFIG.map(c => ({ ...c })),
-  savingsByTypology: buildDefaultSavingsByTypology(),
   budgetConfig:      {
     items: DEFAULT_BUDGET_CONFIG.items.map(i => ({ ...i, appliesTo: [...i.appliesTo] })),
     contingencyProject: { ...DEFAULT_BUDGET_CONFIG.contingencyProject },
@@ -97,7 +95,6 @@ function mergeParams(defaults, loaded) {
     ...loaded,
     unitCosts:          { ...defaults.unitCosts,          ...(loaded.unitCosts          || {}) },
     scoreConfig:        loaded.scoreConfig        || defaults.scoreConfig,
-    savingsByTypology:  loaded.savingsByTypology  || defaults.savingsByTypology,
     budgetConfig:       loaded.budgetConfig       || defaults.budgetConfig,
   };
 }
@@ -180,27 +177,6 @@ function reducer(state, action) {
         },
       };
 
-    case 'SET_SAVINGS_RATE':
-      return {
-        ...state,
-        params: {
-          ...state.params,
-          savingsByTypology: {
-            ...state.params.savingsByTypology,
-            [action.typology]: {
-              ...(state.params.savingsByTypology?.[action.typology] ?? {}),
-              [action.measure]: action.value,
-            },
-          },
-        },
-      };
-
-    case 'RESET_SAVINGS_MATRIX':
-      return {
-        ...state,
-        params: { ...state.params, savingsByTypology: buildDefaultSavingsByTypology() },
-      };
-
     case 'SET_BUDGET_ITEM': {
       const items = (state.params.budgetConfig?.items ?? []).map((it, i) =>
         i === action.index ? { ...it, ...action.patch } : it
@@ -276,16 +252,6 @@ function reducer(state, action) {
         ),
       };
     }
-
-    case 'ADD_BUILDINGS':
-      return {
-        ...state,
-        buildings: [
-          ...state.buildings,
-          ...action.buildings.filter(nb => !state.buildings.find(b => b.id === nb.id)),
-        ],
-        notification: { type: 'success', message: `${action.buildings.length} building(s) imported from EDGE.` },
-      };
 
     case 'ADD_BUILDING':
       return {
@@ -579,18 +545,6 @@ export function AppProvider({ children }) {
     if (draft) scheduleSave(`${slugId(draft.name) || id}`);
   }, [scheduleSave]);
 
-  const addBuildings = useCallback((list) => {
-    dispatch({ type: 'ADD_BUILDINGS', buildings: list });
-    if (initializedRef.current) {
-      db.saveBuildings(list).catch(err => {
-        dispatch({
-          type: 'SET_NOTIFICATION',
-          payload: { type: 'error', message: `EDGE import sync error: ${err.message}` },
-        });
-      });
-    }
-  }, []);
-
   const applyImport = useCallback((added, updated, notify) => {
     dispatch({ type: 'APPLY_IMPORT', added, updated, notify });
     if (initializedRef.current) {
@@ -642,9 +596,6 @@ export function AppProvider({ children }) {
       setScoreCriterion:    (index, patch) => dispatch({ type: 'SET_SCORE_CRITERION', index, patch }),
       addScoreCriterion:    (criterion)    => dispatch({ type: 'ADD_SCORE_CRITERION', criterion }),
       deleteScoreCriterion: (index)        => dispatch({ type: 'DELETE_SCORE_CRITERION', index }),
-      setSavingsRate:    (typology, measure, value) =>
-        dispatch({ type: 'SET_SAVINGS_RATE', typology, measure, value }),
-      resetSavingsMatrix: () => dispatch({ type: 'RESET_SAVINGS_MATRIX' }),
       setBudgetItem:       (index, patch) => dispatch({ type: 'SET_BUDGET_ITEM', index, patch }),
       addBudgetItem:       (item)         => dispatch({ type: 'ADD_BUDGET_ITEM', item }),
       deleteBudgetItem:    (index)        => dispatch({ type: 'DELETE_BUDGET_ITEM', index }),
@@ -653,7 +604,6 @@ export function AppProvider({ children }) {
       updateBuilding,
       toggleMeasure,
       setMeasureValue,
-      addBuildings,
       addBuilding,
       deleteBuilding,
       createDraft:       ()           => dispatch({ type: 'CREATE_DRAFT' }),

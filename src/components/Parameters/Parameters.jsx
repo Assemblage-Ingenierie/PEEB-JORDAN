@@ -6,9 +6,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
-  MEASURE_META, MEASURE_KEYS, MEASURE_KEYS_EE,
-  DEFAULT_SCORE_CONFIG, SCORE_INDICATORS, TYPOLOGY_DEFAULTS,
-  buildDefaultSavingsByTypology,
+  MEASURE_META, MEASURE_KEYS,
+  DEFAULT_SCORE_CONFIG, SCORE_INDICATORS,
   BUDGET_BASE_ITEMS, DEFAULT_BUDGET_CONFIG, computeBudgetBreakdown,
   formatCurrency,
 } from '../../engine/CalculationEngine';
@@ -373,20 +372,17 @@ const TABS = [
 export default function Parameters() {
   const {
     params, buildings, setParam, setUnitCost, setScoreCriterion,
-    addScoreCriterion, deleteScoreCriterion,
-    setSavingsRate, resetSavingsMatrix, notify,
+    addScoreCriterion, deleteScoreCriterion, notify,
   } = useApp();
   const [activeTab, setActiveTab] = useState('currency');
 
   const scoreConfig = params.scoreConfig ?? DEFAULT_SCORE_CONFIG;
-  const savingsMatrix = params.savingsByTypology ?? buildDefaultSavingsByTypology();
 
   const reset = () => {
     setParam('exchangeRate', DEFAULT_FINANCIAL_PARAMS.exchangeRate);
     setParam('energyCost',   DEFAULT_FINANCIAL_PARAMS.energyCost);
     MEASURE_KEYS.forEach(k => setUnitCost(k, DEFAULT_FINANCIAL_PARAMS.unitCosts[k] ?? 0));
     setParam('scoreConfig', DEFAULT_SCORE_CONFIG.map(c => ({ ...c })));
-    resetSavingsMatrix();
     notify('success', 'Parameters reset to programme defaults.');
   };
 

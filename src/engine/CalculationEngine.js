@@ -101,18 +101,6 @@ export function normalizeTypology(t) {
   return t;
 }
 
-/** Build a savings-rate matrix { [typology]: { [measure]: rate } } from TYPOLOGY_DEFAULTS */
-export function buildDefaultSavingsByTypology() {
-  const out = {};
-  for (const [typ, def] of Object.entries(TYPOLOGY_DEFAULTS)) {
-    out[typ] = {};
-    for (const k of MEASURE_KEYS_EE) {
-      out[typ][k] = def[k]?.savingsRate ?? 0;
-    }
-  }
-  return out;
-}
-
 export const DONOR_MARKERS = ['GIZ', 'KfW', 'USAID', 'EU', 'World Bank', 'EBRD', 'AFD'];
 
 // ─── Core Calculation Functions ───────────────────────────────────────────────
@@ -198,15 +186,14 @@ export function calculateCapex(measures, area) {
  * params.others — additional funding source (JOD)
  */
 export function calculateBuilding({ building, measures, params }) {
-  const { area, baselineEUI, typology } = building;
-  const { currency, exchangeRate, energyCost, savingsByTypology } = params;
+  const { area, baselineEUI } = building;
+  const { currency, exchangeRate, energyCost } = params;
   // Read per-building funding values — NOT from global params (which don't store them)
-  const afdLoan      = building.afdLoan      ?? 0;
+  const afdLoan        = building.afdLoan        ?? 0;
   const nationalBudget = building.nationalBudget ?? 0;
-  const others       = building.others       ?? 0;
+  const others         = building.others         ?? 0;
 
-  // No automatic typology-based savings override — savings rates are now user-driven only.
-  void savingsByTypology;
+  // Savings rates are user-driven only — no automatic typology-based override.
   const measuresWithTyp = measures;
 
   const { measures: synMeasures, synergyApplied } = applyThermalSynergy(measuresWithTyp);
@@ -560,31 +547,6 @@ export function calculateScore(building, calc, scoreConfig = DEFAULT_SCORE_CONFI
 
   const total = Math.round(breakdown.reduce((s, b) => s + b.pts, 0));
   return { total, breakdown };
-}
-
-export function suggestDefaults(typology) {
-  return TYPOLOGY_DEFAULTS[typology] || null;
-}
-
-export function parseEdgeExport(content, fileType) {
-  if (fileType === 'json') {
-    try { const p = JSON.parse(content); return Array.isArray(p) ? p : [p]; }
-    catch { return null; }
-  }
-  if (fileType === 'csv') {
-    const lines = content.trim().split(/\r?\n/);
-    if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    return lines.slice(1).map(line => {
-      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-      return headers.reduce((obj, h, i) => {
-        const raw = vals[i];
-        obj[h] = raw === '' ? null : isNaN(Number(raw)) ? raw : Number(raw);
-        return obj;
-      }, {});
-    });
-  }
-  return null;
 }
 
 export function aggregateKPIs(results) {
