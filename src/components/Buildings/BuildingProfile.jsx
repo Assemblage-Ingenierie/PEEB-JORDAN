@@ -179,11 +179,12 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
   const synergy = synApplied && measureKey === 'hvac';
   const locked  = meta.lockSavings;
   const hasArea = typeof area === 'number' && area > 0;
-  // Selected = neutral grey-block with black border; the icon keeps the family hue (RE = orange, GR = violet).
+  // Selected palette: RE keeps the orange family, everything else uses the neutral
+  // grey-block with black border.
   const isRE       = measureKey === 'pv' || measureKey === 'solarThermal';
   const iconColor  = locked ? 'var(--ai-violet)' : isRE ? '#e69138' : 'var(--ai-rouge)';
-  const selBorder  = '#1a1a1a';
-  const selTint    = 'var(--ai-gris-clair)';
+  const selBorder  = isRE ? '#e69138'            : '#1a1a1a';
+  const selTint    = isRE ? '#fbeed7'            : 'var(--ai-gris-clair)';
 
   // Derived total: capex × area, OR the stored absolute when area is missing
   const totalVal = hasArea
