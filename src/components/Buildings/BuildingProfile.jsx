@@ -179,6 +179,10 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
   const synergy = synApplied && measureKey === 'hvac';
   const locked  = meta.lockSavings;
   const hasArea = typeof area === 'number' && area > 0;
+  const isRE    = measureKey === 'pv' || measureKey === 'solarThermal';
+  // Accent palette: RE = orange #e69138, GR = violet (locked), default = red
+  const accentColor = locked ? 'var(--ai-violet)' : isRE ? '#e69138' : 'var(--ai-rouge)';
+  const accentTint  = locked ? 'rgba(48,50,62,.06)' : isRE ? '#fbeed7' : 'var(--ai-rouge-clair)';
 
   // Derived total: capex × area, OR the stored absolute when area is missing
   const totalVal = hasArea
@@ -197,21 +201,21 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
   return (
     <div className="rounded-xl transition-all"
       style={{
-        border:     `1px solid ${measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-gris)'}`,
-        background: measure.selected ? (locked ? 'rgba(48,50,62,.06)' : 'var(--ai-rouge-clair)') : 'white',
+        border:     `1px solid ${measure.selected ? accentColor : 'var(--ai-gris)'}`,
+        background: measure.selected ? accentTint : 'white',
       }}>
       <div className="flex items-center gap-2 p-3">
         <button onClick={() => toggleMeasure(buildingId, measureKey)}
           className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
           style={{
-            background: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'white',
+            background: measure.selected ? accentColor : 'white',
             border: measure.selected ? 'none' : '2px solid var(--ai-gris)',
           }}>
           {measure.selected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
         </button>
 
         <Icon className="w-4 h-4 flex-shrink-0"
-          style={{ color: measure.selected ? (locked ? 'var(--ai-violet)' : 'var(--ai-rouge)') : 'var(--ai-noir70)' }} />
+          style={{ color: measure.selected ? accentColor : 'var(--ai-noir70)' }} />
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate" style={{ color: 'var(--ai-violet)' }}>
