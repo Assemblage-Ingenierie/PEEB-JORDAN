@@ -252,17 +252,20 @@ export function calculateBuilding({ building, measures, params }) {
   const toDisplay = (jod) =>
     currency === 'EUR' ? +(jod * exchangeRate).toFixed(2) : jod;
 
-  // PV is treated as a "complementary" gain layered on top of the resolved EE gain.
-  const { pv: gainPV } = calculateGainSplit(measuresWithTyp);
-  const gainTotal = +(
-    (1 - (1 - energyGain / 100) * (1 - gainPV / 100)) * 100
-  ).toFixed(2);
+  // PV's "complementary" gain expressed against the baseline consumption.
+  //   user input q  = PV production as a share of the project (post-EE) consumption
+  //   Z (display)   = q × (1 − EE/100) × 100  → share of the baseline consumption
+  //   Total Gain    = EE + Z  (additive once Z is in baseline-share units;
+  //                            equivalent to the compound 1 − (1 − EE)(1 − q))
+  const { pv: pvQpct } = calculateGainSplit(measuresWithTyp);
+  const gainPV    = +(pvQpct * (1 - energyGain / 100)).toFixed(2);
+  const gainTotal = +Math.min(100, energyGain + gainPV).toFixed(2);
 
   return {
     energyGain,
     gainEE:    energyGain,   // headline EE gain = resolved Total Energy Saving
-    gainPV,                  // PV-only (complementary)
-    gainTotal,               // compound of EE and PV
+    gainPV,                  // complementary PV gain expressed against baseline
+    gainTotal,               // EE + complementary PV (capped at 100%)
     tier,
     synergyApplied,
     synMeasures,

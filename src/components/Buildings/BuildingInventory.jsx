@@ -33,7 +33,7 @@ const SECTION_DEFS = [
   {
     key: 'audit',
     label: 'Audit Data',
-    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','gainEE','calc','gainPV'],
+    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','gainEE','gainPV','calc'],
   },
   {
     key: 'progress',
