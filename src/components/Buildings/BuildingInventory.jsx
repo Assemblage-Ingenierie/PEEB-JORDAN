@@ -4,7 +4,7 @@ import {
   Upload, AlertTriangle, Ban, ChevronDown,
   Layers, Square, Wind, Lightbulb, Sun, Droplets,
   Building2, ShieldCheck, Check, SlidersHorizontal,
-  Plus, FileSpreadsheet, Download,
+  Plus, FileSpreadsheet, Download, FileText,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -333,9 +333,20 @@ function buildColumns(params) {
       key: 'existingAudit', label: 'Existing\nAudit', width: 70, sortable: true, type: 'meta', align: 'center',
       filterable: true, filterType: 'select', filterOptions: ['Yes', 'No'],
       title: 'Existing energy audit — edit in building profile',
-      render: b => b.existingAudit
-        ? <Check className="w-4 h-4 mx-auto" style={{ color: '#9ca3af' }} />
-        : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
+      render: b => {
+        if (!b.existingAudit) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        if (b.auditFileUrl) {
+          return (
+            <a href={b.auditFileUrl} target="_blank" rel="noreferrer"
+              onClick={e => e.stopPropagation()}
+              title={`Open audit file: ${b.auditFileUrl}`}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText className="w-4 h-4" style={{ color: 'var(--ai-violet)' }} />
+            </a>
+          );
+        }
+        return <Check className="w-4 h-4 mx-auto" style={{ color: '#9ca3af' }} />;
+      },
     },
     {
       key: 'author', label: 'Author', width: 90, sortable: true, type: 'meta',
@@ -444,14 +455,12 @@ function buildColumns(params) {
     },
     {
       key: 'calc', label: 'Total\nGain %', width: 70, sortable: true, type: 'meta', align: 'center',
-      title: 'Total energy gain (override / Baseline−Project / compound EE)',
+      title: 'Total energy gain — driven by the building profile\'s Total Energy Saving block',
       render: b => {
         const gain = b.calc?.energyGain;
         if (gain == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
-        const TIER_GREY = { slate: '#c0c0c0', amber: '#989898', blue: '#606060', green: '#303030', purple: '#101010' };
-        const grey = TIER_GREY[b.calc?.tier?.color ?? 'slate'];
         return (
-          <span className="font-bold" style={{ color: grey }} title={b.calc?.tier?.label ?? ''}>
+          <span className="font-bold" style={{ color: '#1a1a1a' }} title={b.calc?.tier?.label ?? ''}>
             {gain.toFixed(1)}%
           </span>
         );

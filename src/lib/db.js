@@ -47,6 +47,11 @@ function dbToJs(row) {
     gainOverride:       row.gain_override      ?? null,
     designProgress:     row.design_progress    ?? null,
     worksProgress:      row.works_progress     ?? null,
+    existingAudit:      row.existing_audit     ?? false,
+    auditAuthor:        row.audit_author       ?? '',
+    auditDate:          row.audit_date         ?? '',
+    auditFileUrl:       row.audit_file_url     ?? '',
+    source:             row.source             ?? null,
     measures:           row.measures         ?? {},
   };
 }
@@ -84,6 +89,11 @@ function jsToDB(b) {
     gain_override:       b.gainOverride       ?? null,
     design_progress:     b.designProgress     ?? null,
     works_progress:      b.worksProgress      ?? null,
+    existing_audit:      b.existingAudit      ?? false,
+    audit_author:        b.auditAuthor        ?? '',
+    audit_date:          b.auditDate          ?? '',
+    audit_file_url:      b.auditFileUrl       ?? '',
+    source:              b.source             ?? null,
     measures:            b.measures           ?? {},
   };
 }

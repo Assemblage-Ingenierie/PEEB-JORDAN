@@ -7,7 +7,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
+import { MEASURE_META, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
 
 // ─── Typology palette (kept in sync with BuildingInventory.TYPOLOGY_DISPLAY) ──
 export const TYPOLOGY_BADGE = {
@@ -1059,6 +1059,13 @@ export default function BuildingProfile() {
                       value={b.auditDate || ''}
                       onChange={e => updateBuilding(b.id, { auditDate: e.target.value })} />
                   </div>
+                  <div>
+                    <label className="label">File</label>
+                    <input type="url" className="input"
+                      value={b.auditFileUrl || ''}
+                      onChange={e => updateBuilding(b.id, { auditFileUrl: e.target.value })}
+                      placeholder="https://drive.google.com/…" />
+                  </div>
                 </div>
               )}
 
@@ -1119,12 +1126,21 @@ export default function BuildingProfile() {
 
           <Section title="Measures — Energy Efficiency">
             <div className="space-y-2">
-              {MEASURE_KEYS_EE.map(key => (
+              {MEASURE_KEYS_EE_CORE.map(key => (
                 <MeasureRow key={key} buildingId={b.id} measureKey={key}
                   measure={b.measures[key]} synApplied={false} area={b.area} />
               ))}
             </div>
             <TotalEnergySaving building={b} />
+          </Section>
+
+          <Section title="Measures — Renewable Energies">
+            <div className="space-y-2">
+              {MEASURE_KEYS_RE.map(key => (
+                <MeasureRow key={key} buildingId={b.id} measureKey={key}
+                  measure={b.measures[key]} synApplied={false} area={b.area} />
+              ))}
+            </div>
           </Section>
 
           <Section title="Measures — Global Refurbishment">

@@ -18,6 +18,12 @@ export const FUNDING_TIERS = [
 /** EE measures — contribute to energy gain & PEEB grant */
 export const MEASURE_KEYS_EE = ['insulation', 'windows', 'hvac', 'lighting', 'pv', 'solarThermal'];
 
+/** EE core measures (Energy Efficiency excluding renewables) — UI grouping only */
+export const MEASURE_KEYS_EE_CORE = ['insulation', 'windows', 'hvac', 'lighting'];
+
+/** Renewable energy measures — UI grouping; still part of MEASURE_KEYS_EE for calc */
+export const MEASURE_KEYS_RE = ['pv', 'solarThermal'];
+
 /** Global Refurbishment measures — 0% energy savings, non-EE capex, eligible for AFD */
 export const MEASURE_KEYS_GR = ['structure', 'accessibility', 'hygieneAndSecurity'];
 
