@@ -246,6 +246,10 @@ export default function NewBuilding() {
           </Section>
 
           <Section title="Measures — Energy Efficiency">
+            <p className="text-xs mb-2" style={{ color: 'var(--ai-noir70)' }}>
+              The % next to each measure is its <strong>share of the total energy savings</strong>.
+              Shares across selected EE measures should add up to 100%.
+            </p>
             <div className="space-y-2">
               {MEASURE_KEYS_EE_CORE.map(key => (
                 <MeasureRow key={key} buildingId={draft.id} measureKey={key}
@@ -256,6 +260,9 @@ export default function NewBuilding() {
           </Section>
 
           <Section title="Measures — Renewable Energies">
+            <p className="text-xs mb-2" style={{ color: 'var(--ai-noir70)' }}>
+              The % next to each measure is its production <strong>as a share of the project (post-EE) consumption</strong>.
+            </p>
             <div className="space-y-2">
               {MEASURE_KEYS_RE.map(key => (
                 <MeasureRow key={key} buildingId={draft.id} measureKey={key}

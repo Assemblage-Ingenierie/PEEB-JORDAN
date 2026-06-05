@@ -5,7 +5,7 @@
 
 import XLSX from 'xlsx-js-style';
 import {
-  MEASURE_KEYS, MEASURE_KEYS_EE, MEASURE_META, TYPOLOGY_DEFAULTS,
+  MEASURE_KEYS, MEASURE_KEYS_EE, MEASURE_KEYS_RE, MEASURE_META, TYPOLOGY_DEFAULTS,
 } from '../engine/CalculationEngine';
 
 // ─── Brand palette ───────────────────────────────────────────────────────────
@@ -34,33 +34,53 @@ const BORDER = {
 };
 
 // ─── Column schema ───────────────────────────────────────────────────────────
-// Building-level identity / meta fields.
-// required: shown as red badge on row 3; desc: shown on row 4.
-export const META_COLUMNS = [
-  { key: 'name',             label: 'Building name',              type: 'text',   required: true,  desc: 'Text — unique name for the building' },
-  { key: 'typology',         label: 'Building typology',          type: 'text',   required: true,  desc: 'School / Hospital / Administration / University' },
-  { key: 'governorate',      label: 'Governorate',                type: 'text',   required: true,  desc: 'Jordanian governorate (Amman, Zarqa, Irbid, etc.)' },
-  { key: 'region',           label: 'Region',                     type: 'text',   required: false, desc: 'North / Central / South — inferred from governorate if empty' },
-  { key: 'address',          label: 'Address',                    type: 'text',   required: false, desc: 'Full street address' },
-  { key: 'area',             label: 'Floor area (m²)',            type: 'number', required: true,  desc: 'Total floor area in square meters' },
-  { key: 'yearBuilt',        label: 'Year built',                 type: 'number', required: false, desc: 'Year of construction' },
-  { key: 'floors',           label: 'Number of floors',           type: 'number', required: false, desc: 'Number of above-ground floors' },
-  { key: 'baselineEUI',      label: 'Baseline EUI (kWh/m²/yr)',   type: 'number', required: false, desc: 'Energy Use Intensity — if empty, uses typology default' },
-  { key: 'operatingHours',   label: 'Operating hours',            type: 'text',   required: false, desc: 'Typical weekly operating schedule' },
-  { key: 'lat',              label: 'Latitude',                   type: 'number', required: false, desc: 'GPS latitude (decimal degrees)' },
-  { key: 'lng',              label: 'Longitude',                  type: 'number', required: false, desc: 'GPS longitude (decimal degrees)' },
-  { key: 'existingAudit',    label: 'Existing audit',             type: 'boolean', required: false, desc: 'Yes / No — whether an energy audit has been performed' },
-  { key: 'auditAuthor',      label: 'Audit author',               type: 'text',   required: false, desc: 'Name or organisation that conducted the audit' },
-  { key: 'auditDate',        label: 'Audit date',                 type: 'text',   required: false, desc: 'Date of the audit — YYYY-MM-DD format (e.g. 2024-03-15)' },
-  { key: 'auditFileUrl',     label: 'Audit file URL',             type: 'text',   required: false, desc: 'URL to the audit PDF (e.g. Google Drive link)' },
-  { key: 'fundingSource',    label: 'Existing funding source',    type: 'text',   required: false, desc: 'Fills automatically excludes building from PEEB grant (e.g. KfW, JREEEF, AFD…)' },
-  { key: 'siteObservations', label: 'Site observations',          type: 'text',   required: false, desc: 'Free notes from site visit' },
-  { key: 'totalBaselineKwh', label: 'Total baseline (kWh/yr)',    type: 'number', required: false, desc: 'Total baseline energy consumption (kWh/yr)' },
-  { key: 'totalProjectKwh',  label: 'Total project (kWh/yr)',     type: 'number', required: false, desc: 'Total post-works energy consumption (kWh/yr)' },
-  { key: 'gainOverride',     label: 'Energy gain override (%)',   type: 'number', required: false, desc: 'Manual override for energy savings % (leave empty for auto)' },
-  { key: 'designProgress',   label: 'Design progress',            type: 'text',   required: false, desc: 'ongoing / completed (empty = not started)' },
-  { key: 'worksProgress',    label: 'Works progress',             type: 'text',   required: false, desc: 'ongoing / completed (empty = not started)' },
+// The export is structured in three vertical sections mirroring the building
+// profile layout: General Information / Refurbishment Program / Investment.
+
+const GENERAL_COLUMNS = [
+  { key: 'name',             label: 'Building name',              type: 'text',   desc: 'Unique name for the building' },
+  { key: 'typology',         label: 'Building typology',          type: 'text',   desc: 'School / Hospital / Administration / University' },
+  { key: 'governorate',      label: 'Governorate',                type: 'text',   desc: 'Jordanian governorate (Amman, Zarqa, Irbid, …)' },
+  { key: 'region',           label: 'Region',                     type: 'text',   desc: 'North / Central / South — inferred from governorate if empty' },
+  { key: 'address',          label: 'Address',                    type: 'text',   desc: 'Full street address' },
+  { key: 'area',             label: 'Floor area (m²)',            type: 'number', desc: 'Total floor area in m²' },
+  { key: 'yearBuilt',        label: 'Year built',                 type: 'number', desc: 'Year of construction' },
+  { key: 'floors',           label: 'Number of floors',           type: 'number', desc: 'Number of above-ground floors' },
+  { key: 'baselineEUI',      label: 'Baseline EUI (kWh/m²/yr)',   type: 'number', desc: 'Energy Use Intensity (kWh/m²/yr)' },
+  { key: 'operatingHours',   label: 'Operating hours',            type: 'text',   desc: 'Typical weekly operating schedule' },
+  { key: 'lat',              label: 'Latitude',                   type: 'number', desc: 'GPS latitude (decimal degrees)' },
+  { key: 'lng',              label: 'Longitude',                  type: 'number', desc: 'GPS longitude (decimal degrees)' },
+  { key: 'existingAudit',    label: 'Existing audit',             type: 'boolean', desc: 'Yes / No — energy audit performed?' },
+  { key: 'auditAuthor',      label: 'Audit author',               type: 'text',   desc: 'Name or organisation that conducted the audit' },
+  { key: 'auditDate',        label: 'Audit date',                 type: 'text',   desc: 'YYYY-MM-DD' },
+  { key: 'auditFileUrl',     label: 'Audit file URL',             type: 'text',   desc: 'URL to the audit PDF (Google Drive link, etc.)' },
+  { key: 'fundingSource',    label: 'Existing funding source',    type: 'text',   desc: 'Any non-empty value excludes the building from PEEB grant' },
+  { key: 'siteObservations', label: 'Site observations',          type: 'text',   desc: 'Free notes from site visit' },
 ];
+
+const REFURBISHMENT_COLUMNS_HEAD = [
+  { key: 'totalBaselineKwh', label: 'Total baseline (kWh/yr)',    type: 'number', desc: 'Total baseline energy consumption (kWh/yr)' },
+  { key: 'totalProjectKwh',  label: 'Total project (kWh/yr)',     type: 'number', desc: 'Total post-works energy consumption (kWh/yr)' },
+  { key: 'gainOverride',     label: 'Energy gain override (%)',   type: 'number', desc: 'Manual override for total energy savings %' },
+  { key: 'designProgress',   label: 'Design progress',            type: 'text',   desc: 'ongoing / completed (empty = not started)' },
+  { key: 'worksProgress',    label: 'Works progress',             type: 'text',   desc: 'ongoing / completed (empty = not started)' },
+];
+
+const INVESTMENT_COLUMNS = [
+  { key: 'priority',           label: 'Political priority',        type: 'text',    desc: 'High / Medium / Low' },
+  { key: 'peebSelected',       label: 'PEEB selected',             type: 'boolean', desc: 'Yes / No — included in the PEEB programme' },
+  { key: 'manuallyIneligible', label: 'Manually ineligible',       type: 'boolean', desc: 'Yes / No — manually excluded from PEEB grant' },
+  { key: 'afdLoan',            label: 'AFD loan (JOD)',            type: 'number',  desc: 'AFD loan portion of remaining-to-finance' },
+  { key: 'nationalBudget',     label: 'National budget (JOD)',     type: 'number',  desc: 'National budget portion of remaining-to-finance' },
+  { key: 'others',             label: 'Others (JOD)',              type: 'number',  desc: 'Other funding sources' },
+];
+
+function savingsDescFor(key) {
+  if (MEASURE_KEYS_RE.includes(key)) {
+    return 'Renewable production as a share of the project (post-EE) consumption — value between 0 and 1';
+  }
+  return 'Share of the total energy savings attributable to this measure — value between 0 and 1';
+}
 
 // Per-measure columns — EE measures get capex + savings, all get selected + notes.
 export function measureColumns() {
@@ -70,37 +90,46 @@ export function measureColumns() {
     const isEE = MEASURE_KEYS_EE.includes(key);
     cols.push({
       key: `${key}_selected`, measure: key, field: 'selected',
-      label: meta.short, type: 'boolean', required: false,
-      desc: `${meta.short} — Yes / No (1/0, true/false).`,
+      label: `${meta.short} — selected`, type: 'boolean',
+      desc: 'Yes / No — measure included in the refurbishment plan',
     });
     cols.push({
       key: `${key}_capex`, measure: key, field: 'capex',
-      label: `${meta.short} CAPEX (JOD/m²)`, type: 'number', required: false,
+      label: `${meta.short} — CAPEX (JOD/m²)`, type: 'number',
       desc: 'Unit cost in JOD/m². Used when the building area is set.',
     });
     cols.push({
       key: `${key}_capex_total`, measure: key, field: 'capexAbsolute',
-      label: `${meta.short} CAPEX total (JOD)`, type: 'number', required: false,
-      desc: 'Absolute CAPEX in JOD. Used when the building area is missing; otherwise derived from JOD/m².',
+      label: `${meta.short} — CAPEX total (JOD)`, type: 'number',
+      desc: 'Absolute CAPEX in JOD. Used when the area is missing; otherwise derived from JOD/m².',
     });
     if (isEE) {
       cols.push({
         key: `${key}_savings`, measure: key, field: 'savingsRate',
-        label: `${meta.short} savings rate`, type: 'number', required: false,
-        desc: 'Energy savings fraction between 0 and 1 (e.g. 0.18 = 18%).',
+        label: `${meta.short} — share %`, type: 'number',
+        desc: savingsDescFor(key),
       });
     }
     cols.push({
       key: `${key}_notes`, measure: key, field: 'notes',
-      label: `${meta.short} notes`, type: 'text', required: false,
-      desc: 'Free text — scope, constraints, brands.',
+      label: `${meta.short} — notes`, type: 'text',
+      desc: 'Free text — scope, constraints, brands',
     });
   }
   return cols;
 }
 
+// Three-section grouping for header banners
+export function sectionedColumns() {
+  return [
+    { key: 'general',       label: 'General Information',    cols: GENERAL_COLUMNS },
+    { key: 'refurbishment', label: 'Refurbishment Program',  cols: [...REFURBISHMENT_COLUMNS_HEAD, ...measureColumns()] },
+    { key: 'investment',    label: 'Investment',             cols: INVESTMENT_COLUMNS },
+  ];
+}
+
 export function allColumns() {
-  return [...META_COLUMNS, ...measureColumns()];
+  return sectionedColumns().flatMap(s => s.cols);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -136,6 +165,14 @@ function cellRef(r, c) {
 }
 
 // ─── Styling primitives ──────────────────────────────────────────────────────
+// Section banner — bold white on accent red.
+const STYLE_SECTION_BANNER = {
+  font: { name: 'Arial', sz: 11, bold: true, color: { rgb: COLOR.white } },
+  fill: { fgColor: { rgb: COLOR.accentRed }, patternType: 'solid' },
+  alignment: { horizontal: 'center', vertical: 'center' },
+  border: BORDER,
+};
+
 // Row 1: dev keys — tiny, faint, so users don't touch them.
 const STYLE_DEV_KEYS = {
   font: { name: 'Arial', sz: 8, color: { rgb: COLOR.greyFaint } },
@@ -199,39 +236,53 @@ const STYLE_SHEET_BODY = {
   alignment: { horizontal: 'left', vertical: 'top', wrapText: true },
 };
 
-// ─── Apply the 4-row header + column widths + freeze pane ───────────────────
-function writeHeaderBlock(ws, cols) {
-  for (let c = 0; c < cols.length; c++) {
-    const col = cols[c];
-    const r1 = cellRef(0, c);
-    const r2 = cellRef(1, c);
-    const r3 = cellRef(2, c);
-    const r4 = cellRef(3, c);
+// ─── Apply the 4-row header + section banners + freeze pane ─────────────────
+// Rows:
+//   0 — section banners (merged across each section's columns)
+//   1 — dev keys (tiny)
+//   2 — column labels (bold white on violet)
+//   3 — descriptions
+function writeHeaderBlock(ws, sections) {
+  const flat = sections.flatMap(s => s.cols);
 
-    ws[r1] = { t: 's', v: col.key };
-    ws[r2] = { t: 's', v: col.label };
-    ws[r3] = { t: 's', v: col.required ? 'Required' : 'Optional' };
-    ws[r4] = { t: 's', v: col.desc || '' };
+  // Row 0: section banners with merged cells
+  const merges = [];
+  let cursor = 0;
+  for (const section of sections) {
+    if (!section.cols.length) continue;
+    const startCol = cursor;
+    const endCol = cursor + section.cols.length - 1;
+    const bannerRef = cellRef(0, startCol);
+    ws[bannerRef] = { t: 's', v: section.label, s: STYLE_SECTION_BANNER };
+    // Fill the rest of the merged span with empty styled cells so borders render
+    for (let c = startCol + 1; c <= endCol; c++) {
+      ws[cellRef(0, c)] = { t: 's', v: '', s: STYLE_SECTION_BANNER };
+    }
+    merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: endCol } });
+    cursor = endCol + 1;
+  }
+  ws['!merges'] = merges;
 
-    ws[r1].s = STYLE_DEV_KEYS;
-    ws[r2].s = STYLE_MAIN_LABEL;
-    ws[r3].s = col.required ? STYLE_REQUIRED : STYLE_OPTIONAL;
-    ws[r4].s = STYLE_DESCRIPTION;
+  // Rows 1–3: per-column header content
+  for (let c = 0; c < flat.length; c++) {
+    const col = flat[c];
+    ws[cellRef(1, c)] = { t: 's', v: col.key,            s: STYLE_DEV_KEYS };
+    ws[cellRef(2, c)] = { t: 's', v: col.label,          s: STYLE_MAIN_LABEL };
+    ws[cellRef(3, c)] = { t: 's', v: col.desc || '',     s: STYLE_DESCRIPTION };
   }
 
   ws['!rows'] = [
-    { hpt: 12 },   // row 1 (keys) — small
-    { hpt: 30 },   // row 2 (main label) — tall
-    { hpt: 18 },   // row 3 (badge)
-    { hpt: 36 },   // row 4 (description)
+    { hpt: 22 },   // row 0 (section banner)
+    { hpt: 12 },   // row 1 (dev keys)
+    { hpt: 30 },   // row 2 (label)
+    { hpt: 36 },   // row 3 (description)
   ];
 
-  // Column widths — based on label length, clamped.
-  ws['!cols'] = cols.map(c => ({
+  ws['!cols'] = flat.map(c => ({
     wch: Math.max(14, Math.min(34, Math.max(c.label.length, (c.desc || '').length / 3) + 2)),
   }));
 
-  // Freeze below row 4 so data scrolls under a fixed header.
+  // Freeze below row 4 (after the 4 header rows) so data scrolls under a fixed header.
   ws['!freeze'] = { xSplit: 1, ySplit: 4 };
   ws['!views'] = [{ state: 'frozen', xSplit: 1, ySplit: 4 }];
 }
@@ -242,84 +293,39 @@ function recomputeRef(ws, nRows, nCols) {
   ws['!ref'] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: nRows - 1, c: nCols - 1 } });
 }
 
-// ─── Typology defaults sheet ────────────────────────────────────────────────
-function buildTypologySheet() {
-  const X = XLSX;
-  const keys = MEASURE_KEYS;
-  const header = ['Typology', 'Baseline EUI', ...keys.flatMap(k => {
-    const s = MEASURE_META[k].short;
-    const isEE = MEASURE_KEYS_EE.includes(k);
-    return isEE ? [`${s} CAPEX`, `${s} savings`] : [`${s} CAPEX`];
-  })];
-
-  const rows = [header];
-  for (const [typ, def] of Object.entries(TYPOLOGY_DEFAULTS)) {
-    const row = [typ, def.baselineEUI ?? ''];
-    for (const k of keys) {
-      row.push(def[k]?.capex ?? '');
-      if (MEASURE_KEYS_EE.includes(k)) row.push(def[k]?.savingsRate ?? '');
-    }
-    rows.push(row);
-  }
-
-  const ws = X.utils.aoa_to_sheet(rows);
-  ws['!cols'] = header.map(h => ({ wch: Math.max(12, h.length + 2) }));
-  ws['!rows'] = [{ hpt: 28 }];
-  ws['!freeze'] = { xSplit: 1, ySplit: 1 };
-  ws['!views']  = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
-
-  for (let c = 0; c < header.length; c++) {
-    const ref = cellRef(0, c);
-    if (ws[ref]) ws[ref].s = STYLE_MAIN_LABEL;
-  }
-  for (let r = 1; r < rows.length; r++) {
-    for (let c = 0; c < header.length; c++) {
-      const ref = cellRef(r, c);
-      if (!ws[ref]) continue;
-      const isZebra = (r % 2) === 0;
-      ws[ref].s = styleData({ type: c === 0 ? 'text' : 'number' }, isZebra);
-    }
-  }
-  return ws;
-}
-
 // ─── Instructions sheet ─────────────────────────────────────────────────────
 function buildInstructionsSheet() {
   const X = XLSX;
   const lines = [
-    ['PEEB Med Jordan — Import template'],
+    ['PEEB Med Jordan — Buildings export'],
     [''],
-    ['How to fill the Buildings sheet'],
-    ['Row 1 holds the technical column keys. Do not edit — they drive the import.'],
-    ['Row 2 holds human-readable labels. Row 3 marks each column as Required or Optional. Row 4 gives a short description.'],
-    ['Start entering buildings from row 5, one building per row.'],
-    [''],
-    ['Required identity fields'],
-    ['• name — unique building name, used to generate its ID.'],
-    [`• typology — one of: ${Object.keys(TYPOLOGY_DEFAULTS).join(', ')}.`],
-    ['• governorate — Jordanian governorate.'],
-    ['• area — total floor area in m².'],
-    [''],
-    ['Optional fields'],
-    ['• Empty cells fall back to the typology default (baselineEUI, measure CAPEX / savings).'],
-    ['• On import, missing values stay visible in the app and are highlighted as incomplete data.'],
-    ['• existingAudit — Yes/No. If Yes, auditAuthor is shown in the inventory table.'],
-    ['• fundingSource — any non-empty value automatically excludes the building from PEEB grant eligibility.'],
+    ['Sheet layout'],
+    ['The Buildings sheet has 4 header rows:'],
+    ['• Row 1 — section banner (General Information / Refurbishment Program / Investment)'],
+    ['• Row 2 — technical column keys (do not edit; they drive the import)'],
+    ['• Row 3 — human-readable labels'],
+    ['• Row 4 — short description'],
+    ['Building rows start at row 5.'],
     [''],
     ['Per-measure columns'],
-    ['• <measure>_selected — Yes / No / 1 / 0 / true / false.'],
-    ['• <measure>_capex — unit cost in JOD/m².'],
-    ['• <measure>_savings — savings rate between 0 and 1 (EE measures only).'],
-    ['• <measure>_notes — free text.'],
+    ['• <measure>_selected — Yes / No / 1 / 0 / true / false'],
+    ['• <measure>_capex — unit cost in JOD/m²'],
+    ['• <measure>_capex_total — absolute CAPEX in JOD'],
+    ['• <measure>_savings — value 0 to 1'],
+    ['     For EE core measures (insulation, windows, hvac, lighting): share of the total energy savings.'],
+    ['     For renewable measures (PV, solar thermal): production as a share of the project consumption.'],
+    ['• <measure>_notes — free text'],
     [''],
-    ['See the Typology Defaults sheet for per-typology baselines and measure defaults.'],
+    ['Notes'],
+    ['• Empty cells are left blank — no automatic defaults are applied.'],
+    ['• existingAudit "Yes" enables auditAuthor, auditDate and auditFileUrl.'],
+    ['• fundingSource set to a non-empty value automatically excludes the building from PEEB grant.'],
   ];
   const ws = X.utils.aoa_to_sheet(lines);
   ws['!cols'] = [{ wch: 110 }];
 
-  // Title / section headings styling.
   ws['A1'].s = STYLE_SHEET_TITLE;
-  const sectionRows = [2, 7, 13, 17]; // 0-based indices for "How to fill", "Required identity fields", "Optional fields", "Per-measure columns"
+  const sectionRows = [2, 10, 19];
   for (const r of sectionRows) {
     const ref = cellRef(r, 0);
     if (ws[ref]) ws[ref].s = STYLE_SHEET_SUBTITLE;
@@ -331,18 +337,18 @@ function buildInstructionsSheet() {
   return ws;
 }
 
-// ─── Template: empty Buildings sheet + Typology + Instructions ──────────────
+// ─── Template: empty Buildings sheet + Instructions ─────────────────────────
 export function downloadTemplate() {
   const X = XLSX;
-  const cols = allColumns();
+  const sections = sectionedColumns();
+  const flat = sections.flatMap(s => s.cols);
 
   const wsBuildings = {};
-  writeHeaderBlock(wsBuildings, cols);
-  recomputeRef(wsBuildings, 4, cols.length);
+  writeHeaderBlock(wsBuildings, sections);
+  recomputeRef(wsBuildings, 4, flat.length);
 
   const wb = X.utils.book_new();
-  X.utils.book_append_sheet(wb, wsBuildings,            'Buildings');
-  X.utils.book_append_sheet(wb, buildTypologySheet(),   'Typology Defaults');
+  X.utils.book_append_sheet(wb, wsBuildings,              'Buildings');
   X.utils.book_append_sheet(wb, buildInstructionsSheet(), 'Instructions');
   X.writeFile(wb, 'peeb-buildings-template.xlsx');
 }
@@ -350,29 +356,33 @@ export function downloadTemplate() {
 // ─── Export the live database ───────────────────────────────────────────────
 export function exportBuildings(buildings) {
   const X = XLSX;
-  const cols = allColumns();
+  const sections = sectionedColumns();
+  const flat = sections.flatMap(s => s.cols);
 
   const ws = {};
-  writeHeaderBlock(ws, cols);
+  writeHeaderBlock(ws, sections);
 
-  // Data rows start at row 5 (index 4).
+  // Data rows start at row 5 (index 4) — header is 4 rows.
   const DATA_START = 4;
+  const formatBool = (v) => v === true ? 'Yes' : v === false ? 'No' : '';
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
     const rowIdx = DATA_START + i;
     const isZebra = (i % 2) === 1;
 
-    for (let c = 0; c < cols.length; c++) {
-      const col = cols[c];
+    for (let c = 0; c < flat.length; c++) {
+      const col = flat[c];
       let raw;
       if (col.measure) {
         const m = b.measures?.[col.measure];
         if (!m) raw = '';
-        else if (col.field === 'selected')     raw = m.selected ? 'Yes' : 'No';
+        else if (col.field === 'selected')      raw = formatBool(!!m.selected);
         else if (col.field === 'savingsRate')   raw = m.savingsRate ?? '';
         else if (col.field === 'capex')         raw = m.capex ?? '';
         else if (col.field === 'capexAbsolute') raw = m.capexAbsolute ?? '';
         else if (col.field === 'notes')         raw = m.notes ?? '';
+      } else if (col.type === 'boolean') {
+        raw = formatBool(b[col.key]);
       } else {
         raw = b[col.key];
       }
@@ -387,7 +397,7 @@ export function exportBuildings(buildings) {
     }
   }
 
-  recomputeRef(ws, DATA_START + Math.max(buildings.length, 1), cols.length);
+  recomputeRef(ws, DATA_START + Math.max(buildings.length, 1), flat.length);
 
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, ws, 'Buildings');
@@ -405,16 +415,25 @@ export async function parseBuildingsFile(file) {
   const aoa = X.utils.sheet_to_json(ws, { header: 1, defval: '' });
   if (aoa.length < 2) return [];
 
-  // Row 1 is the technical keys. Rows 2–4 are header labels/badges/desc — skip them.
-  // Data starts on row 5 (index 4) in the new template. For backwards compatibility
-  // with older 2-row templates, we detect the first non-header row heuristically.
-  const header = (aoa[0] || []).map(h => String(h).trim());
+  // The export template has 4 header rows: section banner / keys / labels / description.
+  // Older templates put keys in row 0. Locate the technical-keys row by picking the row
+  // with the most matches against known column keys.
   const cols = allColumns();
+  const knownKeys = new Set(cols.map(c => c.key));
+  let keyRowIdx = 0;
+  let bestMatches = 0;
+  for (let r = 0; r < Math.min(aoa.length, 4); r++) {
+    const matches = (aoa[r] || []).reduce(
+      (acc, v) => acc + (typeof v === 'string' && knownKeys.has(v.trim()) ? 1 : 0),
+      0
+    );
+    if (matches > bestMatches) { bestMatches = matches; keyRowIdx = r; }
+  }
+  const header = (aoa[keyRowIdx] || []).map(h => String(h).trim());
   const keyToIdx = new Map(header.map((h, i) => [h, i]));
 
   // Find the first row that doesn't look like a header/description row.
-  // Heuristic: a data row has at least one value AND does not equal "Required"/"Optional" in the first col.
-  let startRow = 1;
+  let startRow = keyRowIdx + 1;
   while (startRow < aoa.length) {
     const row = aoa[startRow];
     const first = row && row[0] !== undefined ? String(row[0]).trim() : '';
