@@ -245,10 +245,10 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
 
         {!locked && (
           <>
-            <input type="number" min="0" max="100" step="1"
+            <input type="number" min="0" max="100" step="0.1"
               value={+(measure.savingsRate * 100).toFixed(1)}
               onChange={e => setMeasureValue(buildingId, measureKey, 'savingsRate', (parseFloat(e.target.value) || 0) / 100)}
-              className="w-12 input text-xs text-right py-1"
+              className="w-16 input text-xs text-right py-1"
               style={{ marginLeft: 16 }}
               title={isRE
                 ? 'Production as a share of the project (post-EE) consumption'
