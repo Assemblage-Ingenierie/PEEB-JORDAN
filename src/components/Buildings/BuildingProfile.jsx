@@ -31,7 +31,7 @@ export function ColHeader({ children }) {
   return (
     <div style={{
       fontSize: 14, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase',
-      color: 'var(--ai-violet)', opacity: 0.7,
+      color: 'var(--ai-violet)', opacity: 0.4,
       paddingBottom: 8, borderBottom: '2px solid var(--ai-gris)',
     }}>
       {children}
