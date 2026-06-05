@@ -244,12 +244,17 @@ export function calculateBuilding({ building, measures, params }) {
   const toDisplay = (jod) =>
     currency === 'EUR' ? +(jod * exchangeRate).toFixed(2) : jod;
 
-  const gainSplit = calculateGainSplit(measuresWithTyp);
+  // PV is treated as a "complementary" gain layered on top of the resolved EE gain.
+  const { pv: gainPV } = calculateGainSplit(measuresWithTyp);
+  const gainTotal = +(
+    (1 - (1 - energyGain / 100) * (1 - gainPV / 100)) * 100
+  ).toFixed(2);
 
   return {
     energyGain,
-    gainEE: gainSplit.ee,
-    gainPV: gainSplit.pv,
+    gainEE:    energyGain,   // headline EE gain = resolved Total Energy Saving
+    gainPV,                  // PV-only (complementary)
+    gainTotal,               // compound of EE and PV
     tier,
     synergyApplied,
     synMeasures,

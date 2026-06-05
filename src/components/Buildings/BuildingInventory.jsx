@@ -436,12 +436,16 @@ function buildColumns(params) {
           : <span style={{ color: 'var(--ai-gris)' }}>—</span>,
     },
     {
-      key: 'gainEE', label: 'EE\nGain %', width: 65, sortable: true, type: 'meta', align: 'center',
-      title: 'Energy efficiency gain (excluding PV) — compound from selected EE measures',
+      key: 'gainEE', label: 'EE\nGain %', width: 70, sortable: true, type: 'meta', align: 'center',
+      title: 'Energy efficiency gain — driven by the building profile\'s Total Energy Saving block; also drives the PEEB Tier',
       render: b => {
         const v = b.calc?.gainEE;
-        if (v == null || !(v > 0)) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
-        return <span style={{ color: 'var(--ai-noir70)' }}>{v.toFixed(1)}%</span>;
+        if (v == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        return (
+          <span className="font-bold" style={{ color: '#1a1a1a' }} title={b.calc?.tier?.label ?? ''}>
+            {v.toFixed(1)}%
+          </span>
+        );
       },
     },
     {
@@ -455,15 +459,11 @@ function buildColumns(params) {
     },
     {
       key: 'calc', label: 'Total\nGain %', width: 70, sortable: true, type: 'meta', align: 'center',
-      title: 'Total energy gain — driven by the building profile\'s Total Energy Saving block',
+      title: 'Total gain = compound of EE Gain and complementary PV Gain',
       render: b => {
-        const gain = b.calc?.energyGain;
-        if (gain == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
-        return (
-          <span className="font-bold" style={{ color: '#1a1a1a' }} title={b.calc?.tier?.label ?? ''}>
-            {gain.toFixed(1)}%
-          </span>
-        );
+        const v = b.calc?.gainTotal;
+        if (v == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
+        return <span style={{ color: 'var(--ai-noir70)' }}>{v.toFixed(1)}%</span>;
       },
     },
     {
@@ -747,7 +747,7 @@ export default function BuildingInventory() {
         let va, vb;
         switch (sort.col) {
           case 'score':         va = calculateScore(a, a.calc, params.scoreConfig).total; vb = calculateScore(b, b.calc, params.scoreConfig).total; break;
-          case 'calc':          va = a.calc?.energyGain ?? 0;   vb = b.calc?.energyGain ?? 0; break;
+          case 'calc':          va = a.calc?.gainTotal ?? 0;    vb = b.calc?.gainTotal ?? 0; break;
           case 'gainEE':        va = a.calc?.gainEE ?? 0;       vb = b.calc?.gainEE ?? 0; break;
           case 'gainPV':        va = a.calc?.gainPV ?? 0;       vb = b.calc?.gainPV ?? 0; break;
           case 'euiBefore':     va = a.baselineEUI ?? 0;        vb = b.baselineEUI ?? 0; break;
