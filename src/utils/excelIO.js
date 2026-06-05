@@ -61,7 +61,7 @@ const GENERAL_COLUMNS = [
 const REFURBISHMENT_COLUMNS_HEAD = [
   { key: 'totalBaselineKwh', label: 'Total baseline (kWh/yr)',    type: 'number', desc: 'Total baseline energy consumption (kWh/yr)' },
   { key: 'totalProjectKwh',  label: 'Total project (kWh/yr)',     type: 'number', desc: 'Total post-works energy consumption (kWh/yr)' },
-  { key: 'gainOverride',     label: 'Energy gain override (%)',   type: 'number', desc: 'Manual override for total energy savings %' },
+  { key: 'gainOverride',     label: 'Energy gain override (%)',   type: 'number', readOnly: true, desc: 'DO NOT FILL — derived automatically from Baseline − Project' },
   { key: 'designProgress',   label: 'Design progress',            type: 'text',   desc: 'ongoing / completed (empty = not started)' },
   { key: 'worksProgress',    label: 'Works progress',             type: 'text',   desc: 'ongoing / completed (empty = not started)' },
 ];
@@ -95,13 +95,13 @@ export function measureColumns() {
     });
     cols.push({
       key: `${key}_capex`, measure: key, field: 'capex',
-      label: `${meta.short} — CAPEX (JOD/m²)`, type: 'number',
-      desc: 'Unit cost in JOD/m². Used when the building area is set.',
+      label: `${meta.short} — CAPEX (JOD/m²)`, type: 'number', readOnly: true,
+      desc: 'DO NOT FILL — derived from CAPEX total ÷ floor area',
     });
     cols.push({
       key: `${key}_capex_total`, measure: key, field: 'capexAbsolute',
       label: `${meta.short} — CAPEX total (JOD)`, type: 'number',
-      desc: 'Absolute CAPEX in JOD. Used when the area is missing; otherwise derived from JOD/m².',
+      desc: 'Absolute CAPEX in JOD — the value to fill on import',
     });
     if (isEE) {
       cols.push({
@@ -188,6 +188,22 @@ const STYLE_MAIN_LABEL = {
   border: BORDER,
 };
 
+// Row 2 variant for read-only / derived columns — muted grey instead of violet.
+const STYLE_MAIN_LABEL_RO = {
+  font: { name: 'Arial', sz: 10, bold: true, italic: true, color: { rgb: COLOR.greyDark } },
+  fill: { fgColor: { rgb: COLOR.greyLight }, patternType: 'solid' },
+  alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+  border: BORDER,
+};
+
+// Row 4 variant for read-only — italic muted with red accent for the "DO NOT FILL" warning.
+const STYLE_DESCRIPTION_RO = {
+  font: { name: 'Arial', sz: 8, italic: true, bold: true, color: { rgb: COLOR.accentRed } },
+  fill: { fgColor: { rgb: COLOR.greyLight }, patternType: 'solid' },
+  alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
+  border: BORDER,
+};
+
 // Row 3 badges.
 const STYLE_REQUIRED = {
   font: { name: 'Arial', sz: 9, bold: true, color: { rgb: COLOR.accentRed } },
@@ -211,14 +227,22 @@ const STYLE_DESCRIPTION = {
   border: BORDER,
 };
 
-// Data rows — plain with light zebra tint on odd rows.
+// Data rows — plain with light zebra tint on odd rows; read-only columns get a grey fill + italic.
 function styleData(col, isZebra) {
   const s = {
-    font: { name: 'Arial', sz: 10, color: { rgb: COLOR.black } },
+    font: {
+      name: 'Arial', sz: 10,
+      color: { rgb: col.readOnly ? COLOR.greyDark : COLOR.black },
+      italic: !!col.readOnly,
+    },
     alignment: { horizontal: col.type === 'number' ? 'right' : 'left', vertical: 'center' },
     border: BORDER,
   };
-  if (isZebra) s.fill = { fgColor: { rgb: COLOR.zebra }, patternType: 'solid' };
+  if (col.readOnly) {
+    s.fill = { fgColor: { rgb: COLOR.greyLight }, patternType: 'solid' };
+  } else if (isZebra) {
+    s.fill = { fgColor: { rgb: COLOR.zebra }, patternType: 'solid' };
+  }
   return s;
 }
 
@@ -266,9 +290,9 @@ function writeHeaderBlock(ws, sections) {
   // Rows 1–3: per-column header content
   for (let c = 0; c < flat.length; c++) {
     const col = flat[c];
-    ws[cellRef(1, c)] = { t: 's', v: col.key,            s: STYLE_DEV_KEYS };
-    ws[cellRef(2, c)] = { t: 's', v: col.label,          s: STYLE_MAIN_LABEL };
-    ws[cellRef(3, c)] = { t: 's', v: col.desc || '',     s: STYLE_DESCRIPTION };
+    ws[cellRef(1, c)] = { t: 's', v: col.key,        s: STYLE_DEV_KEYS };
+    ws[cellRef(2, c)] = { t: 's', v: col.label,      s: col.readOnly ? STYLE_MAIN_LABEL_RO : STYLE_MAIN_LABEL };
+    ws[cellRef(3, c)] = { t: 's', v: col.desc || '', s: col.readOnly ? STYLE_DESCRIPTION_RO : STYLE_DESCRIPTION };
   }
 
   ws['!rows'] = [
@@ -452,6 +476,8 @@ export async function parseBuildingsFile(file) {
 
     const b = { measures: {} };
     for (const col of cols) {
+      // Read-only columns are derived in the engine — ignore whatever the user pasted.
+      if (col.readOnly) continue;
       const idx = keyToIdx.get(col.key);
       if (idx === undefined) continue;
       const raw = row[idx];
