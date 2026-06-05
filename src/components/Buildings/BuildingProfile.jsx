@@ -179,10 +179,11 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
   const synergy = synApplied && measureKey === 'hvac';
   const locked  = meta.lockSavings;
   const hasArea = typeof area === 'number' && area > 0;
-  const isRE    = measureKey === 'pv' || measureKey === 'solarThermal';
-  // Accent palette: RE = orange #e69138, GR = violet (locked), default = red
-  const accentColor = locked ? 'var(--ai-violet)' : isRE ? '#e69138' : 'var(--ai-rouge)';
-  const accentTint  = locked ? 'rgba(48,50,62,.06)' : isRE ? '#fbeed7' : 'var(--ai-rouge-clair)';
+  // Selected = neutral grey-block with black border; the icon keeps the family hue (RE = orange, GR = violet).
+  const isRE       = measureKey === 'pv' || measureKey === 'solarThermal';
+  const iconColor  = locked ? 'var(--ai-violet)' : isRE ? '#e69138' : 'var(--ai-rouge)';
+  const selBorder  = '#1a1a1a';
+  const selTint    = 'var(--ai-gris-clair)';
 
   // Derived total: capex × area, OR the stored absolute when area is missing
   const totalVal = hasArea
@@ -201,21 +202,21 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
   return (
     <div className="rounded-xl transition-all"
       style={{
-        border:     `1px solid ${measure.selected ? accentColor : 'var(--ai-gris)'}`,
-        background: measure.selected ? accentTint : 'white',
+        border:     `1px solid ${measure.selected ? selBorder : 'var(--ai-gris)'}`,
+        background: measure.selected ? selTint : 'white',
       }}>
       <div className="flex items-center gap-2 p-3">
         <button onClick={() => toggleMeasure(buildingId, measureKey)}
           className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
           style={{
-            background: measure.selected ? accentColor : 'white',
+            background: measure.selected ? selBorder : 'white',
             border: measure.selected ? 'none' : '2px solid var(--ai-gris)',
           }}>
           {measure.selected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
         </button>
 
         <Icon className="w-4 h-4 flex-shrink-0"
-          style={{ color: measure.selected ? accentColor : 'var(--ai-noir70)' }} />
+          style={{ color: measure.selected ? iconColor : 'var(--ai-noir70)' }} />
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate" style={{ color: 'var(--ai-violet)' }}>
@@ -233,7 +234,7 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
           className="w-16 input text-xs text-right py-1"
           style={{ opacity: hasArea ? 1 : 0.4 }}
           title={hasArea ? 'Unit cost JOD/m²' : 'Set the building area first to edit unit cost'} />
-        <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>/m²</span>
+        <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>JOD/m²</span>
 
         <input type="number" min="0" step="1" value={totalVal}
           onChange={e => onTotal(parseFloat(e.target.value) || 0)}
@@ -247,6 +248,7 @@ export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }
               value={+(measure.savingsRate * 100).toFixed(1)}
               onChange={e => setMeasureValue(buildingId, measureKey, 'savingsRate', (parseFloat(e.target.value) || 0) / 100)}
               className="w-12 input text-xs text-right py-1"
+              style={{ marginLeft: 16 }}
               title={isRE
                 ? 'Production as a share of the project (post-EE) consumption'
                 : 'Share of the total energy savings attributable to this measure'} />
@@ -327,7 +329,7 @@ export function TotalEnergySaving({ building }) {
 
   return (
     <div className="rounded-xl mt-3 p-3 fade-in"
-      style={{ border: '1px solid var(--ai-violet)', background: 'rgba(48,50,62,.04)' }}>
+      style={{ border: '1px solid var(--ai-rouge)', background: 'var(--ai-rouge-clair)' }}>
       <p className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
         <Zap className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
         Total Energy Saving
