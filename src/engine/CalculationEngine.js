@@ -8,11 +8,11 @@
 export const CO2_FACTOR = 0.7 / 1000; // tCO₂ / kWh (Jordan grid)
 
 export const FUNDING_TIERS = [
-  { minGain:  0, maxGain: 30, grantRate: 0.00, label: 'Below Threshold',    color: 'slate'  },
-  { minGain: 30, maxGain: 35, grantRate: 0.50, label: 'Tier 1 — 50% Grant', color: 'amber'  },
-  { minGain: 35, maxGain: 40, grantRate: 0.60, label: 'Tier 2 — 60% Grant', color: 'blue'   },
-  { minGain: 40, maxGain: 45, grantRate: 0.70, label: 'Tier 3 — 70% Grant', color: 'green'  },
-  { minGain: 45, maxGain: Infinity, grantRate: 0.80, label: 'Tier 4 — 80% Grant', color: 'purple' },
+  { minGain:  0, maxGain: 30,       grantRate: 0.00, label: 'No grant',  color: 'slate'  },
+  { minGain: 30, maxGain: 35,       grantRate: 0.50, label: '50% grant', color: 'amber'  },
+  { minGain: 35, maxGain: 40,       grantRate: 0.60, label: '60% grant', color: 'blue'   },
+  { minGain: 40, maxGain: 45,       grantRate: 0.70, label: '70% grant', color: 'green'  },
+  { minGain: 45, maxGain: Infinity, grantRate: 0.80, label: '80% grant', color: 'purple' },
 ];
 
 /** EE measures — contribute to energy gain & PEEB grant */
@@ -367,11 +367,11 @@ export const SCORE_INDICATORS = {
     },
   },
   peebTier: {
-    label: 'PEEB Grant Tier',
+    label: 'PEEB Grant Rate',
     unit: 'tier (0–4)',
     direction: 'higher',
     defaultCap: 4,
-    capLabel: 'Full score at Tier … (max = 4)',
+    capLabel: 'Full score at top grant rate (max = 4)',
     getValue: (_b, calc) => {
       const rates = [0, 0.5, 0.6, 0.7, 0.8];
       return Math.max(0, rates.indexOf(calc?.tier?.grantRate ?? 0));

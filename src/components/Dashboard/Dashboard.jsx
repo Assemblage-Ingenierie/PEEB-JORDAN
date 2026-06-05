@@ -400,7 +400,7 @@ function PeebTargetedTable({ buildings, selectBuilding, params }) {
       <table className="w-full text-sm">
         <thead>
           <tr style={{ background: 'var(--ai-violet)', borderBottom: '2px solid var(--ai-rouge)' }}>
-            {['Building', 'Type', 'Governorate', 'Energy Gain', 'PEEB Tier', 'Grant'].map(h => (
+            {['Building', 'Type', 'Governorate', 'Energy Gain', 'PEEB Grant Rate', 'Grant'].map(h => (
               <th key={h} className="th" style={{ color: 'white' }}>{h}</th>
             ))}
           </tr>
@@ -631,7 +631,7 @@ export default function Dashboard() {
             getRows={() => {
               const sorted = [...peebTargeted].sort((a, b) => (b.calc?.energyGain ?? 0) - (a.calc?.energyGain ?? 0));
               return [
-                ['Building', 'Type', 'Governorate', 'Energy Gain', 'PEEB Tier', 'Grant'],
+                ['Building', 'Type', 'Governorate', 'Energy Gain', 'PEEB Grant Rate', 'Grant'],
                 ...sorted.map(b => {
                   const tier  = getFundingTier(b.calc?.energyGain ?? 0);
                   const grant = b.calc?._jod?.peebGrant ?? 0;

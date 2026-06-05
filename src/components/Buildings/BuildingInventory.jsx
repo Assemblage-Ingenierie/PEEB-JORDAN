@@ -438,7 +438,7 @@ function buildColumns(params) {
     },
     {
       key: 'gainEE', label: 'EE\nGain %', width: 70, sortable: true, type: 'meta', align: 'center',
-      title: 'Energy efficiency gain — driven by the building profile\'s Total Energy Saving block; also drives the PEEB Tier',
+      title: 'Energy efficiency gain — driven by the building profile\'s Total Energy Saving block; also drives the PEEB grant rate',
       render: b => {
         const v = b.calc?.gainEE;
         if (v == null) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;

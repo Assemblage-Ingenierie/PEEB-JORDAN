@@ -459,7 +459,7 @@ export function ResultsPanel({ calc, params }) {
       <div className="flex items-center justify-between px-3 py-2 rounded-lg"
         style={{ background: ts.bg, color: ts.fg }}>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold uppercase tracking-wide opacity-70">PEEB Tier</span>
+          <span className="text-xs font-bold uppercase tracking-wide opacity-70">PEEB Grant</span>
           <span className="font-black text-sm">{tier.label}</span>
           <span className="text-xs opacity-60">
             · {tier.grantRate > 0 ? `${Math.round(tier.grantRate * 100)}% on EE capex` : 'no grant'}
