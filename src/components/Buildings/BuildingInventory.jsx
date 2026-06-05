@@ -372,7 +372,7 @@ function buildColumns(params) {
       render: b => {
         if (!b.baselineEUI) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
         const isExt = b.source === 'Extrapolated';
-        return <span style={{ color: 'var(--ai-noir70)', fontStyle: isExt ? 'italic' : 'normal', opacity: isExt ? 0.7 : 1 }}>{b.baselineEUI}</span>;
+        return <span style={{ color: 'var(--ai-noir70)', fontStyle: isExt ? 'italic' : 'normal', opacity: isExt ? 0.7 : 1 }}>{Math.round(b.baselineEUI)}</span>;
       },
     },
     {
