@@ -4,7 +4,7 @@ import {
   Upload, AlertTriangle, Ban, ChevronDown,
   Layers, Square, Wind, Lightbulb, Sun, Droplets,
   Building2, ShieldCheck, Check, SlidersHorizontal,
-  Plus, FileSpreadsheet, Download, FileText,
+  Plus, FileSpreadsheet, Download, FileText, Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -47,6 +47,7 @@ const SECTION_DEFS = [
       'fundingSource','priority','capexEE','capexGR','capexTotal','peebGrant','savingsPerYear','score',
       ...MEASURE_KEYS_EE.map(k => `m_${k}`),
       ...MEASURE_KEYS_GR.map(k => `m_${k}`),
+      'rowActions',
     ],
   },
 ];
@@ -497,6 +498,26 @@ function buildColumns(params) {
       key: 'score', label: 'Score', width: 55, sortable: true, type: 'meta', align: 'center',
       render: (b, { scoreCfg }) => <ScoreBadge score={calculateScore(b, b.calc, scoreCfg).total} />,
     },
+    {
+      key: 'rowActions', label: '', width: 40, sortable: false, type: 'meta', align: 'center',
+      title: 'Delete this building',
+      render: (b, { onDelete }) => (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onDelete(b); }}
+          title={`Delete ${b.name}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 24, height: 24, borderRadius: 6, border: 'none',
+            background: 'transparent', cursor: 'pointer',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--ai-rouge-clair)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <Trash2 className="w-4 h-4" style={{ color: 'var(--ai-rouge)', opacity: 0.7 }} />
+        </button>
+      ),
+    },
   ];
 
   const eeMeasureCols = MEASURE_KEYS_EE.map(key => ({
@@ -591,7 +612,8 @@ function HeaderCell({ col, sortState, onSort, isSectionStart }) {
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 export default function BuildingInventory() {
-  const { buildings, selectBuilding, navigate, params, updateBuilding } = useApp();
+  const { buildings, selectBuilding, navigate, params, updateBuilding, deleteBuilding } = useApp();
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   // Drag-to-scroll for the table container
   const tableScrollRef = useRef(null);
@@ -878,7 +900,7 @@ export default function BuildingInventory() {
                         borderBottom: '1px solid #e5e7eb',
                         borderLeft: sectionBorderKeys.has(col.key) ? '2px solid #d1d5db' : undefined,
                       }}>
-                        {col.render(b, { scoreCfg: params.scoreConfig, updateBuilding })}
+                        {col.render(b, { scoreCfg: params.scoreConfig, updateBuilding, onDelete: setPendingDelete })}
                       </td>
                     ))}
                   </tr>
@@ -962,6 +984,33 @@ export default function BuildingInventory() {
       </div>
 
       <UploadBuildingsDialog open={showUpload} onClose={() => setShowUpload(false)} />
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 fade-in"
+          onClick={() => setPendingDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--ai-rouge-clair)' }}>
+                <Trash2 className="w-5 h-5" style={{ color: 'var(--ai-rouge)' }} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800">Delete building?</h3>
+            </div>
+            <div className="px-6 py-5 text-sm text-slate-700 space-y-2">
+              <p>You are about to permanently delete <strong style={{ color: 'var(--ai-violet)' }}>{pendingDelete.name}</strong>.</p>
+              <p className="text-xs text-slate-500">This action cannot be undone.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50 rounded-b-2xl">
+              <button onClick={() => setPendingDelete(null)} className="btn-secondary text-sm">Cancel</button>
+              <button
+                onClick={() => { deleteBuilding(pendingDelete.id); setPendingDelete(null); }}
+                className="btn-primary text-sm"
+                style={{ background: 'var(--ai-rouge)', borderColor: 'var(--ai-rouge)' }}>
+                <Trash2 className="w-4 h-4" /> Delete permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
