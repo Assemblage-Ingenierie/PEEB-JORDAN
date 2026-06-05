@@ -229,6 +229,14 @@ export function calculateBuilding({ building, measures, params }) {
   const tier       = getFundingTier(energyGain);
   const capexJOD   = calculateCapex(measuresWithTyp, area);
 
+  // Optional manual override on the EE CAPEX total (replaces the per-measure sum)
+  if (typeof building.eeCapexOverride === 'number' && building.eeCapexOverride >= 0) {
+    capexJOD.ee.total = +building.eeCapexOverride.toFixed(2);
+    capexJOD.ee.perM2 = area > 0 ? +(capexJOD.ee.total / area).toFixed(2) : 0;
+    capexJOD.total    = +(capexJOD.ee.total + capexJOD.gr.total).toFixed(2);
+    capexJOD.perM2    = area > 0 ? +(capexJOD.total / area).toFixed(2) : 0;
+  }
+
   // Energy & CO₂
   const energySavedKWh  = baselineEUI * area * (energyGain / 100);
   const co2AvoidedTon   = +(energySavedKWh * CO2_FACTOR).toFixed(2);

@@ -62,6 +62,7 @@ const REFURBISHMENT_COLUMNS_HEAD = [
   { key: 'totalBaselineKwh', label: 'Total baseline (kWh/yr)',    type: 'number', desc: 'Total baseline energy consumption (kWh/yr)' },
   { key: 'totalProjectKwh',  label: 'Total project (kWh/yr)',     type: 'number', desc: 'Total post-works energy consumption (kWh/yr)' },
   { key: 'gainOverride',     label: 'Energy gain override (%)',   type: 'number', readOnly: true, desc: 'DO NOT FILL — derived automatically from Baseline − Project' },
+  { key: 'eeCapexOverride',  label: 'EE CAPEX override (JOD)',    type: 'number', desc: 'Optional manual EE CAPEX total — leave empty to use the per-measure sum' },
   { key: 'designProgress',   label: 'Design progress',            type: 'text',   desc: 'ongoing / completed (empty = not started)' },
   { key: 'worksProgress',    label: 'Works progress',             type: 'text',   desc: 'ongoing / completed (empty = not started)' },
 ];
@@ -572,6 +573,7 @@ function materializeBuilding(parsed, existing, { fillDefaults, existingIds }) {
     totalBaselineKwh: parsed.totalBaselineKwh ?? existing?.totalBaselineKwh ?? null,
     totalProjectKwh:  parsed.totalProjectKwh  ?? existing?.totalProjectKwh  ?? null,
     gainOverride:     parsed.gainOverride     ?? existing?.gainOverride     ?? null,
+    eeCapexOverride:  parsed.eeCapexOverride  ?? existing?.eeCapexOverride  ?? null,
     designProgress:   parsed.designProgress   ?? existing?.designProgress   ?? null,
     worksProgress:    parsed.worksProgress    ?? existing?.worksProgress    ?? null,
     measures,

@@ -7,7 +7,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MEASURE_META, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
+import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
 
 // ─── Typology palette (kept in sync with BuildingInventory.TYPOLOGY_DISPLAY) ──
 export const TYPOLOGY_BADGE = {
@@ -389,6 +389,45 @@ export function TotalEnergySaving({ building }) {
           )}
         </div>
       </div>
+
+      {/* EE CAPEX line — auto sum of selected EE measures, with manual override */}
+      {(() => {
+        const eeAuto = MEASURE_KEYS_EE.reduce((s, k) => {
+          const m = building.measures?.[k];
+          if (!m?.selected) return s;
+          if (area > 0 && (m.capex || m.capex === 0)) return s + (m.capex || 0) * area;
+          return s + (m.capexAbsolute || 0);
+        }, 0);
+        const eeOverrideOn = typeof building.eeCapexOverride === 'number';
+        return (
+          <div className="mt-2 pt-2 flex items-center gap-2" style={{ borderTop: '1px dashed var(--ai-gris)' }}>
+            <label className="flex items-center gap-1.5 cursor-pointer" style={{ fontSize: 11 }}>
+              <input type="checkbox" checked={eeOverrideOn}
+                onChange={e => updateBuilding(building.id, {
+                  eeCapexOverride: e.target.checked ? Math.round(eeAuto) : null,
+                })}
+                style={{ accentColor: 'var(--ai-rouge)' }} />
+              <span style={{ color: 'var(--ai-violet)' }}>Force value</span>
+            </label>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span style={{ color: 'var(--ai-noir70)', fontSize: 11 }}>EE CAPEX</span>
+              {eeOverrideOn ? (
+                <>
+                  <input type="number" min="0" step="1"
+                    value={building.eeCapexOverride}
+                    onChange={e => updateBuilding(building.id, { eeCapexOverride: num(e.target.value) ?? 0 })}
+                    className="input w-24 text-right py-1" style={{ fontSize: 11 }} />
+                  <span style={{ color: 'var(--ai-noir70)', fontSize: 11 }}>JOD</span>
+                </>
+              ) : (
+                <span className="font-bold" style={{ color: 'var(--ai-rouge)', fontSize: 12 }}>
+                  {eeAuto > 0 ? `${Math.round(eeAuto).toLocaleString()} JOD` : '—'}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

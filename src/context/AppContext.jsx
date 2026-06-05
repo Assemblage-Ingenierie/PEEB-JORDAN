@@ -54,6 +54,7 @@ function makeDraft(id) {
     totalBaselineKwh: null,
     totalProjectKwh:  null,
     gainOverride:     null,
+    eeCapexOverride:  null,
     designProgress:   null,
     worksProgress:    null,
     measures,
