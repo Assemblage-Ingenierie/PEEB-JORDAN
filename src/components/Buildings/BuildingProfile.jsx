@@ -9,6 +9,14 @@ import {
 import { useApp } from '../../context/AppContext';
 import { MEASURE_META, MEASURE_KEYS_EE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
 
+// ─── Typology palette (kept in sync with BuildingInventory.TYPOLOGY_DISPLAY) ──
+export const TYPOLOGY_BADGE = {
+  Hospital:       { bg: '#fee2e2', color: '#b91c1c' },
+  School:         { bg: '#dbeafe', color: '#1d4ed8' },
+  University:     { bg: '#ede9fe', color: '#7c3aed' },
+  Administration: { bg: '#fef9c3', color: '#854d0e' },
+};
+
 // ─── Tier palette ─────────────────────────────────────────────────────────────
 const TIER_STYLE = {
   slate:  { bg: 'var(--ai-violet)',      fg: 'white'            },
@@ -853,7 +861,10 @@ export default function BuildingProfile() {
           }}>
             {ineligible ? 'Ineligible' : b.peebSelected ? 'PEEB Selected' : 'Eligible'}
           </span>
-          <span className="badge" style={{ background: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' }}>{b.typology}</span>
+          {(() => {
+            const tp = TYPOLOGY_BADGE[b.typology] || { bg: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' };
+            return <span className="badge" style={{ background: tp.bg, color: tp.color }}>{b.typology}</span>;
+          })()}
           <span className="badge" style={{ background: 'var(--ai-gris-clair)', color: 'var(--ai-noir70)' }}>{b.governorate}</span>
         </div>
         <div className="flex items-center gap-2 no-print">

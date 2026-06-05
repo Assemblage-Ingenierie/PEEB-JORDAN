@@ -33,7 +33,7 @@ const SECTION_DEFS = [
   {
     key: 'audit',
     label: 'Audit Data',
-    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','gainEE','gainPV','calc'],
+    colKeys: ['existingAudit','author','auditDate','euiBefore','euiAfter','euiDiff','gainEE','calc','gainPV'],
   },
   {
     key: 'progress',
@@ -434,12 +434,12 @@ function buildColumns(params) {
       },
     },
     {
-      key: 'gainPV', label: 'PV\nGain %', width: 65, sortable: true, type: 'meta', align: 'center',
-      title: 'Gain from PV solar measure only',
+      key: 'gainPV', label: 'Compl. PV\nGain %', width: 80, sortable: true, type: 'meta', align: 'center',
+      title: 'Complementary gain from PV solar measure',
       render: b => {
         const v = b.calc?.gainPV;
         if (v == null || !(v > 0)) return <span style={{ color: 'var(--ai-gris)' }}>—</span>;
-        return <span style={{ color: 'var(--ai-noir70)' }}>{v.toFixed(1)}%</span>;
+        return <span className="font-bold" style={{ color: '#e69138' }}>{v.toFixed(1)}%</span>;
       },
     },
     {
@@ -498,9 +498,11 @@ function buildColumns(params) {
       const m = b.measures?.[key];
       const selected = !!m?.selected;
       const Icon = MEASURE_ICONS[key] || Check;
+      const isSolar = key === 'pv' || key === 'solarThermal';
+      const selColor = isSolar ? '#e69138' : 'var(--ai-rouge)';
       return (
         <span className="inline-flex items-center justify-center"
-          style={{ width: 22, height: 22, color: selected ? 'var(--ai-rouge)' : 'var(--ai-gris)', opacity: selected ? 1 : 0.5 }}
+          style={{ width: 22, height: 22, color: selected ? selColor : 'var(--ai-gris)', opacity: selected ? 1 : 0.5 }}
           title={`${MEASURE_META[key].label}${selected ? ' — planned' : ''}${m?.notes ? `\n${m.notes}` : ''}`}>
           <Icon className="w-4 h-4" strokeWidth={selected ? 2.5 : 1.75} />
         </span>
