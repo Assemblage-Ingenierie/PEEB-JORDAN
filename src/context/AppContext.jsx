@@ -42,7 +42,7 @@ function makeDraft(id) {
     lng:            null,
     fundingSource:  '',
     status:         'Planning',
-    priority:       'Medium',
+    priority:       null,
     siteObservations: '',
     images:         [],
     manuallyIneligible: false,

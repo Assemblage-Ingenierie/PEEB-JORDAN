@@ -235,10 +235,12 @@ export default function NewBuilding() {
               {/* Political Priority */}
               <div>
                 <label className="label">Political Priority</label>
-                <select value={draft.priority || 'Medium'}
-                  onChange={e => updateBuilding(draft.id, { priority: e.target.value })}
+                <select value={draft.priority ?? ''}
+                  onChange={e => updateBuilding(draft.id, { priority: e.target.value || null })}
                   className="input">
-                  {['High', 'Medium', 'Low'].map(p => <option key={p}>{p}</option>)}
+                  <option value="">— none —</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
                 </select>
               </div>
 

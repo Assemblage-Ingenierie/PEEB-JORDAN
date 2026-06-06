@@ -429,7 +429,7 @@ function buildColumns(params) {
     // ── Investment ────────────────────────────────────────────────────────────
     {
       key: 'priority', label: 'Political\nPriority', width: 90, sortable: true, type: 'meta',
-      filterable: true, filterType: 'select', filterOptions: ['High', 'Medium', 'Low'],
+      filterable: true, filterType: 'select', filterOptions: ['High', 'Medium'],
       render: b => b.priority === 'High'
         ? <span className="badge" style={{ background: 'var(--ai-rouge)', color: 'white', fontSize: 10 }}>High</span>
         : b.priority

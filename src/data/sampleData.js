@@ -71,7 +71,7 @@ export const INITIAL_BUILDINGS = [
     siteObservations: '',
     measures: makeMeasures(26, 82, 130, 21, 145, 115, 130, 70, 60),
     afdLoan: 0, nationalBudget: 50000, others: 0,
-    status: 'Pending Audit', priority: 'Medium',
+    status: 'Pending Audit', priority: null,
   },
   {
     id: 'B004',
@@ -109,7 +109,7 @@ export const INITIAL_BUILDINGS = [
     siteObservations: '',
     measures: makeMeasures(29, 88, 185, 24, 155, 140, 175, 95, 115),
     afdLoan: 0, nationalBudget: 0, others: 0,
-    status: 'Pending Audit', priority: 'Medium',
+    status: 'Pending Audit', priority: null,
   },
   {
     id: 'B006',
@@ -128,7 +128,7 @@ export const INITIAL_BUILDINGS = [
     siteObservations: 'High cooling loads due to coastal climate. Window shading absent. Diesel backup generator ~4h/day.',
     measures: makeMeasures(26, 82, 130, 21, 145, 115, 130, 70, 60),
     afdLoan: 0, nationalBudget: 0, others: 0,
-    status: 'Assessed', priority: 'Medium',
+    status: 'Assessed', priority: null,
   },
   {
     id: 'B007',
@@ -204,6 +204,6 @@ export const INITIAL_BUILDINGS = [
     siteObservations: 'High infiltration through loading bay doors. Roof insulation partially degraded. LED upgrade complete. PV on roof partially installed (50 kWp, 2022).',
     measures: makeMeasures(26, 82, 130, 21, 145, 115, 130, 70, 60),
     afdLoan: 0, nationalBudget: 75000, others: 0,
-    status: 'Assessed', priority: 'Medium',
+    status: 'Assessed', priority: null,
   },
 ];

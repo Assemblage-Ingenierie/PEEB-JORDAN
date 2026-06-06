@@ -68,7 +68,7 @@ const REFURBISHMENT_COLUMNS_HEAD = [
 ];
 
 const INVESTMENT_COLUMNS = [
-  { key: 'priority',           label: 'Political priority',        type: 'text',    desc: 'High / Medium / Low' },
+  { key: 'priority',           label: 'Political priority',        type: 'text',    desc: 'High / Medium / blank (default blank)' },
   { key: 'peebSelected',       label: 'PEEB selected',             type: 'boolean', desc: 'Yes / No — included in the PEEB programme' },
   { key: 'manuallyIneligible', label: 'Manually ineligible',       type: 'boolean', desc: 'Yes / No — manually excluded from PEEB grant' },
   { key: 'afdLoan',            label: 'AFD loan (JOD)',            type: 'number',  desc: 'AFD loan portion of remaining-to-finance' },

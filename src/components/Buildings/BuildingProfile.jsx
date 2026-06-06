@@ -1166,8 +1166,12 @@ export default function BuildingProfile() {
               {/* Political Priority */}
               <div>
                 <label className="label">Political Priority</label>
-                <select value={b.priority} onChange={e => updateBuilding(b.id, { priority: e.target.value })} className="input">
-                  {['High', 'Medium', 'Low'].map(p => <option key={p}>{p}</option>)}
+                <select value={b.priority ?? ''}
+                  onChange={e => updateBuilding(b.id, { priority: e.target.value || null })}
+                  className="input">
+                  <option value="">— none —</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
                 </select>
               </div>
 
