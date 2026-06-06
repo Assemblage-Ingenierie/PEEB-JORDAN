@@ -33,6 +33,7 @@ const VIEW_TITLES = {
   calculator:     { title: 'EE Calculator',  subtitle: 'Renovation scenario modelling'                 },
   'new-building': { title: 'New Building',   subtitle: 'Create a new building from scratch'            },
   admin:          { title: 'Admin',           subtitle: 'User account management'                       },
+  guide:          { title: 'User guide',      subtitle: 'How the PEEB Med Jordan platform works'        },
 };
 
 const notifStyle = {

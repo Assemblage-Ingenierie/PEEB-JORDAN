@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
-  SlidersHorizontal, ChevronRight, Shield,
+  SlidersHorizontal, ChevronRight, Shield, BookOpen,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { pathFromState, isModifiedClick } from '../../lib/router';
 
 const NAV = [
+  { id: 'guide',        label: 'Guide',         Icon: BookOpen          },
   { id: 'dashboard',    label: 'Dashboard',     Icon: LayoutDashboard   },
   { id: 'inventory',    label: 'Buildings',     Icon: Building2         },
   { id: 'map',          label: 'Map View',      Icon: Map               },

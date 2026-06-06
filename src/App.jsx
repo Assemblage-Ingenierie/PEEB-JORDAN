@@ -9,6 +9,7 @@ import MapView           from './components/Map/MapView';
 import Parameters        from './components/Parameters/Parameters';
 import FundingCalculator from './components/Calculator/FundingCalculator';
 import Admin             from './components/Admin/Admin';
+import Guide             from './components/Guide/Guide';
 import ErrorBoundary     from './components/ErrorBoundary';
 
 function ActiveView() {
@@ -22,6 +23,7 @@ function ActiveView() {
     case 'new-building': return <NewBuilding />;
     case 'calculator':   return <FundingCalculator />;
     case 'admin':        return <Admin />;
+    case 'guide':        return <Guide />;
     default:             return <Dashboard />;
   }
 }
