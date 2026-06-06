@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, ArrowUpDown, ArrowUp, ArrowDown,
   Upload, AlertTriangle, Ban, ChevronDown,
-  Layers, Square, Wind, Lightbulb, Sun, Droplets,
+  Layers, Grid2X2, Wind, Lightbulb, Sun, Droplets,
   Building2, ShieldCheck, Check, SlidersHorizontal,
   Plus, FileSpreadsheet, Download, FileText, Trash2,
 } from 'lucide-react';
@@ -63,7 +63,7 @@ const TYPOLOGY_DISPLAY = {
 
 // ─── Icon map for measure columns ─────────────────────────────────────────────
 const MEASURE_ICONS = {
-  insulation: Layers, windows: Square, hvac: Wind, lighting: Lightbulb,
+  insulation: Layers, windows: Grid2X2, hvac: Wind, lighting: Lightbulb,
   pv: Sun, solarThermal: Droplets,
   structure: Building2, accessibility: Building2, hygieneAndSecurity: ShieldCheck,
 };

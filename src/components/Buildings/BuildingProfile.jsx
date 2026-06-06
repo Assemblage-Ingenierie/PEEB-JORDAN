@@ -3,7 +3,7 @@ import {
   MapPin, Clock, Calendar, Layers, Ruler, Zap,
   Camera, X, Printer, AlertTriangle, Ban, Info,
   Leaf, Banknote, TrendingUp, Wind, Lightbulb,
-  Sun, Building2, Square, CheckCircle2, ShieldCheck, Droplets,
+  Sun, Building2, Grid2X2, CheckCircle2, ShieldCheck, Droplets,
   Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -169,7 +169,7 @@ function BuildingMiniMap({ building }) {
 }
 
 // ─── Measure icons ────────────────────────────────────────────────────────────
-const ICON_MAP = { Layers, Square, Wind, Lightbulb, Sun, Droplets, Building2, Accessibility: MapPin, ShieldCheck };
+const ICON_MAP = { Layers, Grid2X2, Wind, Lightbulb, Sun, Droplets, Building2, Accessibility: MapPin, ShieldCheck };
 
 // ─── Measure row ──────────────────────────────────────────────────────────────
 export function MeasureRow({ buildingId, measureKey, measure, synApplied, area }) {

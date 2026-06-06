@@ -32,7 +32,7 @@ export const MEASURE_KEYS = [...MEASURE_KEYS_EE, ...MEASURE_KEYS_GR];
 export const MEASURE_META = {
   // ── Energy Efficiency ──────────────────────────────────────────────────────
   insulation:         { label: 'Roof / Wall Insulation',  short: 'Insulat°',      unit: 'JOD/m²', icon: 'Layers',      isEE: true,  lockSavings: false },
-  windows:            { label: 'Window Replacement',      short: 'Windows',       unit: 'JOD/m²', icon: 'Square',      isEE: true,  lockSavings: false },
+  windows:            { label: 'Window Replacement',      short: 'Windows',       unit: 'JOD/m²', icon: 'Grid2X2',     isEE: true,  lockSavings: false },
   hvac:               { label: 'HVAC Upgrade',            short: 'HVAC',          unit: 'JOD/m²', icon: 'Wind',        isEE: true,  lockSavings: false },
   lighting:           { label: 'LED Lighting',            short: 'Lighting',      unit: 'JOD/m²', icon: 'Lightbulb',   isEE: true,  lockSavings: false },
   pv:                 { label: 'PV Solar System',         short: 'PV',            unit: 'JOD/m²', icon: 'Sun',         isEE: true,  lockSavings: false },
