@@ -3,10 +3,19 @@ import { MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency } from '../../engine/CalculationEngine';
 
-// Two-tone palette — red for PEEB-targeted, greys for the rest of the database
+// Status palette (PEEB / works / no-works)
 const COLOR_PEEB        = '#E30513'; // var(--ai-rouge)
 const COLOR_DB_WORKS    = '#30323E'; // var(--ai-violet) — full DB with works (dark grey)
 const COLOR_DB_NO_WORKS = '#B7C0C8'; // lighter than --ai-gris for DB without works
+
+// Typology palette — same hues as the inventory's typology badges
+const TYPOLOGY_COLOR = {
+  Hospital:       '#b91c1c',
+  School:         '#1d4ed8',
+  University:     '#7c3aed',
+  Administration: '#854d0e',
+};
+const TYPOLOGY_FALLBACK = '#64748b';
 
 const UNIFORM_RADIUS = 8;
 
@@ -23,7 +32,8 @@ export default function MapView() {
   const buildings = allBuildings.filter(b => !b.isDraft);
   const mapRef     = useRef(null);
   const leafletRef = useRef(null);
-  const [scaleBySize, setScaleBySize] = useState(true);
+  const [scaleBySize, setScaleBySize] = useState(false);
+  const [colorMode,   setColorMode]   = useState('typology'); // 'typology' | 'status'
   const { currency, exchangeRate } = params;
   const toDisp = jod => currency === 'EUR' ? +(jod * exchangeRate).toFixed(0) : jod;
 
@@ -73,9 +83,9 @@ export default function MapView() {
         const isPeebTarget = b.peebSelected === true && !b.eligibility.ineligible;
         const hasWorks     = eeCapexJod > 0;
 
-        const color  = isPeebTarget ? COLOR_PEEB
-          : hasWorks ? COLOR_DB_WORKS
-          : COLOR_DB_NO_WORKS;
+        const color  = colorMode === 'typology'
+          ? (TYPOLOGY_COLOR[b.typology] || TYPOLOGY_FALLBACK)
+          : (isPeebTarget ? COLOR_PEEB : hasWorks ? COLOR_DB_WORKS : COLOR_DB_NO_WORKS);
         const radius = scaleBySize
           ? scaledRadius(eeCapexJod, hasWorks || isPeebTarget)
           : UNIFORM_RADIUS;
@@ -152,7 +162,7 @@ export default function MapView() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildings, currency, exchangeRate, scaleBySize]);
+  }, [buildings, currency, exchangeRate, scaleBySize, colorMode]);
 
   return (
     <div className="space-y-4 fade-in">
@@ -163,32 +173,48 @@ export default function MapView() {
             <MapPin className="w-3.5 h-3.5" style={{ color: 'var(--ai-rouge)' }} /> Map legend:
           </span>
 
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block rounded-full border-2 border-white shadow-sm"
-              style={{ background: COLOR_PEEB, width: 16, height: 16 }}
-            />
-            PEEB Targeted
-          </span>
+          {colorMode === 'typology' ? (
+            <>
+              {Object.entries(TYPOLOGY_COLOR).map(([typ, c]) => (
+                <span key={typ} className="flex items-center gap-1.5">
+                  <span className="inline-block rounded-full border-2 border-white shadow-sm"
+                    style={{ background: c, width: 14, height: 14 }} />
+                  {typ}
+                </span>
+              ))}
+            </>
+          ) : (
+            <>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block rounded-full border-2 border-white shadow-sm"
+                  style={{ background: COLOR_PEEB, width: 16, height: 16 }} />
+                PEEB Targeted
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block rounded-full border-2 border-white shadow-sm"
+                  style={{ background: COLOR_DB_WORKS, width: 14, height: 14 }} />
+                Full database · works identified
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block rounded-full border-2 border-white shadow-sm"
+                  style={{ background: COLOR_DB_NO_WORKS, width: 8, height: 8 }} />
+                Full database · no works
+              </span>
+            </>
+          )}
 
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block rounded-full border-2 border-white shadow-sm"
-              style={{ background: COLOR_DB_WORKS, width: 14, height: 14 }}
-            />
-            Full database · works identified
-          </span>
-
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block rounded-full border-2 border-white shadow-sm"
-              style={{ background: COLOR_DB_NO_WORKS, width: 8, height: 8 }}
-            />
-            Full database · no works
-          </span>
+          {/* Colour-mode toggle */}
+          <div className="ml-auto flex items-center gap-2" style={{ color: 'var(--ai-violet)' }}>
+            <span className="font-semibold">Colour by:</span>
+            <select value={colorMode} onChange={e => setColorMode(e.target.value)}
+              className="input text-xs py-0.5" style={{ width: 130 }}>
+              <option value="typology">Typology</option>
+              <option value="status">PEEB / works</option>
+            </select>
+          </div>
 
           <label
-            className="ml-auto flex items-center gap-2 cursor-pointer select-none"
+            className="flex items-center gap-2 cursor-pointer select-none"
             style={{ color: 'var(--ai-violet)' }}
             title="Toggle between circles sized by EE investment and uniform dots"
           >
