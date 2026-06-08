@@ -246,10 +246,10 @@ export default function Guide() {
             <p>
               The map shows every building with GPS coordinates as a coloured marker. The marker
               colour matches the typology palette of the inventory
-              (<Pastille bg="#dbeafe" fg="#1d4ed8" label="School" />{' '}
-              <Pastille bg="#fee2e2" fg="#b91c1c" label="Hospital" />{' '}
-              <Pastille bg="#fef9c3" fg="#854d0e" label="Administration" />{' '}
-              <Pastille bg="#ede9fe" fg="#7c3aed" label="University" />).
+              (<Pastille bg="#6d9eeb" fg="white" label="School" />{' '}
+              <Pastille bg="#e06666" fg="white" label="Hospital" />{' '}
+              <Pastille bg="#ffd966" fg="#30323E" label="Administration" />{' '}
+              <Pastille bg="#b4a7d6" fg="#30323E" label="University" />).
               Click a marker to open the building profile.
             </p>
             <p>Buildings without coordinates do not appear on the map — fill the GPS fields in the profile to make them visible.</p>

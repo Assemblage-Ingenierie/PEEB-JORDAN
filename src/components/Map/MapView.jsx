@@ -10,10 +10,10 @@ const COLOR_DB_NO_WORKS = '#B7C0C8'; // lighter than --ai-gris for DB without wo
 
 // Typology palette — same hues as the inventory's typology badges
 const TYPOLOGY_COLOR = {
-  Hospital:       '#b91c1c',
-  School:         '#1d4ed8',
-  University:     '#7c3aed',
-  Administration: '#854d0e',
+  Hospital:       '#e06666',
+  School:         '#6d9eeb',
+  University:     '#b4a7d6',
+  Administration: '#ffd966',
 };
 const TYPOLOGY_FALLBACK = '#64748b';
 

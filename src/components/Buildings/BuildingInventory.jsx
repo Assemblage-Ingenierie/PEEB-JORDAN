@@ -55,10 +55,10 @@ const ALL_COL_KEYS = SECTION_DEFS.flatMap(s => s.colKeys);
 
 // ─── Typology display config ──────────────────────────────────────────────────
 const TYPOLOGY_DISPLAY = {
-  Hospital:       { label: 'Hospital',       bg: '#fee2e2', color: '#b91c1c' },
-  School:         { label: 'School',         bg: '#dbeafe', color: '#1d4ed8' },
-  University:     { label: 'University',     bg: '#ede9fe', color: '#7c3aed' },
-  Administration: { label: 'Administration', bg: '#fef9c3', color: '#854d0e' },
+  Hospital:       { label: 'Hospital',       bg: '#e06666', color: 'white' },
+  School:         { label: 'School',         bg: '#6d9eeb', color: 'white' },
+  University:     { label: 'University',     bg: '#b4a7d6', color: '#30323E' },
+  Administration: { label: 'Administration', bg: '#ffd966', color: '#30323E' },
 };
 
 // ─── Icon map for measure columns ─────────────────────────────────────────────

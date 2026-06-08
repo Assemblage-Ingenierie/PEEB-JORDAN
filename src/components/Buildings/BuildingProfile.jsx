@@ -11,10 +11,10 @@ import { MEASURE_META, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, f
 
 // ─── Typology palette (kept in sync with BuildingInventory.TYPOLOGY_DISPLAY) ──
 export const TYPOLOGY_BADGE = {
-  Hospital:       { bg: '#fee2e2', color: '#b91c1c' },
-  School:         { bg: '#dbeafe', color: '#1d4ed8' },
-  University:     { bg: '#ede9fe', color: '#7c3aed' },
-  Administration: { bg: '#fef9c3', color: '#854d0e' },
+  Hospital:       { bg: '#e06666', color: 'white' },
+  School:         { bg: '#6d9eeb', color: 'white' },
+  University:     { bg: '#b4a7d6', color: '#30323E' },
+  Administration: { bg: '#ffd966', color: '#30323E' },
 };
 
 // ─── Tier palette ─────────────────────────────────────────────────────────────
