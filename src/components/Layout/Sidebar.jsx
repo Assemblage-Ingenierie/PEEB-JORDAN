@@ -110,7 +110,7 @@ export default function Sidebar() {
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)'; }}
           >
             <KeyRound className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
-            {profile?.requested_status ? 'Demande en cours…' : 'Demander un accès'}
+            {profile?.requested_status ? 'Request pending…' : 'Request access'}
           </button>
         )}
         <div className="flex items-center justify-between gap-2">
@@ -119,14 +119,14 @@ export default function Sidebar() {
               {profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email : ''}
             </div>
             <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,.45)' }}>
-              {profile?.status === 'admin' ? 'Administrateur'
-                : profile?.status === 'editor' ? 'Éditeur'
-                : 'Lecteur'}
+              {profile?.status === 'admin' ? 'Administrator'
+                : profile?.status === 'editor' ? 'Editor'
+                : 'Viewer'}
             </div>
           </div>
           <button
             onClick={logout}
-            title="Se déconnecter"
+            title="Sign out"
             className="flex-shrink-0 p-2 rounded-lg transition-all"
             style={{ color: 'rgba(255,255,255,.55)' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'white'; }}

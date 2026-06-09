@@ -887,7 +887,7 @@ export default function BuildingProfile() {
       {!canEdit && (
         <div className="ai-box-soft flex items-center gap-3 text-sm no-print">
           <Eye className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-violet)' }} />
-          <span>Accès en <strong>lecture seule</strong> — vous pouvez consulter et exporter, mais pas modifier.</span>
+          <span><strong>Read-only</strong> access — you can view and export, but not edit.</span>
         </div>
       )}
 

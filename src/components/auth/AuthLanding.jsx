@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Mail, Lock, User, Briefcase, ArrowLeft } from 'lucide-react';
+import { Mail, User, Briefcase, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import PasswordInput from './PasswordInput';
 
-// Couleurs de la charte Assemblage (cf. src/index.css)
+// Assemblage brand colours (cf. src/index.css)
 const VIOLET = 'var(--ai-violet)';
 const ROUGE  = 'var(--ai-rouge)';
 const GRIS   = 'var(--ai-gris)';
@@ -58,8 +59,8 @@ export default function AuthLanding() {
   async function handleSignup(e) {
     e.preventDefault();
     if (!isValidEmail(email)) { setEmailTouched(true); return; }
-    if (password.length < 6) { setMsg({ type: 'error', text: 'Le mot de passe doit faire au moins 6 caractères.' }); return; }
-    if (password !== password2) { setMsg({ type: 'error', text: 'Les mots de passe ne correspondent pas.' }); return; }
+    if (password.length < 6) { setMsg({ type: 'error', text: 'Password must be at least 6 characters.' }); return; }
+    if (password !== password2) { setMsg({ type: 'error', text: 'Passwords do not match.' }); return; }
     setLoading(true); setMsg(null);
     const { error } = await supabase.auth.signUp({
       email,
@@ -71,7 +72,7 @@ export default function AuthLanding() {
     });
     setLoading(false);
     if (error) { setMsg({ type: 'error', text: error.message }); return; }
-    setMsg({ type: 'success', text: 'Compte créé ! Vérifiez votre boîte mail pour confirmer votre adresse, puis attendez la validation d’un administrateur.' });
+    setMsg({ type: 'success', text: 'Account created! Check your inbox to confirm your e-mail address, then sign in.' });
   }
 
   async function handleLogin(e) {
@@ -80,7 +81,7 @@ export default function AuthLanding() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) setMsg({ type: 'error', text: error.message });
-    // succès → onAuthStateChange (AuthContext) prend le relais
+    // on success → onAuthStateChange (AuthContext) takes over
   }
 
   async function handleForgot(e) {
@@ -93,7 +94,7 @@ export default function AuthLanding() {
     setLoading(false);
     setMsg(error
       ? { type: 'error', text: error.message }
-      : { type: 'success', text: 'Si un compte existe pour cette adresse, un e-mail de récupération vient d’être envoyé.' });
+      : { type: 'success', text: 'If an account exists for this address, a recovery e-mail has just been sent.' });
   }
 
   // ── styles ──
@@ -120,34 +121,34 @@ export default function AuthLanding() {
     }}>
       <div className="card fade-in" style={{ width: '100%', maxWidth: 420, padding: 28 }}>
 
-        {/* Logo + titre */}
+        {/* Logo + title */}
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <img src="/logo_assemblage.png" alt="Assemblage ingénierie"
             style={{ height: 38, objectFit: 'contain', marginBottom: 12 }}
             onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <h1 style={{ fontSize: 18, fontWeight: 800, color: VIOLET, margin: 0 }}>PEEB Med Jordan</h1>
           <p style={{ fontSize: 12, color: NOIR70, marginTop: 4 }}>
-            {mode === 'home'   && 'Plateforme de gestion du programme'}
-            {mode === 'signup' && 'Créer un compte'}
-            {mode === 'login'  && 'Se connecter'}
-            {mode === 'forgot' && 'Récupération du mot de passe'}
+            {mode === 'home'   && 'Programme management platform'}
+            {mode === 'signup' && 'Create an account'}
+            {mode === 'login'  && 'Sign in'}
+            {mode === 'forgot' && 'Password recovery'}
           </p>
         </div>
 
-        {/* HOME — deux boutons */}
+        {/* HOME — two buttons */}
         {mode === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <PrimaryBtn onClick={() => reset('signup')}>S’inscrire</PrimaryBtn>
+            <PrimaryBtn onClick={() => reset('signup')}>Sign up</PrimaryBtn>
             <button onClick={() => reset('login')} className="btn-secondary"
-              style={{ width: '100%', justifyContent: 'center' }}>Se connecter</button>
+              style={{ width: '100%', justifyContent: 'center' }}>Sign in</button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
               <div style={{ flex: 1, height: 1, background: GRIS }} />
-              <span style={{ fontSize: 11, color: NOIR70 }}>ou</span>
+              <span style={{ fontSize: 11, color: NOIR70 }}>or</span>
               <div style={{ flex: 1, height: 1, background: GRIS }} />
             </div>
             <button onClick={handleGoogle} disabled={loading} className="btn-secondary"
               style={{ width: '100%', justifyContent: 'center', gap: 8 }}>
-              <GoogleIcon /> Continuer avec Google
+              <GoogleIcon /> Continue with Google
             </button>
           </div>
         )}
@@ -157,14 +158,14 @@ export default function AuthLanding() {
           <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Prénom</label>
+                <label style={labelStyle}>First name</label>
                 <div style={{ position: 'relative' }}>
                   <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} required />
                   <User className="w-4 h-4" style={fieldIcon} />
                 </div>
               </div>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Nom</label>
+                <label style={labelStyle}>Last name</label>
                 <div style={{ position: 'relative' }}>
                   <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} required />
                   <User className="w-4 h-4" style={fieldIcon} />
@@ -173,11 +174,11 @@ export default function AuthLanding() {
             </div>
 
             <div>
-              <label style={labelStyle}>Rôle <span style={{ color: NOIR70, fontWeight: 400 }}>(votre métier)</span></label>
+              <label style={labelStyle}>Role <span style={{ color: NOIR70, fontWeight: 400 }}>(your job title)</span></label>
               <div style={{ position: 'relative' }}>
                 <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 56, paddingRight: 32 }}
                   value={jobTitle} onChange={e => setJobTitle(e.target.value)}
-                  placeholder="Ex. Ingénieur thermicien, chargé de projet…" />
+                  placeholder="e.g. Thermal engineer, project manager…" />
                 <Briefcase className="w-4 h-4" style={fieldIcon} />
               </div>
             </div>
@@ -190,22 +191,22 @@ export default function AuthLanding() {
                 <Mail className="w-4 h-4" style={fieldIcon} />
               </div>
               {emailInvalid && (
-                <p style={{ color: ROUGE, fontSize: 12, marginTop: 4 }}>L'adresse-mail n'est pas valide</p>
+                <p style={{ color: ROUGE, fontSize: 12, marginTop: 4 }}>The e-mail address is not valid</p>
               )}
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Mot de passe</label>
-                <input type="password" style={inputStyle} value={password} onChange={e => setPassword(e.target.value)} required />
+                <label style={labelStyle}>Password</label>
+                <PasswordInput value={password} onChange={e => setPassword(e.target.value)} inputStyle={inputStyle} autoComplete="new-password" required />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Confirmer</label>
-                <input type="password" style={inputStyle} value={password2} onChange={e => setPassword2(e.target.value)} required />
+                <label style={labelStyle}>Confirm</label>
+                <PasswordInput value={password2} onChange={e => setPassword2(e.target.value)} inputStyle={inputStyle} autoComplete="new-password" required />
               </div>
             </div>
 
-            <PrimaryBtn type="submit" disabled={loading}>{loading ? '…' : 'Créer le compte'}</PrimaryBtn>
+            <PrimaryBtn type="submit" disabled={loading}>{loading ? '…' : 'Create account'}</PrimaryBtn>
           </form>
         )}
 
@@ -220,25 +221,22 @@ export default function AuthLanding() {
               </div>
             </div>
             <div>
-              <label style={labelStyle}>Mot de passe</label>
-              <div style={{ position: 'relative' }}>
-                <input type="password" style={inputStyle} value={password} onChange={e => setPassword(e.target.value)} required />
-                <Lock className="w-4 h-4" style={fieldIcon} />
-              </div>
+              <label style={labelStyle}>Password</label>
+              <PasswordInput value={password} onChange={e => setPassword(e.target.value)} inputStyle={inputStyle} autoComplete="current-password" required />
             </div>
-            <PrimaryBtn type="submit" disabled={loading}>{loading ? '…' : 'Se connecter'}</PrimaryBtn>
+            <PrimaryBtn type="submit" disabled={loading}>{loading ? '…' : 'Sign in'}</PrimaryBtn>
             <button type="button" onClick={() => reset('forgot')}
               style={{ background: 'none', border: 'none', color: ROUGE, fontSize: 12, cursor: 'pointer', textAlign: 'center' }}>
-              J'ai oublié mon mot de passe
+              I forgot my password
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
               <div style={{ flex: 1, height: 1, background: GRIS }} />
-              <span style={{ fontSize: 11, color: NOIR70 }}>ou</span>
+              <span style={{ fontSize: 11, color: NOIR70 }}>or</span>
               <div style={{ flex: 1, height: 1, background: GRIS }} />
             </div>
             <button type="button" onClick={handleGoogle} disabled={loading} className="btn-secondary"
               style={{ width: '100%', justifyContent: 'center', gap: 8 }}>
-              <GoogleIcon /> Continuer avec Google
+              <GoogleIcon /> Continue with Google
             </button>
           </form>
         )}
@@ -247,7 +245,7 @@ export default function AuthLanding() {
         {mode === 'forgot' && (
           <form onSubmit={handleForgot} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ fontSize: 13, color: NOIR70 }}>
-              Entrez votre adresse e-mail pour recevoir un lien de réinitialisation.
+              Enter your e-mail address to receive a password reset link.
             </p>
             <div>
               <label style={labelStyle}>E-mail</label>
@@ -257,10 +255,10 @@ export default function AuthLanding() {
                 <Mail className="w-4 h-4" style={fieldIcon} />
               </div>
               {emailInvalid && (
-                <p style={{ color: ROUGE, fontSize: 12, marginTop: 4 }}>L'adresse-mail n'est pas valide</p>
+                <p style={{ color: ROUGE, fontSize: 12, marginTop: 4 }}>The e-mail address is not valid</p>
               )}
             </div>
-            <PrimaryBtn type="submit" disabled={loading}>{loading ? '…' : 'Envoyer un e-mail de récupération'}</PrimaryBtn>
+            <PrimaryBtn type="submit" disabled={loading}>{loading ? '…' : 'Send a recovery e-mail'}</PrimaryBtn>
           </form>
         )}
 
@@ -276,11 +274,11 @@ export default function AuthLanding() {
           </div>
         )}
 
-        {/* retour */}
+        {/* back */}
         {mode !== 'home' && (
           <button onClick={() => reset('home')}
             style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '18px auto 0', background: 'none', border: 'none', color: NOIR70, fontSize: 12, cursor: 'pointer' }}>
-            <ArrowLeft className="w-3.5 h-3.5" /> Retour
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
         )}
       </div>

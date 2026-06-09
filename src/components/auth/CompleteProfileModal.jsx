@@ -29,7 +29,7 @@ export default function CompleteProfileModal() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim() || !jobTitle.trim()) {
-      setErr('Merci de renseigner tous les champs.');
+      setErr('Please fill in all fields.');
       return;
     }
     setLoading(true); setErr('');
@@ -61,9 +61,9 @@ export default function CompleteProfileModal() {
     }}>
       <form onSubmit={handleSubmit} className="card fade-in" style={{ width: '100%', maxWidth: 420, padding: 28 }}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ai-violet)', margin: 0 }}>Compléter mon profil</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ai-violet)', margin: 0 }}>Complete your profile</h2>
           <p style={{ fontSize: 13, color: 'var(--ai-noir70)', marginTop: 6 }}>
-            Renseignez vos informations pour finaliser votre inscription.
+            Fill in your details to finish setting up your account.
           </p>
           {session?.user?.email && (
             <p style={{ fontSize: 12, color: 'var(--ai-noir70)', marginTop: 2 }}>{session.user.email}</p>
@@ -73,14 +73,14 @@ export default function CompleteProfileModal() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Prénom</label>
+              <label style={labelStyle}>First name</label>
               <div style={{ position: 'relative' }}>
                 <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} required />
                 <User className="w-4 h-4" style={fieldIcon} />
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Nom</label>
+              <label style={labelStyle}>Last name</label>
               <div style={{ position: 'relative' }}>
                 <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} required />
                 <User className="w-4 h-4" style={fieldIcon} />
@@ -89,18 +89,18 @@ export default function CompleteProfileModal() {
           </div>
 
           <div>
-            <label style={labelStyle}>Rôle <span style={{ color: 'var(--ai-noir70)', fontWeight: 400 }}>(votre métier)</span></label>
+            <label style={labelStyle}>Role <span style={{ color: 'var(--ai-noir70)', fontWeight: 400 }}>(your job title)</span></label>
             <div style={{ position: 'relative' }}>
               <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 56, paddingRight: 32 }}
                 value={jobTitle} onChange={e => setJobTitle(e.target.value)}
-                placeholder="Ex. Ingénieur thermicien, chargé de projet…" />
+                placeholder="e.g. Thermal engineer, project manager…" />
               <Briefcase className="w-4 h-4" style={fieldIcon} />
             </div>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}
             style={{ width: '100%', justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
-            {loading ? '…' : 'Enregistrer'}
+            {loading ? '…' : 'Save'}
           </button>
         </div>
 
@@ -113,7 +113,7 @@ export default function CompleteProfileModal() {
 
         <button type="button" onClick={logout}
           style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--ai-noir70)', fontSize: 12, cursor: 'pointer' }}>
-          <LogOut className="w-3.5 h-3.5" /> Se déconnecter
+          <LogOut className="w-3.5 h-3.5" /> Sign out
         </button>
       </form>
     </div>

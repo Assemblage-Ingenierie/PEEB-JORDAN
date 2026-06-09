@@ -3,7 +3,7 @@ import { Shield, RefreshCw, Clock, Check, ChevronDown, ArrowUpCircle } from 'luc
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
-const STATUS_LABELS = { viewer: 'Lecteur', editor: 'Éditeur', admin: 'Administrateur' };
+const STATUS_LABELS = { viewer: 'Viewer', editor: 'Editor', admin: 'Administrator' };
 const STATUS_ORDER  = ['viewer', 'editor', 'admin'];
 
 const STATUS_BADGE = {
@@ -43,7 +43,7 @@ export default function Admin() {
     setErr('');
     if (status === 'admin') {
       const ok = window.confirm(
-        `Êtes-vous sûr de donner les droits administrateur à : ${p.first_name || ''} ${p.last_name || ''} ?`.replace(/\s+/g, ' ').trim()
+        `Are you sure you want to grant administrator rights to: ${p.first_name || ''} ${p.last_name || ''}?`.replace(/\s+/g, ' ').trim()
       );
       if (!ok) return;
     }
@@ -56,7 +56,7 @@ export default function Admin() {
     setErr('');
     if (p.requested_status === 'admin') {
       const ok = window.confirm(
-        `Êtes-vous sûr de donner les droits administrateur à : ${p.first_name || ''} ${p.last_name || ''} ?`.replace(/\s+/g, ' ').trim()
+        `Are you sure you want to grant administrator rights to: ${p.first_name || ''} ${p.last_name || ''}?`.replace(/\s+/g, ' ').trim()
       );
       if (!ok) return;
     }
@@ -86,10 +86,10 @@ export default function Admin() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold" style={{ color: 'var(--ai-violet)' }}>Admin</h2>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--ai-noir70)' }}>Gestion des comptes utilisateurs</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--ai-noir70)' }}>User account management</p>
         </div>
         <button onClick={fetchProfiles} className="btn-secondary text-xs">
-          <RefreshCw className="w-3.5 h-3.5" /> Rafraîchir
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
       </div>
 
@@ -103,7 +103,7 @@ export default function Admin() {
           <h3 className="text-xs font-bold uppercase tracking-wide mb-4 pb-2 flex items-center gap-2"
             style={{ color: 'var(--ai-rouge)', borderBottom: '1px dashed var(--ai-rouge)' }}>
             <ArrowUpCircle className="w-4 h-4" />
-            {requests.length} demande{requests.length > 1 ? 's' : ''} de rôle
+            {requests.length} role request{requests.length > 1 ? 's' : ''}
           </h3>
           <div className="space-y-2">
             {requests.map(p => (
@@ -119,12 +119,12 @@ export default function Admin() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button onClick={() => acceptRequest(p)} className="btn-primary text-xs">
-                    <Check className="w-3.5 h-3.5" /> Accepter
+                    <Check className="w-3.5 h-3.5" /> Accept
                   </button>
                   <button onClick={() => rejectRequest(p)}
                     className="text-xs px-3 py-1 rounded-md"
                     style={{ background: 'white', color: 'var(--ai-rouge)', border: '1px solid var(--ai-rouge)', cursor: 'pointer' }}>
-                    Rejeter
+                    Reject
                   </button>
                 </div>
               </div>
@@ -139,7 +139,7 @@ export default function Admin() {
           <h3 className="text-xs font-bold uppercase tracking-wide mb-4 pb-2 flex items-center gap-2"
             style={{ color: 'var(--ai-rouge)', borderBottom: '1px dashed var(--ai-rouge)' }}>
             <Clock className="w-4 h-4" />
-            {pending.length} demande{pending.length > 1 ? 's' : ''} en attente d'approbation
+            {pending.length} account{pending.length > 1 ? 's' : ''} pending approval
           </h3>
           <div className="space-y-2">
             {pending.map(p => (
@@ -154,7 +154,7 @@ export default function Admin() {
                   </div>
                 </div>
                 <button onClick={() => setApproval(p.id, true)} className="btn-primary text-xs flex-shrink-0">
-                  <Check className="w-3.5 h-3.5" /> Approuver
+                  <Check className="w-3.5 h-3.5" /> Approve
                 </button>
               </div>
             ))}
@@ -167,25 +167,25 @@ export default function Admin() {
         <h3 className="text-xs font-bold uppercase tracking-wide mb-4 pb-2 flex items-center gap-2"
           style={{ color: 'var(--ai-rouge)', borderBottom: '1px dashed var(--ai-rouge)' }}>
           <Shield className="w-4 h-4" />
-          Membres ({approved.length})
+          Members ({approved.length})
         </h3>
 
-        {loading && <p className="text-sm" style={{ color: 'var(--ai-noir70)' }}>Chargement…</p>}
+        {loading && <p className="text-sm" style={{ color: 'var(--ai-noir70)' }}>Loading…</p>}
 
         {!loading && (
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--ai-violet)', color: 'white', fontSize: 11 }}>
-                <th className="th" style={{ textAlign: 'left' }}>Prénom</th>
-                <th className="th" style={{ textAlign: 'left' }}>Nom</th>
-                <th className="th" style={{ textAlign: 'left' }}>Rôle</th>
+                <th className="th" style={{ textAlign: 'left' }}>First name</th>
+                <th className="th" style={{ textAlign: 'left' }}>Last name</th>
+                <th className="th" style={{ textAlign: 'left' }}>Role</th>
                 <th className="th" style={{ textAlign: 'left' }}>E-mail</th>
-                <th className="th" style={{ textAlign: 'right' }}>Statut</th>
+                <th className="th" style={{ textAlign: 'right' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {approved.length === 0 && (
-                <tr><td className="td" colSpan={5} style={{ color: 'var(--ai-gris)' }}><em>Aucun membre approuvé.</em></td></tr>
+                <tr><td className="td" colSpan={5} style={{ color: 'var(--ai-gris)' }}><em>No approved members.</em></td></tr>
               )}
               {approved.map(p => {
                 const badge = STATUS_BADGE[p.status] || STATUS_BADGE.viewer;
@@ -214,7 +214,7 @@ export default function Admin() {
                       <td className="td" style={{ textAlign: 'right' }}>
                         <span className="badge" style={{ background: badge.bg, color: badge.color }}>
                           {STATUS_LABELS[p.status] || p.status}
-                          {me?.id === p.id ? ' (vous)' : ''}
+                          {me?.id === p.id ? ' (you)' : ''}
                         </span>
                       </td>
                     </tr>
@@ -223,7 +223,7 @@ export default function Admin() {
                         <td className="td" colSpan={5}>
                           <div className="flex items-center gap-2 flex-wrap py-1">
                             <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>
-                              Statut de {fullName(p) || p.email} :
+                              Status of {fullName(p) || p.email}:
                             </span>
                             {STATUS_ORDER.map(s => (
                               <button key={s} onClick={() => setStatus(p, s)} disabled={p.status === s}
@@ -238,7 +238,7 @@ export default function Admin() {
                             <button onClick={() => setApproval(p.id, false)}
                               className="text-xs px-3 py-1 rounded-md"
                               style={{ background: 'white', color: 'var(--ai-rouge)', border: '1px solid var(--ai-rouge)', cursor: 'pointer' }}>
-                              Révoquer l'accès
+                              Revoke access
                             </button>
                           </div>
                         </td>

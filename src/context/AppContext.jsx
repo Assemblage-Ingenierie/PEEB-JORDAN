@@ -389,8 +389,8 @@ export function AppProvider({ children }) {
       payload: {
         type: 'error',
         message: adminOnly
-          ? 'Réservé aux administrateurs.'
-          : 'Accès en lecture seule — modification non autorisée.',
+          ? 'Administrators only.'
+          : 'Read-only access — editing is not allowed.',
       },
     });
   }, []);

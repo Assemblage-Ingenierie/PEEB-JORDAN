@@ -16,16 +16,16 @@ export default function WaitingScreen({ email, onLogout }) {
           <Clock className="w-6 h-6" style={{ color: 'var(--ai-rouge)' }} />
         </div>
         <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--ai-violet)', margin: 0 }}>
-          Compte en attente de validation
+          Account pending approval
         </h2>
         {email && <p style={{ fontSize: 13, color: 'var(--ai-noir70)', marginTop: 8 }}>{email}</p>}
         <p style={{ fontSize: 13, color: 'var(--ai-noir70)', marginTop: 12, lineHeight: 1.5 }}>
-          Votre compte doit être approuvé par un administrateur avant d'accéder à
-          l'application. Vous recevrez l'accès dès la validation.
+          Your account must be approved by an administrator before you can access the
+          application. You will get access as soon as it is validated.
         </p>
         <button onClick={onLogout} className="btn-secondary"
           style={{ marginTop: 22, width: '100%', justifyContent: 'center' }}>
-          Se déconnecter
+          Sign out
         </button>
       </div>
     </div>

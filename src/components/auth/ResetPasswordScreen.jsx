@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import PasswordInput from './PasswordInput';
 
 export default function ResetPasswordScreen({ onDone }) {
   const [password, setPassword]   = useState('');
@@ -10,13 +11,13 @@ export default function ResetPasswordScreen({ onDone }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (password.length < 6) { setMsg({ type: 'error', text: 'Le mot de passe doit faire au moins 6 caractères.' }); return; }
-    if (password !== password2) { setMsg({ type: 'error', text: 'Les mots de passe ne correspondent pas.' }); return; }
+    if (password.length < 6) { setMsg({ type: 'error', text: 'Password must be at least 6 characters.' }); return; }
+    if (password !== password2) { setMsg({ type: 'error', text: 'Passwords do not match.' }); return; }
     setLoading(true); setMsg(null);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) { setMsg({ type: 'error', text: error.message }); return; }
-    setMsg({ type: 'success', text: 'Mot de passe mis à jour.' });
+    setMsg({ type: 'success', text: 'Password updated.' });
     setTimeout(() => onDone?.(), 1200);
   }
 
@@ -40,18 +41,18 @@ export default function ResetPasswordScreen({ onDone }) {
             <Lock className="w-5 h-5" style={{ color: 'var(--ai-rouge)' }} />
           </div>
           <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--ai-violet)', margin: 0 }}>
-            Nouveau mot de passe
+            New password
           </h2>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <input type="password" style={inputStyle} placeholder="Nouveau mot de passe"
-            value={password} onChange={e => setPassword(e.target.value)} required />
-          <input type="password" style={inputStyle} placeholder="Confirmer le mot de passe"
-            value={password2} onChange={e => setPassword2(e.target.value)} required />
+          <PasswordInput value={password} onChange={e => setPassword(e.target.value)} inputStyle={inputStyle}
+            placeholder="New password" autoComplete="new-password" required />
+          <PasswordInput value={password2} onChange={e => setPassword2(e.target.value)} inputStyle={inputStyle}
+            placeholder="Confirm password" autoComplete="new-password" required />
           <button type="submit" className="btn-primary" disabled={loading}
             style={{ width: '100%', justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
-            {loading ? '…' : 'Mettre à jour'}
+            {loading ? '…' : 'Update'}
           </button>
         </div>
 
