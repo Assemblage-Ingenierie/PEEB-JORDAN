@@ -2,6 +2,7 @@ import { useAuth } from '../../context/AuthContext';
 import AuthLanding from './AuthLanding';
 import WaitingScreen from './WaitingScreen';
 import ResetPasswordScreen from './ResetPasswordScreen';
+import CompleteProfileModal from './CompleteProfileModal';
 
 function Loader() {
   return (
@@ -19,11 +20,18 @@ function Loader() {
 }
 
 export default function AuthGate({ children }) {
-  const { authState, session, logout, finishRecovery } = useAuth();
+  const { authState, session, profile, logout, finishRecovery } = useAuth();
 
   if (authState === 'recovery')  return <ResetPasswordScreen onDone={finishRecovery} />;
   if (authState === 'loading')   return <Loader />;
   if (authState === 'loggedout') return <AuthLanding />;
+
+  // Authenticated (waiting or approved): if the profile is incomplete
+  // (typical for Google sign-ups), collect the missing fields first.
+  const incomplete = profile &&
+    (!profile.first_name?.trim() || !profile.last_name?.trim() || !profile.job_title?.trim());
+  if (incomplete) return <CompleteProfileModal />;
+
   if (authState === 'waiting')   return <WaitingScreen email={session?.user?.email ?? ''} onLogout={logout} />;
 
   return children;
