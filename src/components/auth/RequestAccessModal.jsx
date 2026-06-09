@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ShieldCheck, PencilLine, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -28,9 +29,9 @@ export default function RequestAccessModal({ onClose }) {
   const canRequestEditor = status === 'viewer';
   const canRequestAdmin  = status === 'viewer' || status === 'editor';
 
-  return (
+  return createPortal((
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'rgba(48,50,62,.55)', fontFamily: 'var(--ai-font)', padding: 24,
     }} onClick={onClose}>
       <div className="card fade-in" style={{ width: '100%', maxWidth: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
@@ -81,5 +82,5 @@ export default function RequestAccessModal({ onClose }) {
         {err && <p style={{ color: 'var(--ai-rouge)', fontSize: 12, marginTop: 12 }}>{err}</p>}
       </div>
     </div>
-  );
+  ), document.body);
 }
