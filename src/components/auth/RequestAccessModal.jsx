@@ -1,0 +1,86 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X, ShieldCheck, PencilLine, Clock } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+
+const LABELS = { viewer: 'Viewer', editor: 'Editor', admin: 'Administrator' };
+
+export default function RequestAccessModal({ onClose }) {
+  const { profile, session, refreshProfile } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const status    = profile?.status ?? 'viewer';
+  const requested = profile?.requested_status ?? null;
+
+  async function setRequest(tier) {
+    setLoading(true); setErr('');
+    const { error } = await supabase
+      .from('profiles')
+      .update({ requested_status: tier })
+      .eq('id', session.user.id);
+    setLoading(false);
+    if (error) { setErr(error.message); return; }
+    await refreshProfile();
+  }
+
+  // Tiers the user can request (only higher than current)
+  const canRequestEditor = status === 'viewer';
+  const canRequestAdmin  = status === 'viewer' || status === 'editor';
+
+  return createPortal((
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(48,50,62,.55)', fontFamily: 'var(--ai-font)', padding: 24,
+    }} onClick={onClose}>
+      <div className="card fade-in" style={{ width: '100%', maxWidth: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-1">
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ai-violet)', margin: 0 }}>Request access</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ai-noir70)' }}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--ai-noir70)', margin: '0 0 16px' }}>
+          Your current status: <strong style={{ color: 'var(--ai-violet)' }}>{LABELS[status]}</strong>.
+          A request must be approved by an administrator.
+        </p>
+
+        {requested ? (
+          <div className="space-y-3">
+            <div className="ai-box-soft flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+              <span>Pending request: upgrade to <strong>{LABELS[requested]}</strong> — awaiting approval.</span>
+            </div>
+            <button onClick={() => setRequest(null)} disabled={loading} className="btn-secondary"
+              style={{ width: '100%', justifyContent: 'center' }}>
+              Cancel request
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {canRequestEditor && (
+              <button onClick={() => setRequest('editor')} disabled={loading} className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'flex-start', gap: 8 }}>
+                <PencilLine className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+                Request Editor status
+              </button>
+            )}
+            {canRequestAdmin && (
+              <button onClick={() => setRequest('admin')} disabled={loading} className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'flex-start', gap: 8 }}>
+                <ShieldCheck className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
+                Request Administrator status
+              </button>
+            )}
+            {!canRequestEditor && !canRequestAdmin && (
+              <p style={{ fontSize: 13, color: 'var(--ai-noir70)' }}>You already have the highest access level.</p>
+            )}
+          </div>
+        )}
+
+        {err && <p style={{ color: 'var(--ai-rouge)', fontSize: 12, marginTop: 12 }}>{err}</p>}
+      </div>
+    </div>
+  ), document.body);
+}

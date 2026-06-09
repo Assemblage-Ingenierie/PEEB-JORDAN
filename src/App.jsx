@@ -1,4 +1,6 @@
 import { AppProvider, useApp } from './context/AppContext';
+import { AuthProvider } from './context/AuthContext';
+import AuthGate          from './components/auth/AuthGate';
 import Sidebar           from './components/Layout/Sidebar';
 import Header            from './components/Layout/Header';
 import Dashboard         from './components/Dashboard/Dashboard';
@@ -13,7 +15,11 @@ import Guide             from './components/Guide/Guide';
 import ErrorBoundary     from './components/ErrorBoundary';
 
 function ActiveView() {
-  const { view } = useApp();
+  const { view, isAdmin } = useApp();
+  // Admin-only views are not reachable by non-admins, even via a direct URL.
+  if ((view === 'parameters' || view === 'admin') && !isAdmin) {
+    return <Dashboard />;
+  }
   switch (view) {
     case 'dashboard':    return <Dashboard />;
     case 'inventory':    return <BuildingInventory />;
@@ -83,9 +89,13 @@ function Shell() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <Shell />
-      </AppProvider>
+      <AuthProvider>
+        <AuthGate>
+          <AppProvider>
+            <Shell />
+          </AppProvider>
+        </AuthGate>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

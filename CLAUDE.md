@@ -22,7 +22,9 @@ VITE_SUPABASE_ANON_KEY=
 
 ## Architecture
 
-**React 18 + Vite SPA** — no SSR, no router library. Navigation is state-driven via `AppContext.state.view`, with `src/lib/router.js` mapping `state.view (+ selectedId)` onto pretty URLs (`/`, `/buildings`, `/buildings/<id>`, `/new-building`, `/map`, `/parameters`, `/calculator`). The provider syncs view → `history.pushState` and listens to `popstate` so back/forward and middle-click "open in new tab" work natively. Vercel rewrites everything to `/index.html` (see `vercel.json`).
+**React 18 + Vite SPA** — no SSR, no router library. Navigation is state-driven via `AppContext.state.view`, with `src/lib/router.js` mapping `state.view (+ selectedId)` onto pretty URLs (`/`, `/buildings`, `/buildings/<id>`, `/new-building`, `/map`, `/parameters`, `/calculator`, `/admin`, `/guide`). The provider syncs view → `history.pushState` and listens to `popstate` so back/forward and middle-click "open in new tab" work natively. Vercel rewrites everything to `/index.html` (see `vercel.json`).
+
+The whole app is gated by `AuthProvider` → `AuthGate` (see **Authentication** below); `AppProvider` and its data fetch only mount for an approved user.
 
 ### Data flow
 
@@ -71,20 +73,53 @@ Pure functions — no imports from React or Supabase. Key entry points:
 
 Per-building scalar columns added on top of the initial schema:
 - `total_baseline_kwh`, `total_project_kwh`, `gain_override` — drive the Total Energy Saving block
+- `ee_capex_override` — manual override of the total EE capex
 - `design_progress`, `works_progress` — nullable text, values `'ongoing' | 'completed' | null` (rendered as pastilles in the inventory, click to cycle)
+- `existing_audit`, `audit_author`, `audit_date`, `audit_file_url` — audit metadata; `source` — provenance tag
 Migrations live in `supabase/migrations/`; the camelCase/snake_case mapping is in `src/lib/db.js` (`dbToJs` / `jsToDB`).
 
-**`app_params`** — singleton (id always = 1, enforced by `CHECK` constraint). Stores currency, energy cost, unit costs (JSONB), score config (JSONB), and savings-by-typology matrix (JSONB).
+**`app_params`** — singleton (id always = 1, enforced by `CHECK` constraint). Stores currency, exchange rate, energy cost, unit costs (JSONB), score config (JSONB), and `budget_config` (JSONB). The legacy `savings_by_typology` column still exists but is no longer read or written.
 
-RLS is enabled on both tables with full `anon` access (single-org internal tool, no user auth).
+**`profiles`** — one row per `auth.users` account (see **Authentication**). Columns: `email`, `first_name`, `last_name`, `job_title` (free-text "métier"), `status` (`viewer | editor | admin`), `is_approved`, `requested_status` (`editor | admin | null` — a pending role-upgrade request), `created_at`.
+
+RLS is enabled on all three tables. **Access is role-based, enforced server-side** (no more open `anon` access):
+- `buildings` — SELECT for any approved user; INSERT/UPDATE/DELETE for `editor`/`admin` (`peeb_can_edit()`).
+- `app_params` — SELECT for any approved user; write for `admin` only (`peeb_is_admin()`).
+- `profiles` — a user reads their own row; only admins read all / update / delete. A `BEFORE` trigger blocks removing or demoting the last approved admin.
 
 ### Draft lifecycle
 
 New buildings start as `is_draft = true` with a `draft-{timestamp}` ID held only in memory. On `finalizeDraft`, the ID becomes a slug (e.g., `amman-school-1`) and the row is persisted to Supabase.
 
+### Authentication & roles
+
+Supabase Auth (Google OAuth + email/password with email verification). `src/context/AuthContext.jsx`
+holds the session + `profiles` row and exposes `authState` (`loading | loggedout | waiting | recovery | approved`),
+`isAdmin`, `canEdit`. `src/components/auth/AuthGate.jsx` renders `AuthLanding` (S'inscrire / Se connecter / Google /
+forgot-password), `WaitingScreen` (account pending admin approval), or `ResetPasswordScreen` accordingly.
+
+**Authorisation model:** signups are open and land as an **approved `viewer`** (immediate read access) — a trigger on
+`auth.users` (INSERT + UPDATE — the UPDATE covers Google OAuth's first sign-in) auto-creates the `profiles` row from
+`raw_user_meta_data` with `status='viewer', is_approved=true`. To gain more rights a user **requests** an upgrade
+(`RequestAccessModal` from the sidebar → sets `requested_status`); only an **admin** accepts (sets `status`) or rejects
+(clears it) on the **Admin** page. Self-service writes to `profiles` are allowed for one's own row, but a `BEFORE UPDATE`
+guard (`peeb_guard_self_update`) freezes `status`/`is_approved` for non-admins, so a request can never self-escalate.
+The **Admin** page (`src/components/Admin/Admin.jsx`, admin-only) shows role requests, lists users, and changes a
+user's `status` (click the first/last name) with a confirm dialog when promoting to admin.
+> Note: auto-approval means anyone who can sign up (any Google account / email) gets viewer read access — restrict
+> signups (e.g. domain allowlist) if the data must stay private.
+
+Three tiers: **viewer** (read + filter), **editor** (edit building data), **admin** (+ Parameters + Admin page).
+UI gating lives in `Sidebar` (hides Parameters/Admin), `AppContext` mutation choke-points (`canEdit`/`isAdmin`, with a
+throttled "read-only" toast), and an `ActiveView` guard. **RLS is the real barrier** — the UI gating is convenience only.
+
+The **first admin** must be seeded once after signing up:
+`UPDATE public.profiles SET status='admin', is_approved=true WHERE email='…';`. Dashboard config (Google provider,
+"Confirm email", redirect URLs, and a Brevo SMTP relay for reliable delivery) is done in the Supabase console.
+
 ### Views (via `state.view`)
 
-`dashboard` → `inventory` → `profile` → `new-building` → `map` → `parameters` → `calculator`
+`dashboard` → `inventory` → `profile` → `new-building` → `map` → `parameters` → `calculator` → `admin` → `guide`
 
 Navigation is done via `navigate(view)` and `selectBuilding(id)` from `useApp()`. Both consult an optional **navigation guard** (`setNavigationGuard(fn)`) so screens can block leaving when there are unsaved changes — used by `BuildingProfile` to surface its Save / Discard / Stay modal. The `popstate` handler is also guard-aware and re-pushes the current URL if the guard denies.
 

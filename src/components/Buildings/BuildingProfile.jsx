@@ -4,7 +4,7 @@ import {
   Camera, X, Printer, AlertTriangle, Ban, Info,
   Leaf, Banknote, TrendingUp, Wind, Lightbulb,
   Sun, Building2, Grid2X2, CheckCircle2, ShieldCheck, Droplets,
-  Trash2,
+  Trash2, Eye,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { MEASURE_META, MEASURE_KEYS_EE_CORE, MEASURE_KEYS_RE, MEASURE_KEYS_GR, formatCurrency, calculateScore } from '../../engine/CalculationEngine';
@@ -793,7 +793,7 @@ function stripEnriched(b) {
 
 // ─── Building profile ─────────────────────────────────────────────────────────
 export default function BuildingProfile() {
-  const { selectedBuilding, updateBuilding, params, deleteBuilding, setNavigationGuard, navigate, selectBuilding } = useApp();
+  const { selectedBuilding, updateBuilding, params, deleteBuilding, setNavigationGuard, navigate, selectBuilding, canEdit } = useApp();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [hasFunding, setHasFunding] = useState(() => !!selectedBuilding?.fundingSource);
 
@@ -884,6 +884,13 @@ export default function BuildingProfile() {
   return (
     <div className="space-y-6 fade-in">
 
+      {!canEdit && (
+        <div className="ai-box-soft flex items-center gap-3 text-sm no-print">
+          <Eye className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-violet)' }} />
+          <span><strong>Read-only</strong> access — you can view and export, but not edit.</span>
+        </div>
+      )}
+
       {/* Alerts */}
       {ineligible && (
         <div className="ai-box-soft flex items-center gap-3 text-sm">
@@ -924,23 +931,29 @@ export default function BuildingProfile() {
           {savedToast && (
             <span className="text-xs italic" style={{ color: '#16a34a' }}>✓ saved</span>
           )}
-          <button onClick={handleDiscardChanges} className="btn-secondary"
-            disabled={!isDirty}
-            style={{ opacity: isDirty ? 1 : 0.4, cursor: isDirty ? 'pointer' : 'not-allowed' }}>
-            <X className="w-4 h-4" /> Discard
-          </button>
-          <button onClick={handleSaveChanges} className="btn-primary"
-            disabled={!isDirty}
-            style={{ opacity: isDirty ? 1 : 0.4, cursor: isDirty ? 'pointer' : 'not-allowed' }}>
-            <CheckCircle2 className="w-4 h-4" /> Save changes
-          </button>
+          {canEdit && (
+            <button onClick={handleDiscardChanges} className="btn-secondary"
+              disabled={!isDirty}
+              style={{ opacity: isDirty ? 1 : 0.4, cursor: isDirty ? 'pointer' : 'not-allowed' }}>
+              <X className="w-4 h-4" /> Discard
+            </button>
+          )}
+          {canEdit && (
+            <button onClick={handleSaveChanges} className="btn-primary"
+              disabled={!isDirty}
+              style={{ opacity: isDirty ? 1 : 0.4, cursor: isDirty ? 'pointer' : 'not-allowed' }}>
+              <CheckCircle2 className="w-4 h-4" /> Save changes
+            </button>
+          )}
           <button onClick={() => window.print()} className="btn-secondary">
             <Printer className="w-4 h-4" /> Export PDF
           </button>
-          <button onClick={() => setConfirmDelete(true)} className="btn-secondary"
-            style={{ color: 'var(--ai-rouge)', borderColor: 'var(--ai-rouge)' }}>
-            <Trash2 className="w-4 h-4" /> Delete
-          </button>
+          {canEdit && (
+            <button onClick={() => setConfirmDelete(true)} className="btn-secondary"
+              style={{ color: 'var(--ai-rouge)', borderColor: 'var(--ai-rouge)' }}>
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          )}
         </div>
       </div>
 

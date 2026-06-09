@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
-  SlidersHorizontal, ChevronRight, Shield, BookOpen,
+  SlidersHorizontal, ChevronRight, Shield, BookOpen, LogOut, KeyRound,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import RequestAccessModal from '../auth/RequestAccessModal';
 import { pathFromState, isModifiedClick } from '../../lib/router';
 
 const NAV = [
@@ -11,13 +13,17 @@ const NAV = [
   { id: 'dashboard',    label: 'Dashboard',     Icon: LayoutDashboard   },
   { id: 'inventory',    label: 'Buildings',     Icon: Building2         },
   { id: 'map',          label: 'Map View',      Icon: Map               },
-  { id: 'parameters',   label: 'Parameters',    Icon: SlidersHorizontal },
-  { id: 'admin',        label: 'Admin',         Icon: Shield            },
+  { id: 'parameters',   label: 'Parameters',    Icon: SlidersHorizontal, adminOnly: true },
+  { id: 'admin',        label: 'Admin',         Icon: Shield,            adminOnly: true },
 ];
 
 export default function Sidebar() {
   const { view, navigate, buildings } = useApp();
+  const { isAdmin, profile, logout } = useAuth();
   const [logoFailed, setLogoFailed] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
+
+  const nav = NAV.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <aside
@@ -56,7 +62,7 @@ export default function Sidebar() {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ id, label, Icon }) => {
+        {nav.map(({ id, label, Icon }) => {
           const active = view === id;
           const href = pathFromState(id);
           return (
@@ -92,6 +98,46 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* ── Utilisateur + déconnexion ── */}
+      <div className="px-3 py-3" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+        {!isAdmin && (
+          <button
+            onClick={() => setShowRequest(true)}
+            className="w-full flex items-center gap-2 px-2 py-2 mb-2 rounded-lg text-xs font-medium transition-all"
+            style={{ color: 'rgba(255,255,255,.6)', background: 'rgba(255,255,255,.05)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.10)'; e.currentTarget.style.color = 'white'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)'; }}
+          >
+            <KeyRound className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+            {profile?.requested_status ? 'Request pending…' : 'Request access'}
+          </button>
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold truncate" style={{ color: 'white' }}>
+              {profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email : ''}
+            </div>
+            <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,.45)' }}>
+              {profile?.status === 'admin' ? 'Administrator'
+                : profile?.status === 'editor' ? 'Editor'
+                : 'Viewer'}
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            title="Sign out"
+            className="flex-shrink-0 p-2 rounded-lg transition-all"
+            style={{ color: 'rgba(255,255,255,.55)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'white'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.55)'; }}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {showRequest && <RequestAccessModal onClose={() => setShowRequest(false)} />}
 
     </aside>
   );
