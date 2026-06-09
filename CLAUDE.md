@@ -80,7 +80,7 @@ Migrations live in `supabase/migrations/`; the camelCase/snake_case mapping is i
 
 **`app_params`** — singleton (id always = 1, enforced by `CHECK` constraint). Stores currency, exchange rate, energy cost, unit costs (JSONB), score config (JSONB), and `budget_config` (JSONB). The legacy `savings_by_typology` column still exists but is no longer read or written.
 
-**`profiles`** — one row per `auth.users` account (see **Authentication**). Columns: `email`, `first_name`, `last_name`, `job_title` (free-text "métier"), `status` (`viewer | editor | admin`), `is_approved`, `created_at`.
+**`profiles`** — one row per `auth.users` account (see **Authentication**). Columns: `email`, `first_name`, `last_name`, `job_title` (free-text "métier"), `status` (`viewer | editor | admin`), `is_approved`, `requested_status` (`editor | admin | null` — a pending role-upgrade request), `created_at`.
 
 RLS is enabled on all three tables. **Access is role-based, enforced server-side** (no more open `anon` access):
 - `buildings` — SELECT for any approved user; INSERT/UPDATE/DELETE for `editor`/`admin` (`peeb_can_edit()`).
@@ -98,10 +98,16 @@ holds the session + `profiles` row and exposes `authState` (`loading | loggedout
 `isAdmin`, `canEdit`. `src/components/auth/AuthGate.jsx` renders `AuthLanding` (S'inscrire / Se connecter / Google /
 forgot-password), `WaitingScreen` (account pending admin approval), or `ResetPasswordScreen` accordingly.
 
-Signups are open but land as `is_approved = false` (no data access until an admin approves). A trigger on
+**Authorisation model:** signups are open and land as an **approved `viewer`** (immediate read access) — a trigger on
 `auth.users` (INSERT + UPDATE — the UPDATE covers Google OAuth's first sign-in) auto-creates the `profiles` row from
-`raw_user_meta_data`. The **Admin** page (`src/components/Admin/Admin.jsx`, admin-only) lists users, approves pending
-ones, and changes a user's `status` (click the first/last name) with a confirm dialog when promoting to admin.
+`raw_user_meta_data` with `status='viewer', is_approved=true`. To gain more rights a user **requests** an upgrade
+(`RequestAccessModal` from the sidebar → sets `requested_status`); only an **admin** accepts (sets `status`) or rejects
+(clears it) on the **Admin** page. Self-service writes to `profiles` are allowed for one's own row, but a `BEFORE UPDATE`
+guard (`peeb_guard_self_update`) freezes `status`/`is_approved` for non-admins, so a request can never self-escalate.
+The **Admin** page (`src/components/Admin/Admin.jsx`, admin-only) shows role requests, lists users, and changes a
+user's `status` (click the first/last name) with a confirm dialog when promoting to admin.
+> Note: auto-approval means anyone who can sign up (any Google account / email) gets viewer read access — restrict
+> signups (e.g. domain allowlist) if the data must stay private.
 
 Three tiers: **viewer** (read + filter), **editor** (edit building data), **admin** (+ Parameters + Admin page).
 UI gating lives in `Sidebar` (hides Parameters/Admin), `AppContext` mutation choke-points (`canEdit`/`isAdmin`, with a

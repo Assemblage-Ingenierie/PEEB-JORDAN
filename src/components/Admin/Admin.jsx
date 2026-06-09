@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
-import { Shield, RefreshCw, Clock, Check, ChevronDown } from 'lucide-react';
+import { Shield, RefreshCw, Clock, Check, ChevronDown, ArrowUpCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
@@ -52,6 +52,30 @@ export default function Admin() {
     else { setOpenId(null); fetchProfiles(); }
   };
 
+  const acceptRequest = async (p) => {
+    setErr('');
+    if (p.requested_status === 'admin') {
+      const ok = window.confirm(
+        `Êtes-vous sûr de donner les droits administrateur à : ${p.first_name || ''} ${p.last_name || ''} ?`.replace(/\s+/g, ' ').trim()
+      );
+      if (!ok) return;
+    }
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status: p.requested_status, requested_status: null })
+      .eq('id', p.id);
+    if (error) setErr(error.message);
+    else fetchProfiles();
+  };
+
+  const rejectRequest = async (p) => {
+    setErr('');
+    const { error } = await supabase.from('profiles').update({ requested_status: null }).eq('id', p.id);
+    if (error) setErr(error.message);
+    else fetchProfiles();
+  };
+
+  const requests = profiles.filter(p => p.requested_status);
   const pending  = profiles.filter(p => !p.is_approved);
   const approved = profiles.filter(p => p.is_approved);
 
@@ -73,7 +97,43 @@ export default function Admin() {
         <div className="ai-box-soft text-sm" style={{ color: 'var(--ai-rouge)' }}>{err}</div>
       )}
 
-      {/* ── Demandes en attente ── */}
+      {/* ── Demandes de rôle ── */}
+      {requests.length > 0 && (
+        <section className="card">
+          <h3 className="text-xs font-bold uppercase tracking-wide mb-4 pb-2 flex items-center gap-2"
+            style={{ color: 'var(--ai-rouge)', borderBottom: '1px dashed var(--ai-rouge)' }}>
+            <ArrowUpCircle className="w-4 h-4" />
+            {requests.length} demande{requests.length > 1 ? 's' : ''} de rôle
+          </h3>
+          <div className="space-y-2">
+            {requests.map(p => (
+              <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-lg"
+                style={{ background: 'var(--ai-rouge-clair)', border: '1px solid var(--ai-rouge)' }}>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold truncate" style={{ color: 'var(--ai-violet)' }}>
+                    {fullName(p) || p.email}
+                  </div>
+                  <div className="text-xs truncate" style={{ color: 'var(--ai-noir70)' }}>
+                    {p.email} · {STATUS_LABELS[p.status]} → <strong style={{ color: 'var(--ai-rouge)' }}>{STATUS_LABELS[p.requested_status]}</strong>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => acceptRequest(p)} className="btn-primary text-xs">
+                    <Check className="w-3.5 h-3.5" /> Accepter
+                  </button>
+                  <button onClick={() => rejectRequest(p)}
+                    className="text-xs px-3 py-1 rounded-md"
+                    style={{ background: 'white', color: 'var(--ai-rouge)', border: '1px solid var(--ai-rouge)', cursor: 'pointer' }}>
+                    Rejeter
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Demandes en attente (comptes non approuvés / révoqués) ── */}
       {pending.length > 0 && (
         <section className="card">
           <h3 className="text-xs font-bold uppercase tracking-wide mb-4 pb-2 flex items-center gap-2"

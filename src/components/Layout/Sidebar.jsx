@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
-  SlidersHorizontal, ChevronRight, Shield, BookOpen, LogOut,
+  SlidersHorizontal, ChevronRight, Shield, BookOpen, LogOut, KeyRound,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import RequestAccessModal from '../auth/RequestAccessModal';
 import { pathFromState, isModifiedClick } from '../../lib/router';
 
 const NAV = [
@@ -20,6 +21,7 @@ export default function Sidebar() {
   const { view, navigate, buildings } = useApp();
   const { isAdmin, profile, logout } = useAuth();
   const [logoFailed, setLogoFailed] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
 
   const nav = NAV.filter(item => !item.adminOnly || isAdmin);
 
@@ -99,6 +101,18 @@ export default function Sidebar() {
 
       {/* ── Utilisateur + déconnexion ── */}
       <div className="px-3 py-3" style={{ borderTop: '1px solid rgba(255,255,255,.08)' }}>
+        {!isAdmin && (
+          <button
+            onClick={() => setShowRequest(true)}
+            className="w-full flex items-center gap-2 px-2 py-2 mb-2 rounded-lg text-xs font-medium transition-all"
+            style={{ color: 'rgba(255,255,255,.6)', background: 'rgba(255,255,255,.05)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.10)'; e.currentTarget.style.color = 'white'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.05)'; e.currentTarget.style.color = 'rgba(255,255,255,.6)'; }}
+          >
+            <KeyRound className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+            {profile?.requested_status ? 'Demande en cours…' : 'Demander un accès'}
+          </button>
+        )}
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="text-xs font-semibold truncate" style={{ color: 'white' }}>
@@ -122,6 +136,8 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
+
+      {showRequest && <RequestAccessModal onClose={() => setShowRequest(false)} />}
 
     </aside>
   );
