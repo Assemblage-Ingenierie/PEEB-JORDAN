@@ -8,6 +8,7 @@ import {
 } from '../engine/CalculationEngine';
 import * as db from '../lib/db';
 import { pathFromState, stateFromPath } from '../lib/router';
+import { useAuth } from './AuthContext';
 
 // ─── Draft builder ─────────────────────────────────────────────────────────────
 function makeDraft(id) {
@@ -368,6 +369,32 @@ const AppContext = createContext(null);
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // ── Permission tier (from AuthContext) ───────────────────────────────────────
+  // AppProvider only mounts for approved users (gated by AuthGate). canEdit/isAdmin
+  // drive the UI; the real enforcement is server-side RLS. Kept in refs so the
+  // memoised mutation helpers below stay referentially stable.
+  const { canEdit, isAdmin, status, profile } = useAuth();
+  const canEditRef = useRef(canEdit);
+  const isAdminRef = useRef(isAdmin);
+  useEffect(() => { canEditRef.current = canEdit; isAdminRef.current = isAdmin; }, [canEdit, isAdmin]);
+
+  // Throttle the "read-only" toast so a viewer typing in a field doesn't spam it.
+  const denyToastAtRef = useRef(0);
+  const denyEdit = useCallback((adminOnly = false) => {
+    const now = Date.now();
+    if (now - denyToastAtRef.current < 3000) return;
+    denyToastAtRef.current = now;
+    dispatch({
+      type: 'SET_NOTIFICATION',
+      payload: {
+        type: 'error',
+        message: adminOnly
+          ? 'Réservé aux administrateurs.'
+          : 'Accès en lecture seule — modification non autorisée.',
+      },
+    });
+  }, []);
+
   // Always-fresh ref to state — used by async callbacks to avoid stale closures
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -502,26 +529,31 @@ export function AppProvider({ children }) {
   }, []);
 
   const updateBuilding = useCallback((id, patch) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'UPDATE_BUILDING', id, patch });
     scheduleSave(id);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   const toggleMeasure = useCallback((id, measure) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'TOGGLE_MEASURE', id, measure });
     scheduleSave(id);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   const setMeasureValue = useCallback((id, measure, field, value) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'SET_MEASURE_VALUE', id, measure, field, value });
     scheduleSave(id);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   const addBuilding = useCallback((building) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'ADD_BUILDING', building });
     scheduleSave(building.id);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   const deleteBuilding = useCallback((id) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'DELETE_BUILDING', id });
     if (initializedRef.current) {
       db.deleteBuilding(id).catch(err => {
@@ -534,6 +566,7 @@ export function AppProvider({ children }) {
   }, []);
 
   const finalizeDraft = useCallback((id) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'FINALIZE_DRAFT', id });
     // The draft gets a new slug-based id after FINALIZE_DRAFT; we need the
     // finalized building from state after the re-render to persist it.
@@ -543,9 +576,10 @@ export function AppProvider({ children }) {
     // We store the draft name before dispatch so we can look it up.
     const draft = stateRef.current.buildings.find(b => b.id === id);
     if (draft) scheduleSave(`${slugId(draft.name) || id}`);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   const applyImport = useCallback((added, updated, notify) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'APPLY_IMPORT', added, updated, notify });
     if (initializedRef.current) {
       db.saveBuildings([...added, ...updated]).catch(err => {
@@ -555,17 +589,19 @@ export function AppProvider({ children }) {
         });
       });
     }
-  }, []);
+  }, [denyEdit]);
 
   const addImage = useCallback((id, url) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'ADD_BUILDING_IMAGE', id, url });
     scheduleSave(id);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   const removeImage = useCallback((id, index) => {
+    if (!canEditRef.current) return denyEdit();
     dispatch({ type: 'REMOVE_BUILDING_IMAGE', id, index });
     scheduleSave(id);
-  }, [scheduleSave]);
+  }, [scheduleSave, denyEdit]);
 
   return (
     <AppContext.Provider value={{
@@ -578,6 +614,11 @@ export function AppProvider({ children }) {
       selectedBuilding,
       notification:      state.notification,
       getCalcResult,
+      // Permission tier (UI gating; RLS is the real barrier)
+      canEdit,
+      isAdmin,
+      role:              status,
+      profile,
       // Navigation
       navigate:          (view, id)   => {
         const guard = navigationGuardRef.current;
@@ -590,23 +631,23 @@ export function AppProvider({ children }) {
         dispatch({ type: 'SELECT_BUILDING', id });
       },
       setNavigationGuard,
-      // Parameters (persisted via debounced effect)
-      setParam:          (key, value) => dispatch({ type: 'SET_PARAM', key, value }),
-      setUnitCost:       (measure, val)           => dispatch({ type: 'SET_UNIT_COST', measure, value: val }),
-      setScoreCriterion:    (index, patch) => dispatch({ type: 'SET_SCORE_CRITERION', index, patch }),
-      addScoreCriterion:    (criterion)    => dispatch({ type: 'ADD_SCORE_CRITERION', criterion }),
-      deleteScoreCriterion: (index)        => dispatch({ type: 'DELETE_SCORE_CRITERION', index }),
-      setBudgetItem:       (index, patch) => dispatch({ type: 'SET_BUDGET_ITEM', index, patch }),
-      addBudgetItem:       (item)         => dispatch({ type: 'ADD_BUDGET_ITEM', item }),
-      deleteBudgetItem:    (index)        => dispatch({ type: 'DELETE_BUDGET_ITEM', index }),
-      setBudgetContingency:(patch)        => dispatch({ type: 'SET_BUDGET_CONTINGENCY', patch }),
+      // Parameters (admin only; persisted via debounced effect)
+      setParam:          (key, value) => isAdminRef.current ? dispatch({ type: 'SET_PARAM', key, value }) : denyEdit(true),
+      setUnitCost:       (measure, val)           => isAdminRef.current ? dispatch({ type: 'SET_UNIT_COST', measure, value: val }) : denyEdit(true),
+      setScoreCriterion:    (index, patch) => isAdminRef.current ? dispatch({ type: 'SET_SCORE_CRITERION', index, patch }) : denyEdit(true),
+      addScoreCriterion:    (criterion)    => isAdminRef.current ? dispatch({ type: 'ADD_SCORE_CRITERION', criterion }) : denyEdit(true),
+      deleteScoreCriterion: (index)        => isAdminRef.current ? dispatch({ type: 'DELETE_SCORE_CRITERION', index }) : denyEdit(true),
+      setBudgetItem:       (index, patch) => isAdminRef.current ? dispatch({ type: 'SET_BUDGET_ITEM', index, patch }) : denyEdit(true),
+      addBudgetItem:       (item)         => isAdminRef.current ? dispatch({ type: 'ADD_BUDGET_ITEM', item }) : denyEdit(true),
+      deleteBudgetItem:    (index)        => isAdminRef.current ? dispatch({ type: 'DELETE_BUDGET_ITEM', index }) : denyEdit(true),
+      setBudgetContingency:(patch)        => isAdminRef.current ? dispatch({ type: 'SET_BUDGET_CONTINGENCY', patch }) : denyEdit(true),
       // Building mutations (persisted to Supabase)
       updateBuilding,
       toggleMeasure,
       setMeasureValue,
       addBuilding,
       deleteBuilding,
-      createDraft:       ()           => dispatch({ type: 'CREATE_DRAFT' }),
+      createDraft:       ()           => canEditRef.current ? dispatch({ type: 'CREATE_DRAFT' }) : denyEdit(),
       finalizeDraft,
       discardDraft:      (id)         => dispatch({ type: 'DISCARD_DRAFT', id }),
       applyImport,

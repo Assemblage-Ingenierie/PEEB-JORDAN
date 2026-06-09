@@ -612,7 +612,7 @@ function HeaderCell({ col, sortState, onSort, isSectionStart }) {
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 export default function BuildingInventory() {
-  const { buildings, selectBuilding, navigate, params, updateBuilding, deleteBuilding } = useApp();
+  const { buildings, selectBuilding, navigate, params, updateBuilding, deleteBuilding, canEdit } = useApp();
   const [pendingDelete, setPendingDelete] = useState(null);
 
   // Drag-to-scroll for the table container
@@ -814,12 +814,16 @@ export default function BuildingInventory() {
             title="Download the full buildings database as Excel">
             <Download className="w-3.5 h-3.5" /> Download Excel
           </button>
-          <button onClick={() => setShowUpload(true)} className="btn-secondary text-xs">
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Upload new buildings
-          </button>
-          <button onClick={() => navigate('new-building')} className="btn-primary text-xs">
-            <Plus className="w-3.5 h-3.5" /> Create new building
-          </button>
+          {canEdit && (
+            <button onClick={() => setShowUpload(true)} className="btn-secondary text-xs">
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Upload new buildings
+            </button>
+          )}
+          {canEdit && (
+            <button onClick={() => navigate('new-building')} className="btn-primary text-xs">
+              <Plus className="w-3.5 h-3.5" /> Create new building
+            </button>
+          )}
         </div>
       </div>
 
