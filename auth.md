@@ -88,6 +88,12 @@ only loads for an approved user.
   Reset password, Invite, Reauthentication) are branded in Assemblage colours.
 - **First admin** was seeded once:
   `UPDATE public.profiles SET status='admin', is_approved=true WHERE email='malo@assemblage.net';`
+- **Admin email notifications** (`supabase/migrations/20260610000000_admin_email_notifications.sql`):
+  Postgres triggers on `profiles` call Brevo's transactional API (via `pg_net`) to email every
+  admin when a new user signs up and when a role upgrade is requested. The Brevo **v3 API key**
+  is stored in **Supabase Vault** as `brevo_api_key`; the sender is `noreply@assemblage.net`
+  (edit `NOTIF_SENDER` in the migration to change it). Best-effort: skipped silently if the key
+  is absent or there are no admins.
 
 ## Known follow-ups
 
