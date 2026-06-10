@@ -48,12 +48,12 @@ $$;
 CREATE OR REPLACE FUNCTION public.peeb_notify_admins(p_subject text, p_html text)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
-  NOTIF_SENDER constant text := 'noreply@assemblage.net';
+  NOTIF_SENDER constant text := 'mael@assemblage.net';
   v_key        text;
   v_recipients jsonb;
 BEGIN
   SELECT decrypted_secret INTO v_key
-  FROM vault.decrypted_secrets WHERE name = 'brevo_api_key' LIMIT 1;
+  FROM vault.decrypted_secrets WHERE lower(name) = 'brevo_api_key' LIMIT 1;
   IF v_key IS NULL THEN RETURN; END IF;            -- key not configured yet
 
   SELECT jsonb_agg(jsonb_build_object('email', email))

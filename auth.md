@@ -91,7 +91,7 @@ only loads for an approved user.
 - **Admin email notifications** (`supabase/migrations/20260610000000_admin_email_notifications.sql`):
   Postgres triggers on `profiles` call Brevo's transactional API (via `pg_net`) to email every
   admin when a new user signs up and when a role upgrade is requested. The Brevo **v3 API key**
-  is stored in **Supabase Vault** as `brevo_api_key`; the sender is `noreply@assemblage.net`
+  is stored in **Supabase Vault** as `brevo_api_key`; the sender is `mael@assemblage.net`
   (edit `NOTIF_SENDER` in the migration to change it). Best-effort: skipped silently if the key
   is absent or there are no admins.
 
