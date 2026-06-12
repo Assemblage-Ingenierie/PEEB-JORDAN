@@ -2,23 +2,13 @@ import { useState } from 'react';
 import { Mail, User, Briefcase, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import PasswordInput from './PasswordInput';
+import GoogleSignInButton from './GoogleSignInButton';
 
 // Assemblage brand colours (cf. src/index.css)
 const VIOLET = 'var(--ai-violet)';
 const ROUGE  = 'var(--ai-rouge)';
 const GRIS   = 'var(--ai-gris)';
 const NOIR70 = 'var(--ai-noir70)';
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
-      <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.76-2.7.76-2.08 0-3.84-1.4-4.47-3.29H1.88v2.07A8 8 0 0 0 8.98 17z"/>
-      <path fill="#FBBC05" d="M4.51 10.52A4.8 4.8 0 0 1 4.26 9c0-.52.09-1.03.25-1.52V5.41H1.88A8 8 0 0 0 .98 9c0 1.29.31 2.52.9 3.59l2.63-2.07z"/>
-      <path fill="#EA4335" d="M8.98 3.58c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 8.98 1a8 8 0 0 0-7.1 4.41l2.63 2.07c.63-1.89 2.39-3.9 4.47-3.9z"/>
-    </svg>
-  );
-}
 
 const isValidEmail = (e) => e.includes('@');
 
@@ -45,15 +35,6 @@ export default function AuthLanding() {
     setMsg(null); setLoading(false);
     setPassword(''); setPassword2(''); setEmailTouched(false);
     setMode(next);
-  }
-
-  async function handleGoogle() {
-    setLoading(true); setMsg(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) { setMsg({ type: 'error', text: error.message }); setLoading(false); }
   }
 
   async function handleSignup(e) {
@@ -146,10 +127,7 @@ export default function AuthLanding() {
               <span style={{ fontSize: 11, color: NOIR70 }}>or</span>
               <div style={{ flex: 1, height: 1, background: GRIS }} />
             </div>
-            <button onClick={handleGoogle} disabled={loading} className="btn-secondary"
-              style={{ width: '100%', justifyContent: 'center', gap: 8 }}>
-              <GoogleIcon /> Continue with Google
-            </button>
+            <GoogleSignInButton text="continue_with" onError={(text) => setMsg({ type: 'error', text })} />
           </div>
         )}
 
@@ -234,10 +212,7 @@ export default function AuthLanding() {
               <span style={{ fontSize: 11, color: NOIR70 }}>or</span>
               <div style={{ flex: 1, height: 1, background: GRIS }} />
             </div>
-            <button type="button" onClick={handleGoogle} disabled={loading} className="btn-secondary"
-              style={{ width: '100%', justifyContent: 'center', gap: 8 }}>
-              <GoogleIcon /> Continue with Google
-            </button>
+            <GoogleSignInButton text="signin_with" onError={(text) => setMsg({ type: 'error', text })} />
           </form>
         )}
 
