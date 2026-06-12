@@ -176,11 +176,11 @@ export default function Admin() {
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--ai-violet)', color: 'white', fontSize: 11 }}>
-                <th className="th" style={{ textAlign: 'left' }}>First name</th>
-                <th className="th" style={{ textAlign: 'left' }}>Last name</th>
-                <th className="th" style={{ textAlign: 'left' }}>Role</th>
-                <th className="th" style={{ textAlign: 'left' }}>E-mail</th>
-                <th className="th" style={{ textAlign: 'right' }}>Status</th>
+                <th className="th" style={{ textAlign: 'left', color: 'white' }}>First name</th>
+                <th className="th" style={{ textAlign: 'left', color: 'white' }}>Last name</th>
+                <th className="th" style={{ textAlign: 'left', color: 'white' }}>Role</th>
+                <th className="th" style={{ textAlign: 'left', color: 'white' }}>E-mail</th>
+                <th className="th" style={{ textAlign: 'right', color: 'white' }}>Status</th>
               </tr>
             </thead>
             <tbody>

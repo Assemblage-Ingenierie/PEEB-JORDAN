@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Building2, Map,
-  SlidersHorizontal, ChevronRight, Shield, BookOpen, LogOut, KeyRound,
+  SlidersHorizontal, ChevronRight, Shield, BookOpen, LogOut, KeyRound, UserCog,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import RequestAccessModal from '../auth/RequestAccessModal';
+import MyAccountModal from '../auth/MyAccountModal';
 import { pathFromState, isModifiedClick } from '../../lib/router';
 
 const NAV = [
@@ -22,6 +23,8 @@ export default function Sidebar() {
   const { isAdmin, profile, logout } = useAuth();
   const [logoFailed, setLogoFailed] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const nav = NAV.filter(item => !item.adminOnly || isAdmin);
 
@@ -113,8 +116,40 @@ export default function Sidebar() {
             {profile?.requested_status ? 'Request pending…' : 'Request access'}
           </button>
         )}
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
+        <div className="flex items-center justify-between gap-2" style={{ position: 'relative' }}>
+          {/* Pop-up "My account" */}
+          {showUserMenu && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 30 }} onClick={() => setShowUserMenu(false)} />
+              <div
+                className="rounded-lg shadow-xl"
+                style={{
+                  position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40,
+                  background: 'white', border: '1px solid var(--ai-gris-clair)', padding: 4,
+                }}
+              >
+                <button
+                  onClick={() => { setShowUserMenu(false); setShowAccount(true); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all"
+                  style={{ color: 'var(--ai-violet)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--ai-gris-clair)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <UserCog className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--ai-rouge)' }} />
+                  My account
+                </button>
+              </div>
+            </>
+          )}
+
+          <button
+            onClick={() => setShowUserMenu(v => !v)}
+            className="min-w-0 flex-1 text-left p-1 rounded-lg transition-all"
+            style={{ background: showUserMenu ? 'rgba(255,255,255,.10)' : 'transparent', border: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => { if (!showUserMenu) e.currentTarget.style.background = 'rgba(255,255,255,.06)'; }}
+            onMouseLeave={e => { if (!showUserMenu) e.currentTarget.style.background = 'transparent'; }}
+            title="My account"
+          >
             <div className="text-xs font-semibold truncate" style={{ color: 'white' }}>
               {profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email : ''}
             </div>
@@ -123,7 +158,7 @@ export default function Sidebar() {
                 : profile?.status === 'editor' ? 'Editor'
                 : 'Viewer'}
             </div>
-          </div>
+          </button>
           <button
             onClick={logout}
             title="Sign out"
@@ -138,6 +173,7 @@ export default function Sidebar() {
       </div>
 
       {showRequest && <RequestAccessModal onClose={() => setShowRequest(false)} />}
+      {showAccount && <MyAccountModal onClose={() => setShowAccount(false)} />}
 
     </aside>
   );
