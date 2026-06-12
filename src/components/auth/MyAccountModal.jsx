@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, User, ArrowUpCircle, PencilLine, ShieldCheck, Clock, Save } from 'lucide-react';
+import { X, User, ArrowUpCircle, PencilLine, ShieldCheck, Clock, Save, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
@@ -23,6 +23,7 @@ export default function MyAccountModal({ onClose }) {
   const [section, setSection] = useState('info'); // 'info' | 'requests'
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [saved, setSaved] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
 
   const isDirty =
@@ -31,10 +32,10 @@ export default function MyAccountModal({ onClose }) {
     form.job_title !== initial.job_title ||
     form.requested_status !== initial.requested_status;
 
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k) => (e) => { setSaved(false); setForm(f => ({ ...f, [k]: e.target.value })); };
 
   async function save() {
-    setSaving(true); setErr('');
+    setSaving(true); setErr(''); setSaved(false);
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -47,6 +48,7 @@ export default function MyAccountModal({ onClose }) {
     setSaving(false);
     if (error) { setErr(error.message); return false; }
     await refreshProfile();
+    setSaved(true);
     return true;
   }
 
@@ -154,7 +156,7 @@ export default function MyAccountModal({ onClose }) {
                       <span>Requested upgrade to <strong>{STATUS_LABELS[form.requested_status]}</strong>
                         {initial.requested_status === form.requested_status ? ' — awaiting approval.' : ' (unsaved).'}</span>
                     </div>
-                    <button onClick={() => setForm(f => ({ ...f, requested_status: null }))} className="btn-secondary"
+                    <button onClick={() => { setSaved(false); setForm(f => ({ ...f, requested_status: null })); }} className="btn-secondary"
                       style={{ width: '100%', justifyContent: 'center' }}>
                       Cancel request
                     </button>
@@ -162,14 +164,14 @@ export default function MyAccountModal({ onClose }) {
                 ) : (
                   <div className="space-y-2">
                     {canRequestEditor && (
-                      <button onClick={() => setForm(f => ({ ...f, requested_status: 'editor' }))} className="btn-secondary"
+                      <button onClick={() => { setSaved(false); setForm(f => ({ ...f, requested_status: 'editor' })); }} className="btn-secondary"
                         style={{ width: '100%', justifyContent: 'flex-start', gap: 8 }}>
                         <PencilLine className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
                         Request Editor status
                       </button>
                     )}
                     {canRequestAdmin && (
-                      <button onClick={() => setForm(f => ({ ...f, requested_status: 'admin' }))} className="btn-secondary"
+                      <button onClick={() => { setSaved(false); setForm(f => ({ ...f, requested_status: 'admin' })); }} className="btn-secondary"
                         style={{ width: '100%', justifyContent: 'flex-start', gap: 8 }}>
                         <ShieldCheck className="w-4 h-4" style={{ color: 'var(--ai-rouge)' }} />
                         Request Administrator status
@@ -187,11 +189,18 @@ export default function MyAccountModal({ onClose }) {
           {err && <p style={{ color: 'var(--ai-rouge)', fontSize: 12, marginTop: 12 }}>{err}</p>}
 
           {/* ── Save ── */}
-          <div className="flex justify-end gap-2 pt-4 mt-4" style={{ borderTop: '1px solid var(--ai-gris-clair)' }}>
-            <button onClick={save} disabled={!isDirty || saving} className="btn-primary"
-              style={{ opacity: (!isDirty || saving) ? 0.5 : 1, cursor: (!isDirty || saving) ? 'default' : 'pointer' }}>
-              <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save changes'}
-            </button>
+          <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--ai-gris-clair)' }}>
+            <div className="flex justify-end gap-2">
+              <button onClick={save} disabled={!isDirty || saving} className="btn-primary"
+                style={{ opacity: (!isDirty || saving) ? 0.5 : 1, cursor: (!isDirty || saving) ? 'default' : 'pointer' }}>
+                <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+            {saved && (
+              <p className="flex items-center justify-end gap-1.5 mt-2" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ai-vert, #1a9e6e)', margin: '8px 0 0' }}>
+                <Check className="w-4 h-4" /> You successfully updated your profile
+              </p>
+            )}
           </div>
         </div>
       </div>
