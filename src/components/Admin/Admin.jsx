@@ -1,23 +1,16 @@
-import { useState, useEffect, useCallback, Fragment } from 'react';
-import { Shield, RefreshCw, Clock, Check, ChevronDown, ArrowUpCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Shield, RefreshCw, Clock, Check, ArrowUpCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
 const STATUS_LABELS = { viewer: 'Viewer', editor: 'Editor', admin: 'Administrator' };
 const STATUS_ORDER  = ['viewer', 'editor', 'admin'];
 
-const STATUS_BADGE = {
-  viewer: { bg: 'var(--ai-gris-clair)', color: 'var(--ai-violet)' },
-  editor: { bg: 'var(--ai-rouge-clair)', color: 'var(--ai-rouge)' },
-  admin:  { bg: 'var(--ai-violet)',      color: 'white' },
-};
-
 export default function Admin() {
   const { profile: me } = useAuth();
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [err, setErr]           = useState('');
-  const [openId, setOpenId]     = useState(null); // row whose status panel is open
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true); setErr('');
@@ -49,7 +42,7 @@ export default function Admin() {
     }
     const { error } = await supabase.from('profiles').update({ status }).eq('id', p.id);
     if (error) setErr(error.message);
-    else { setOpenId(null); fetchProfiles(); }
+    else fetchProfiles();
   };
 
   const acceptRequest = async (p) => {
@@ -188,63 +181,37 @@ export default function Admin() {
                 <tr><td className="td" colSpan={5} style={{ color: 'var(--ai-gris)' }}><em>No approved members.</em></td></tr>
               )}
               {approved.map(p => {
-                const badge = STATUS_BADGE[p.status] || STATUS_BADGE.viewer;
-                const isOpen = openId === p.id;
+                const isMe = me?.id === p.id;
                 return (
-                  <Fragment key={p.id}>
-                    <tr style={{ borderBottom: '1px solid var(--ai-gris-clair)' }}>
-                      {/* Prénom & Nom — cliquables pour gérer le statut */}
-                      <td className="td">
-                        <button onClick={() => setOpenId(isOpen ? null : p.id)}
-                          className="font-semibold flex items-center gap-1"
-                          style={{ color: 'var(--ai-violet)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                          {p.first_name || '—'}
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--ai-gris-clair)' }}>
+                    <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{p.first_name || '—'}</td>
+                    <td className="td font-semibold" style={{ color: 'var(--ai-violet)' }}>{p.last_name || '—'}</td>
+                    <td className="td" style={{ color: 'var(--ai-noir70)' }}>{p.job_title || '—'}</td>
+                    <td className="td" style={{ color: 'var(--ai-noir70)' }}>{p.email}</td>
+                    <td className="td" style={{ textAlign: 'right' }}>
+                      <div className="flex items-center justify-end gap-2">
+                        {isMe && <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>(you)</span>}
+                        <select
+                          value={p.status}
+                          onChange={(e) => { if (e.target.value !== p.status) setStatus(p, e.target.value); }}
+                          className="text-xs font-semibold rounded-md"
+                          style={{
+                            background: 'white', color: 'var(--ai-violet)',
+                            border: '1px solid var(--ai-gris)', padding: '4px 8px', cursor: 'pointer',
+                          }}
+                        >
+                          {STATUS_ORDER.map(s => (
+                            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                          ))}
+                        </select>
+                        <button onClick={() => setApproval(p.id, false)}
+                          className="text-xs px-2 py-1 rounded-md"
+                          style={{ background: 'white', color: 'var(--ai-rouge)', border: '1px solid var(--ai-rouge)', cursor: 'pointer' }}>
+                          Revoke
                         </button>
-                      </td>
-                      <td className="td">
-                        <button onClick={() => setOpenId(isOpen ? null : p.id)}
-                          className="font-semibold flex items-center gap-1"
-                          style={{ color: 'var(--ai-violet)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                          {p.last_name || '—'}
-                          <ChevronDown className="w-3 h-3" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
-                        </button>
-                      </td>
-                      <td className="td" style={{ color: 'var(--ai-noir70)' }}>{p.job_title || '—'}</td>
-                      <td className="td" style={{ color: 'var(--ai-noir70)' }}>{p.email}</td>
-                      <td className="td" style={{ textAlign: 'right' }}>
-                        <span className="badge" style={{ background: badge.bg, color: badge.color }}>
-                          {STATUS_LABELS[p.status] || p.status}
-                          {me?.id === p.id ? ' (you)' : ''}
-                        </span>
-                      </td>
-                    </tr>
-                    {isOpen && (
-                      <tr style={{ background: 'var(--ai-gris-clair)' }}>
-                        <td className="td" colSpan={5}>
-                          <div className="flex items-center gap-2 flex-wrap py-1">
-                            <span className="text-xs" style={{ color: 'var(--ai-noir70)' }}>
-                              Status of {fullName(p) || p.email}:
-                            </span>
-                            {STATUS_ORDER.map(s => (
-                              <button key={s} onClick={() => setStatus(p, s)} disabled={p.status === s}
-                                className="text-xs px-3 py-1 rounded-md font-semibold"
-                                style={p.status === s
-                                  ? { background: 'var(--ai-violet)', color: 'white', cursor: 'default' }
-                                  : { background: 'white', color: 'var(--ai-violet)', border: '1px solid var(--ai-gris)', cursor: 'pointer' }}>
-                                {STATUS_LABELS[s]}
-                              </button>
-                            ))}
-                            <span style={{ flex: 1 }} />
-                            <button onClick={() => setApproval(p.id, false)}
-                              className="text-xs px-3 py-1 rounded-md"
-                              style={{ background: 'white', color: 'var(--ai-rouge)', border: '1px solid var(--ai-rouge)', cursor: 'pointer' }}>
-                              Revoke access
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                      </div>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
